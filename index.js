@@ -73,10 +73,13 @@ async function getChatResponse(conversationId, userMessage) {
             generationConfig: {
                 maxOutputTokens: 1024,
             },
-            systemInstruction: `あなたは親切で役立つAIアシスタントです。
+            systemInstruction: {
+                parts: [{
+                    text: `あなたは親切で役立つAIアシスタントです。
 日本語で簡潔に、わかりやすく回答してください。
 LINEでの会話なので、長すぎる返答は避けてください。
-絵文字を適度に使用して、フレンドリーな雰囲気を心がけてください。`,
+絵文字を適度に使用して、フレンドリーな雰囲気を心がけてください。` }]
+            },
         });
 
         const result = await chat.sendMessage(userMessage);
