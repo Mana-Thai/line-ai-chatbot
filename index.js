@@ -18,8 +18,17 @@ const lineClient = new line.messagingApi.MessagingApiClient({
 });
 
 // Create Gemini client
+if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+    console.error('CRITICAL ERROR: GEMINI_API_KEY is not set or still has the placeholder value.');
+}
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    systemInstruction: `あなたは親切で役立つAIアシスタントです。
+日本語で簡潔に、わかりやすく回答してください。
+LINEでの会話なので、長すぎる返答は避けてください。
+絵文字を適度に使用して、フレンドリーな雰囲気を心がけてください。`
+});
 
 // Express app
 const app = express();
@@ -74,10 +83,6 @@ async function getChatResponse(conversationId, userMessage) {
             generationConfig: {
                 maxOutputTokens: 1024,
             },
-            systemInstruction: `あなたは親切で役立つAIアシスタントです。
-日本語で簡潔に、わかりやすく回答してください。
-LINEでの会話なので、長すぎる返答は避けてください。
-絵文字を適度に使用して、フレンドリーな雰囲気を心がけてください。`,
         });
 
         const result = await chat.sendMessage(userMessage);
