@@ -119,7 +119,7 @@ app.post('/webhook', line.middleware(lineConfig), (req, res) => {
 });
 
 // Health check endpoint
-app.get('/', (req, res) => {
+app.get(['/', '/healthz'], (req, res) => {
     res.send('LINE AI Chatbot is running! 🤖 (Powered by Gemini)');
 });
 
