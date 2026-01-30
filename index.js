@@ -20,10 +20,13 @@ const lineClient = new line.messagingApi.MessagingApiClient({
 // Create Gemini client
 if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
     console.error('CRITICAL ERROR: GEMINI_API_KEY is not set or still has the placeholder value.');
+} else {
+    const key = process.env.GEMINI_API_KEY;
+    console.log(`[Config] API Key loaded (suffix: ${key.substring(key.length - 4)})`);
 }
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     systemInstruction: `あなたは親切で役立つAIアシスタントです。
 日本語で簡潔に、わかりやすく回答してください。
 LINEでの会話なので、長すぎる返答は避けてください。
