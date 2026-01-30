@@ -66,6 +66,7 @@ function clearHistory(conversationId) {
 
 async function getChatResponse(conversationId, userMessage) {
     const history = getHistory(conversationId);
+    console.log(`[Gemini] Starting chat for ${conversationId}. History length: ${history.length}`);
 
     try {
         const chat = model.startChat({
@@ -82,6 +83,7 @@ LINEでの会話なので、長すぎる返答は避けてください。
         const result = await chat.sendMessage(userMessage);
         const response = await result.response;
         const assistantMessage = response.text();
+        console.log(`[Gemini] Response received: ${assistantMessage.substring(0, 50)}...`);
 
         // Add messages to history
         addToHistory(conversationId, 'user', userMessage);
@@ -163,16 +165,21 @@ async function handleEvent(event) {
     }
 
     try {
+        console.log(`[AI] Requesting response for message: ${userMessage}`);
         // Get AI response
         const aiResponse = await getChatResponse(conversationId, userMessage);
+        console.log(`[AI] Response obtained, length: ${aiResponse.length}`);
 
         // Split long messages (LINE limit is 5000 chars)
         const messages = splitMessage(aiResponse, 4500);
+        console.log(`[LINE] Replying with ${messages.length} chunks`);
 
-        return lineClient.replyMessage({
+        const replyResult = await lineClient.replyMessage({
             replyToken: event.replyToken,
             messages: messages.map(text => ({ type: 'text', text }))
         });
+        console.log('[LINE] Reply sent successfully:', JSON.stringify(replyResult));
+        return replyResult;
     } catch (error) {
         console.error('Error processing message:', error);
 
