@@ -1,0 +1,8 @@
+order_id: "sample-002"
+couple_names: "健二 & 由紀"
+anniversary_date: "2021年10月15日"
+scene1_caption: "2019年 秋"          # Scene 1に小さく表示
+message: "あの日、本を落としてくれてありがとう。"
+message_start_sec: 21.5             # メッセージのフェードイン開始秒
+output_formats: ["portrait", "landscape"]
+portrait_mode: "pad"                # 縦型は余白パディングで対応

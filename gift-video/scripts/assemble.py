@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,10 +46,48 @@ def alpha_fade_in_out(start: float, end: float, fade: float) -> str:
             f"if(lt(t,{end}),({end}-t)/{fade},0))))")
 
 
+# ---------------------------------------------------------------------------
+# メッセージの自動折り返し (drawtext は折り返さないため事前に改行を入れる)
+# ---------------------------------------------------------------------------
+def _est_width(text: str, fontsize: int) -> float:
+    """全角≈1.0em / 半角≈0.55em / 空白≈0.3em の概算で描画幅を見積もる。"""
+    w = 0.0
+    for c in text:
+        if c == " ":
+            w += 0.30
+        elif ord(c) > 0x2E7F:   # CJK・かな・全角記号
+            w += 1.00
+        else:
+            w += 0.55
+    return w * fontsize
+
+
+_NO_LINE_START = set("、。,.!?」』)〉》…!?ー")
+
+
+def wrap_text(text: str, fontsize: int, max_width: float) -> str:
+    """欧文単語は分割せず、行頭禁則(、。など)を避けつつ greedy に折り返す。"""
+    lines: list[str] = []
+    for para in text.split("\n"):
+        # 半角の連続(欧文単語+続く空白)は1トークン、それ以外は1文字ずつ
+        tokens = re.findall(r"[!-~]+\s*|.", para)
+        cur = ""
+        for tok in tokens:
+            if not cur or _est_width(cur + tok, fontsize) <= max_width \
+                    or tok.strip() in _NO_LINE_START:
+                cur += tok
+            else:
+                lines.append(cur.rstrip())
+                cur = tok.lstrip()
+        lines.append(cur.rstrip())
+    return "\n".join(lines)
+
+
 def drawtext(font: Path, textfile: Path, fontsize: int, color: str,
-             x: str, y: str, alpha: str, enable_from: float, enable_to: float) -> str:
+             x: str, y: str, alpha: str, enable_from: float, enable_to: float,
+             line_spacing: int = 0) -> str:
     return (f"drawtext=fontfile={ff_quote(font)}:textfile={ff_quote(textfile)}:"
-            f"fontsize={fontsize}:fontcolor={color}:"
+            f"fontsize={fontsize}:fontcolor={color}:line_spacing={line_spacing}:"
             f"shadowcolor=black@0.35:shadowx=2:shadowy=2:"
             f"x={x}:y={y}:alpha='{alpha}':"
             f"enable='between(t,{enable_from},{enable_to})'")
@@ -122,13 +160,16 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         if not 0 <= msg_start < total - 1:
             raise PipelineError(
                 f"message_start_sec={msg_start} が総再生時間 {total:.1f}s の範囲外です")
+        msg_size = int(H * 0.048)
+        wrapped = wrap_text(order["message"], msg_size, W * 0.86)
         msg_txt = work / "message.txt"
-        msg_txt.write_text(order["message"], encoding="utf-8")
+        msg_txt.write_text(wrapped, encoding="utf-8")
         texts.append(drawtext(
-            font, msg_txt, fontsize=int(H * 0.048), color=color,
+            font, msg_txt, fontsize=msg_size, color=color,
             x="(w-text_w)/2", y="(h-text_h)/2",
             alpha=alpha_fade_in(msg_start, MESSAGE_FADE),
-            enable_from=msg_start, enable_to=total))
+            enable_from=msg_start, enable_to=total,
+            line_spacing=int(msg_size * 0.5)))
         timing["message"] = {"text": order["message"],
                              "start": msg_start, "fade": MESSAGE_FADE}
 

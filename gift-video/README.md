@@ -93,6 +93,7 @@ portrait_mode: "crop"               # 縦型変換: crop=センタークロッ�
 - テキストオーバーレイ (Noto Sans JP、日英対応):
   - Scene 1 左下: `scene1_caption` (小さめ、1〜6秒でフェードイン/アウト)
   - `message`: 画面中央に `message_start_sec` から3秒かけてゆっくりフェードイン
+    (画面幅に収まらない長文は行頭禁則を考慮して自動折り返し。yaml内の改行もそのまま反映)
   - ラスト2秒: `couple_names` と `anniversary_date` を下部中央に表示
 - BGM: `loudnorm` で -14 LUFS にノーマライズ → 全体の長さに合わせてトリム → 末尾2秒フェードアウト
   (シーン素材側の音声は使用しない)
