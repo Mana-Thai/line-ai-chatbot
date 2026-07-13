@@ -1,0 +1,13 @@
+# 注文ごとの素材・成果物はリポジトリに含めない (order.yaml のみ管理)
+orders/*/input/
+orders/*/output/
+
+# 紙テクスチャは初回実行時に自動生成される
+assets/transition.png
+
+# フォントは各自配置 (assets/fonts/README.md 参照)
+assets/fonts/*.ttf
+assets/fonts/*.otf
+assets/fonts/*.ttc
+
+__pycache__/
