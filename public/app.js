@@ -156,6 +156,12 @@
     // バックプリント用版代 : 有の発注数合計で割って1枚あたりを算出(無=0)
     // 完成Tシャツ単価 = サイズ別Tシャツ代(持ち込みは持ち込み価格)
     //                 + ロゴ用版代の1枚あたり + BP用版代の1枚あたり + スクリーン工賃
+    //                 を10の位で切り上げ(例: 221 → 230)
+
+    // 浮動小数点誤差でちょうど10の倍数が繰り上がらないよう、小数2桁で丸めてから切り上げる
+    function roundUp10(n) {
+        return Math.ceil(Math.round(n * 100) / 1000) * 10;
+    }
 
     function orderQty(order) {
         let q = 0;
@@ -198,7 +204,7 @@
         function unit(chestLogo, backPrint, size, color) {
             const logoAdd = chestLogo === '無' ? 0 : logoUnit;
             const bpAdd = backPrint === '有' ? bpUnit : 0;
-            return basePrice(size, color) + logoAdd + bpAdd + laborFor(chestLogo, backPrint);
+            return roundUp10(basePrice(size, color) + logoAdd + bpAdd + laborFor(chestLogo, backPrint));
         }
 
         return { counts, logoDen, logoUnit, bpUnit, laborFor, basePrice, unit, hasPricing: !!state.pricing };
@@ -338,15 +344,15 @@
             const labor = pm.laborFor(combo.chestLogo, combo.backPrint);
             const rows = C.SIZES.map((size) => {
                 const base = pm.basePrice(size, null);
-                return `<tr><th>${size}</th><td class="num">${fmtMoney(base)}</td><td class="num total-col">${fmtMoney(base + logoAdd + bpAdd + labor)}</td></tr>`;
+                return `<tr><th>${size}</th><td class="num">${fmtMoney(base)}</td><td class="num total-col">${fmtMoney(pm.unit(combo.chestLogo, combo.backPrint, size, null))}</td></tr>`;
             }).join('');
             const bringBase = pm.basePrice(null, C.BRING_OWN);
-            const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num">${fmtMoney(bringBase)}</td><td class="num total-col">${fmtMoney(bringBase + logoAdd + bpAdd + labor)}</td></tr>`;
+            const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num">${fmtMoney(bringBase)}</td><td class="num total-col">${fmtMoney(pm.unit(combo.chestLogo, combo.backPrint, null, C.BRING_OWN))}</td></tr>`;
             return `
             <div class="summary-group">
                 <div class="summary-title">${escapeHtml(combo.label)}</div>
                 <div class="price-breakdown muted">
-                    内訳: Tシャツ代(サイズ別) + ロゴ版代 ${fmtMoney(logoAdd)} + バックプリント版代 ${fmtMoney(bpAdd)} + 工賃 ${fmtMoney(labor)}
+                    内訳: Tシャツ代(サイズ別) + ロゴ版代 ${fmtMoney(logoAdd)} + バックプリント版代 ${fmtMoney(bpAdd)} + 工賃 ${fmtMoney(labor)}(単価は10の位で切り上げ)
                 </div>
                 <div class="table-wrap">
                     <table class="summary">
