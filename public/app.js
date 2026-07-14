@@ -422,6 +422,33 @@
         };
     }
 
+    // ---------- CSV出力 ----------
+
+    // 明細CSV(1行 = 注文×カラー)。Excelで開けるようBOM付きUTF-8
+    function downloadCsv() {
+        if (state.orders.length === 0) return showPopup('注文がまだありません');
+        const rows = [['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '備考', '更新日時']];
+        for (const o of state.orders) {
+            for (const color of C.COLORS) {
+                if (!o.quantities[color]) continue;
+                rows.push([
+                    o.displayName, o.chestLogo, o.backPrint, o.size,
+                    color, o.quantities[color], o.note,
+                    new Date(o.updatedAt).toLocaleString('ja-JP'),
+                ]);
+            }
+        }
+        const csv = '\ufeff' + rows
+            .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        const d = new Date();
+        a.download = `注文一覧_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
     // ---------- 管理者モード ----------
 
     async function adminUnlock() {
@@ -449,6 +476,7 @@
     buildColorGrid();
 
     $('add-btn').addEventListener('click', () => openForm(null));
+    $('csv-btn').addEventListener('click', downloadCsv);
     $('form-cancel').addEventListener('click', closeForm);
     $('form-save').addEventListener('click', saveForm);
     $('popup-ok').addEventListener('click', () => $('popup').classList.add('hidden'));

@@ -26,6 +26,8 @@ LINEグループのメンバーでTシャツ等のグッズ注文を取りまと
 
 ## セットアップ
 
+**初めての方は [SETUP.md](./SETUP.md) にクリック単位の詳細手順があります。**
+
 ### 1. LINE Developers Console(無料)
 
 1. https://developers.line.biz/console/ でProviderを作成(既存でも可)

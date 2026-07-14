@@ -104,6 +104,7 @@ body {
     margin-bottom: 10px;
 }
 .section-head h2 { font-size: 16px; }
+.section-head-right { display: flex; align-items: center; gap: 10px; }
 
 /* ---------- order cards ---------- */
 .order-card {
