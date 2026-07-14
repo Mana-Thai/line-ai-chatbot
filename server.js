@@ -3,7 +3,10 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH } = require('./shared/constants');
+const {
+    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH,
+    MAX_ITEMS, MAX_PLATES, LABOR_COMBOS,
+} = require('./shared/constants');
 const { createStore } = require('./lib/store');
 const auth = require('./lib/auth');
 
@@ -112,18 +115,10 @@ app.post('/api/admin', requireAuth, (req, res) => {
 // 注文 API
 // ============================================
 
-function parseOrderInput(body) {
-    const b = body || {};
-    const orderName = typeof b.orderName === 'string' ? b.orderName.trim().slice(0, 50) : '';
-    if (!orderName) return { error: '名前を入力してください' };
-    if (!CHEST_LOGOS.includes(b.chestLogo)) return { error: '胸ロゴを選択してください' };
-    if (!BACK_PRINTS.includes(b.backPrint)) return { error: 'バックプリントを選択してください' };
-    if (!SIZES.includes(b.size)) return { error: 'サイズを選択してください' };
-    if (!b.quantities || typeof b.quantities !== 'object' || Array.isArray(b.quantities)) {
-        return { error: '数量の形式が不正です' };
-    }
+function parseQuantities(q) {
+    if (!q || typeof q !== 'object' || Array.isArray(q)) return { error: '数量の形式が不正です' };
     const quantities = {};
-    for (const [color, val] of Object.entries(b.quantities)) {
+    for (const [color, val] of Object.entries(q)) {
         if (!COLORS.includes(color)) return { error: `不明なカラーです: ${color}` };
         const n = Number(val);
         if (!Number.isInteger(n) || n < 0 || n > MAX_QTY) {
@@ -131,13 +126,89 @@ function parseOrderInput(body) {
         }
         if (n > 0) quantities[color] = n;
     }
-    if (Object.keys(quantities).length === 0) return { error: '数量を1色以上入力してください' };
+    return { value: quantities };
+}
+
+function parseOrderInput(body) {
+    const b = body || {};
+    const orderName = typeof b.orderName === 'string' ? b.orderName.trim().slice(0, 50) : '';
+    if (!orderName) return { error: '名前を入力してください' };
+    if (!CHEST_LOGOS.includes(b.chestLogo)) return { error: '胸ロゴを選択してください' };
+    if (!BACK_PRINTS.includes(b.backPrint)) return { error: 'バックプリントを選択してください' };
+    if (!Array.isArray(b.items) || b.items.length === 0) return { error: 'サイズと数量を入力してください' };
+    if (b.items.length > MAX_ITEMS) return { error: `サイズは最大${MAX_ITEMS}件までです` };
+    const items = [];
+    for (const raw of b.items) {
+        if (!raw || !SIZES.includes(raw.size)) return { error: 'サイズを選択してください' };
+        const parsed = parseQuantities(raw.quantities);
+        if (parsed.error) return { error: parsed.error };
+        if (Object.keys(parsed.value).length === 0) {
+            return { error: `サイズ${raw.size}の数量を1色以上入力してください` };
+        }
+        items.push({ size: raw.size, quantities: parsed.value });
+    }
     const note = typeof b.note === 'string' ? b.note.trim().slice(0, MAX_NOTE_LENGTH) : '';
-    return { value: { orderName, chestLogo: b.chestLogo, backPrint: b.backPrint, size: b.size, quantities, note } };
+    return { value: { orderName, chestLogo: b.chestLogo, backPrint: b.backPrint, items, note } };
+}
+
+// ============================================
+// 価格設定(管理者のみ変更可能)
+// ============================================
+
+function parseNonNegNumber(val, name) {
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < 0 || n > 1e9) return { error: `${name}は0以上の数値で入力してください` };
+    return { value: Math.round(n * 100) / 100 };
+}
+
+function parsePricing(body) {
+    const b = body || {};
+    const sizePrices = {};
+    for (const size of SIZES) {
+        const parsed = parseNonNegNumber((b.sizePrices || {})[size] || 0, `Tシャツ代(${size})`);
+        if (parsed.error) return { error: parsed.error };
+        sizePrices[size] = parsed.value;
+    }
+    const bring = parseNonNegNumber(b.bringOwnPrice || 0, '持ち込みTシャツ代');
+    if (bring.error) return { error: bring.error };
+
+    if (!Array.isArray(b.plates)) return { error: 'スクリーン版代の形式が不正です' };
+    if (b.plates.length > MAX_PLATES) return { error: `スクリーン版は最大${MAX_PLATES}件までです` };
+    const plates = [];
+    for (const raw of b.plates) {
+        if (!raw || !['logo', 'back'].includes(raw.type)) return { error: 'スクリーン版の種類を選択してください' };
+        const cost = parseNonNegNumber(raw.cost, 'スクリーン版代');
+        if (cost.error) return { error: cost.error };
+        const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 50) : '';
+        plates.push({ type: raw.type, label, cost: cost.value });
+    }
+
+    const labor = {};
+    for (const combo of LABOR_COMBOS) {
+        const parsed = parseNonNegNumber((b.labor || {})[combo.key] || 0, `工賃(${combo.label})`);
+        if (parsed.error) return { error: parsed.error };
+        labor[combo.key] = parsed.value;
+    }
+    return { value: { sizePrices, bringOwnPrice: bring.value, plates, labor } };
 }
 
 app.get('/api/orders', requireAuth, async (req, res) => {
     res.json({ orders: await store.list() });
+});
+
+app.get('/api/pricing', requireAuth, async (req, res) => {
+    res.json({ pricing: await store.getSetting('pricing') });
+});
+
+app.put('/api/pricing', requireAuth, async (req, res) => {
+    if (!req.user.admin) {
+        return res.status(403).json({ message: '価格設定は管理者のみ変更できます' });
+    }
+    const parsed = parsePricing(req.body);
+    if (parsed.error) return res.status(400).json({ message: parsed.error });
+    await store.setSetting('pricing', parsed.value);
+    broadcast({ type: 'pricing' });
+    res.json({ pricing: parsed.value });
 });
 
 app.post('/api/orders', requireAuth, async (req, res) => {

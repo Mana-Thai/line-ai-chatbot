@@ -47,10 +47,26 @@
 
     <section class="section">
         <div class="section-head">
+            <h2>🧾 名前別の合計</h2>
+        </div>
+        <div id="person-totals"></div>
+    </section>
+
+    <section class="section">
+        <div class="section-head">
+            <h2>💰 単価表(価格の内訳)</h2>
+            <button id="pricing-edit-btn" class="btn btn-small hidden">価格を設定</button>
+        </div>
+        <div id="price-table"></div>
+    </section>
+
+    <section class="section">
+        <div class="section-head">
             <h2>📊 集計(発注用)</h2>
             <span class="section-head-right">
                 <span id="grand-total" class="muted"></span>
-                <button id="csv-btn" class="btn btn-small">CSV出力</button>
+                <button id="csv-btn" class="btn btn-small">CSV 日本語</button>
+                <button id="csv-th-btn" class="btn btn-small">CSV ไทย</button>
             </span>
         </div>
         <div id="summary"></div>
@@ -78,11 +94,9 @@
         <label class="field-label">バックプリント</label>
         <div id="back-print-options" class="chip-group"></div>
 
-        <label class="field-label">サイズ</label>
-        <div id="size-options" class="chip-group"></div>
-
-        <label class="field-label">カラーごとの数量</label>
-        <div id="color-grid" class="color-grid"></div>
+        <label class="field-label">サイズとカラーごとの数量</label>
+        <div id="items-list"></div>
+        <button id="add-item-btn" type="button" class="btn btn-small">＋ サイズを追加</button>
 
         <label class="field-label">備考(任意)</label>
         <textarea id="note-input" class="input" rows="2" placeholder="持ち込みの内容など"></textarea>
@@ -91,6 +105,32 @@
         <div class="modal-actions">
             <button id="form-cancel" class="btn">キャンセル</button>
             <button id="form-save" class="btn btn-primary">保存する</button>
+        </div>
+    </div>
+</div>
+
+<!-- 価格設定(管理者のみ) -->
+<div id="pricing-modal" class="modal hidden">
+    <div class="modal-card">
+        <h2>💰 価格設定(管理者)</h2>
+
+        <label class="field-label">Tシャツ代(サイズ別)</label>
+        <div id="size-price-grid" class="price-grid"></div>
+
+        <label class="field-label">持ち込みTシャツ代(1枚あたり)</label>
+        <input id="bring-own-price" class="input" type="number" inputmode="decimal" min="0" placeholder="0">
+
+        <label class="field-label">スクリーン版代</label>
+        <div id="plates-list"></div>
+        <button id="add-plate-btn" type="button" class="btn btn-small">＋ スクリーン版を追加</button>
+
+        <label class="field-label">スクリーン工賃(1枚あたり)</label>
+        <div id="labor-list" class="price-grid"></div>
+
+        <p id="pricing-error" class="error-text hidden"></p>
+        <div class="modal-actions">
+            <button id="pricing-cancel" class="btn">キャンセル</button>
+            <button id="pricing-save" class="btn btn-primary">保存する</button>
         </div>
     </div>
 </div>
