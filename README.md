@@ -1,48 +1,104 @@
-# LINE AI Chatbot
+# グッズ注文とりまとめアプリ(LINEグループ用)
 
-LINEでClaude AIと会話できるチャットボットです。
+LINEグループのメンバーでTシャツ等のグッズ注文を取りまとめるWebアプリです。
+**Messaging API(Bot)は使わない**ため、メッセージ通数の上限を一切消費しません。
+メンバー数・利用回数に制限なく無料で運用できます。
+
+## 特長
+
+- **LINEログイン(LIFF)** で開くだけ。名前は自動取得、ログイン操作不要
+- **名前の自由入力**: 注文ごとに名前を入力。友人の分の代行入力も可能(1人で複数名OK)
+- **リアルタイム更新**:誰かが保存すると全員の画面が即座に自動更新(SSE)
+- **編集ロック**:他のメンバーが編集中は「◯◯さんが編集中です」とポップアップ表示
+- **入力者のみ編集可**:自分が入力した注文だけ編集/削除できる(管理者パスコードで全件編集可能)
+- **複数サイズ入力**: 1回の注文で複数サイズ×複数カラーをまとめて登録可能(「＋サイズを追加」)
+- **価格の自動計算**: サイズ別Tシャツ代+スクリーン版代の分配+スクリーン工賃から、各Tシャツの完成単価・内訳・名前別合計金額を自動計算して表示(価格は管理者のみ設定可能)
+- **発注用の集計表**:デザイン(胸ロゴ×バックプリント)ごとに カラー×サイズ の枚数を自動集計
+- **CSV出力(日本語/タイ語)**: 明細CSVを日本語またはタイ語(固定文言を翻訳)でダウンロード
+
+## 注文の選択肢
+
+| 項目 | 選択肢 |
+|---|---|
+| 胸ロゴ | 有(白) / 有(カラー) / 無 |
+| バックプリント | 有 / 無 |
+| サイズ | S / M / L / XL / 2XL / 3XL / 4XL / 5XL |
+| カラー | 1.BK 〜 20.MT の20色 + 持ち込み(色ごとに数量を入力) |
+
+選択肢を変更したい場合は `shared/constants.js` を編集してください。
+
+## 価格の自動計算(管理者が「価格を設定」から入力)
+
+- **Tシャツ代**: サイズ別価格+持ち込み価格
+- **スクリーン版代**(複数登録可、各版は「ロゴ用/バックプリント用」を選択)
+  - ロゴ用: 白 = 版代÷(白合計+カラー合計)×白合計 / カラー = 同×カラー合計 / ロゴ無 = 0
+  - バックプリント用: 有 = 版代÷有の発注数合計(1枚あたり) / 無 = 0
+- **スクリーン工賃**: 「白ロゴ+BP」「カラーロゴ+BP」「ロゴ無+BP」「白ロゴ+BP無」「カラーロゴ+BP無」の5種類
+- **完成単価** = サイズ別Tシャツ代(持ち込みは持ち込み価格)+ロゴ版代の1枚あたり+BP版代の1枚あたり+工賃
+  を**10の位で切り上げ**(例: 221 → 230)
+
+発注数が変わると分配額も自動で再計算されます。
 
 ## セットアップ
 
-### 1. 依存パッケージのインストール
+**初めての方は [SETUP.md](./SETUP.md) にクリック単位の詳細手順があります。**
+
+### 1. LINE Developers Console(無料)
+
+1. https://developers.line.biz/console/ でProviderを作成(既存でも可)
+2. **「LINE Login」チャネル**を作成(Messaging APIチャネルは不要)
+3. チャネル基本設定の **チャネルID** を控える → `LINE_LOGIN_CHANNEL_ID`
+4. 「LIFF」タブで **LIFFアプリを追加**
+   - サイズ: `Full`
+   - エンドポイントURL: デプロイ後のURL(例: `https://your-app.onrender.com`)
+   - Scope: `openid` と `profile` を **必ず両方ON**
+5. 発行された **LIFF ID** を控える → `LIFF_ID`
+
+### 2. データベース(Supabase・無料)
+
+1. https://supabase.com/ でプロジェクトを作成
+2. `Project Settings → Database → Connection string (URI)` をコピー → `DATABASE_URL`
+   (テーブルは初回起動時に自動作成されます)
+
+※ `DATABASE_URL` 未設定の場合はローカルJSONファイルに保存します(開発用。
+Renderの無料プランでは再デプロイ時にデータが消えるため、本番ではDB必須)。
+
+### 3. Renderへデプロイ
+
+1. このリポジトリをGitHubにプッシュ
+2. RenderでWeb Serviceを作成し、環境変数を設定:
+   - `LIFF_ID` / `LINE_LOGIN_CHANNEL_ID` / `DATABASE_URL`
+   - `ADMIN_PASSCODE`(管理者用。取りまとめ役だけが知るパスコード)
+   - `SESSION_SECRET`(ランダムな長い文字列)
+3. デプロイ完了後、そのURLをLIFFのエンドポイントURLに設定
+
+### 4. グループLINEへの掲載
+
+LIFFのURL(`https://liff.line.me/{LIFF_ID}`)を、グループの
+**ノート または アナウンス(ピン留め)** に掲載してください。
+メンバーはそこからワンタップでいつでも開けます。
+
+## ローカル開発
 
 ```bash
 npm install
+cp .env.example .env   # ALLOW_INSECURE_DEV=1 を設定するとLINEログインなしで試せる
+npm start              # http://localhost:3000
 ```
 
-### 2. 環境変数の設定
+## 環境変数一覧
 
-`.env.example`をコピーして`.env`を作成し、以下の値を設定してください：
+| 変数 | 必須 | 説明 |
+|---|---|---|
+| `LIFF_ID` | ○ | LIFFアプリのID |
+| `LINE_LOGIN_CHANNEL_ID` | ○ | LINE LoginチャネルのチャネルID(IDトークン検証用) |
+| `ADMIN_PASSCODE` | 推奨 | 管理者モード(全注文の編集/削除)解除用 |
+| `DATABASE_URL` | 推奨 | PostgreSQL接続文字列(Supabase等)。未設定ならファイル保存 |
+| `SESSION_SECRET` | 推奨 | セッション署名鍵。未設定なら起動ごとにランダム生成 |
+| `APP_TITLE` | - | 画面に表示するタイトル |
+| `ALLOW_INSECURE_DEV` | - | `1`でLINEログインを省略(ローカル開発専用) |
 
-```
-LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token
-LINE_CHANNEL_SECRET=your_channel_secret
-ANTHROPIC_API_KEY=your_anthropic_api_key
-```
+## 旧チャットボットについて
 
-### 3. LINE Developers Console
-
-1. https://developers.line.biz/console/ にアクセス
-2. Providerを作成（または既存のものを使用）
-3. Messaging API channelを作成
-4. Channel access token と Channel secret をコピー
-5. Webhook URLを設定: `https://your-app.onrender.com/webhook`
-6. "Use webhook" を有効化
-
-### 4. Anthropic API Key
-
-1. https://console.anthropic.com/ にアクセス
-2. API Keysページでキーを作成
-3. キーをコピーして`.env`に設定
-
-## コマンド
-
-- **リセット** - 会話履歴をクリア
-- **ヘルプ** - ヘルプを表示
-
-## デプロイ（Render）
-
-1. GitHubにプッシュ
-2. Renderで新しいWeb Serviceを作成
-3. 環境変数を設定
-4. デプロイ完了後、Webhook URLをLINE Developers Consoleに設定
+以前のGemini AIチャットボット(`index.js`)はそのまま残してあります。
+`npm run chatbot` で起動できます(Messaging APIの通数制限あり)。
