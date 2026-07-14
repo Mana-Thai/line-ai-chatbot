@@ -1,17 +1,19 @@
 {
-    "name": "line-ai-chatbot",
+    "name": "line-group-order-app",
     "version": "1.0.0",
-    "description": "LINE Bot with Gemini AI integration",
-    "main": "index.js",
+    "description": "LINE group merchandise order app (LIFF, no Messaging API bot)",
+    "main": "server.js",
     "scripts": {
-        "start": "node index.js",
-        "dev": "node index.js"
+        "start": "node server.js",
+        "dev": "node server.js",
+        "chatbot": "node index.js"
     },
     "dependencies": {
         "@google/generative-ai": "^0.22.0",
         "@line/bot-sdk": "^8.0.0",
+        "dotenv": "^16.3.1",
         "express": "^4.18.2",
-        "dotenv": "^16.3.1"
+        "pg": "^8.11.3"
     },
     "engines": {
         "node": ">=18.0.0"

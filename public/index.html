@@ -1,0 +1,126 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>グッズ注文とりまとめ</title>
+<link rel="stylesheet" href="/style.css">
+
+<div id="screen-loading" class="screen">
+    <div class="center-box">
+        <div class="spinner"></div>
+        <p>読み込み中…</p>
+    </div>
+</div>
+
+<div id="screen-error" class="screen hidden">
+    <div class="center-box">
+        <p class="error-icon">⚠️</p>
+        <p id="error-message"></p>
+        <button class="btn btn-primary" onclick="location.reload()">再読み込み</button>
+    </div>
+</div>
+
+<div id="screen-devlogin" class="screen hidden">
+    <div class="center-box">
+        <h2>開発モードログイン</h2>
+        <input id="dev-name" class="input" placeholder="名前を入力">
+        <button id="dev-login-btn" class="btn btn-primary">ログイン</button>
+    </div>
+</div>
+
+<div id="screen-passcode" class="screen hidden">
+    <div class="center-box">
+        <h2>合言葉を入力してください</h2>
+        <p class="hint">グループのノートに書いてある合言葉です</p>
+        <input id="passcode-input" class="input" placeholder="合言葉" autocomplete="off">
+        <p id="passcode-error" class="error-text hidden"></p>
+        <button id="passcode-btn" class="btn btn-primary">入室する</button>
+    </div>
+</div>
+
+<div id="screen-main" class="screen hidden">
+    <header class="app-header">
+        <h1 id="app-title">グッズ注文とりまとめ</h1>
+        <div class="user-chip"><span id="user-name"></span><span id="admin-badge" class="badge hidden">管理者</span></div>
+    </header>
+
+    <div id="lock-banner" class="lock-banner hidden">
+        ✏️ <span id="lock-holder"></span>さんが編集中です
+    </div>
+
+    <section class="section">
+        <div class="section-head">
+            <h2>📋 注文リスト</h2>
+            <span id="order-count" class="muted"></span>
+        </div>
+        <div id="order-list"></div>
+        <p id="order-empty" class="muted hidden">まだ注文がありません。「＋ 注文を追加」から入力してください。</p>
+    </section>
+
+    <section class="section">
+        <div class="section-head">
+            <h2>📊 集計(発注用)</h2>
+            <span id="grand-total" class="muted"></span>
+        </div>
+        <div id="summary"></div>
+    </section>
+
+    <footer class="app-footer">
+        <button id="admin-link" class="link-btn hidden">管理者モード</button>
+    </footer>
+
+    <button id="add-btn" class="fab">＋ 注文を追加</button>
+</div>
+
+<!-- 注文入力フォーム -->
+<div id="form-modal" class="modal hidden">
+    <div class="modal-card">
+        <h2 id="form-title">注文を追加</h2>
+
+        <label class="field-label">胸ロゴ</label>
+        <div id="chest-logo-options" class="chip-group"></div>
+
+        <label class="field-label">バックプリント</label>
+        <div id="back-print-options" class="chip-group"></div>
+
+        <label class="field-label">サイズ</label>
+        <div id="size-options" class="chip-group"></div>
+
+        <label class="field-label">カラーごとの数量</label>
+        <div id="color-grid" class="color-grid"></div>
+
+        <label class="field-label">備考(任意)</label>
+        <textarea id="note-input" class="input" rows="2" placeholder="持ち込みの内容など"></textarea>
+
+        <p id="form-error" class="error-text hidden"></p>
+        <div class="modal-actions">
+            <button id="form-cancel" class="btn">キャンセル</button>
+            <button id="form-save" class="btn btn-primary">保存する</button>
+        </div>
+    </div>
+</div>
+
+<!-- 汎用ポップアップ(「◯◯さんが編集中です」等) -->
+<div id="popup" class="modal hidden">
+    <div class="modal-card popup-card">
+        <p id="popup-message"></p>
+        <div class="modal-actions">
+            <button id="popup-ok" class="btn btn-primary">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- 管理者パスコード入力 -->
+<div id="admin-modal" class="modal hidden">
+    <div class="modal-card popup-card">
+        <h2>管理者モード</h2>
+        <input id="admin-passcode-input" class="input" placeholder="管理者パスコード" autocomplete="off">
+        <p id="admin-error" class="error-text hidden"></p>
+        <div class="modal-actions">
+            <button id="admin-cancel" class="btn">キャンセル</button>
+            <button id="admin-ok" class="btn btn-primary">解除する</button>
+        </div>
+    </div>
+</div>
+
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="/shared/constants.js"></script>
+<script src="/app.js"></script>

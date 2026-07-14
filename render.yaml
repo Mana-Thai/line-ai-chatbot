@@ -5,13 +5,19 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /
+    healthCheckPath: /healthz
     envVars:
-      - key: LINE_CHANNEL_ACCESS_TOKEN
+      - key: LIFF_ID
         sync: false
-      - key: LINE_CHANNEL_SECRET
+      - key: LINE_LOGIN_CHANNEL_ID
         sync: false
-      - key: GEMINI_API_KEY
+      - key: APP_PASSCODE
         sync: false
-      - key: ANTHROPIC_API_KEY
+      - key: ADMIN_PASSCODE
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: APP_TITLE
         sync: false
