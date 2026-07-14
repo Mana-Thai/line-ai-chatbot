@@ -71,18 +71,13 @@ app.get('/api/config', (req, res) => {
     res.json({
         title: process.env.APP_TITLE || 'グッズ注文とりまとめ',
         liffId: process.env.LIFF_ID || null,
-        passcodeRequired: !!process.env.APP_PASSCODE,
         adminEnabled: !!process.env.ADMIN_PASSCODE,
         devMode: auth.DEV_MODE,
     });
 });
 
 app.post('/api/auth', async (req, res) => {
-    const { idToken, devUser, passcode } = req.body || {};
-
-    if (process.env.APP_PASSCODE && passcode !== process.env.APP_PASSCODE) {
-        return res.status(401).json({ error: 'passcode', message: '合言葉が違います' });
-    }
+    const { idToken, devUser } = req.body || {};
 
     try {
         let profile;
@@ -119,6 +114,8 @@ app.post('/api/admin', requireAuth, (req, res) => {
 
 function parseOrderInput(body) {
     const b = body || {};
+    const orderName = typeof b.orderName === 'string' ? b.orderName.trim().slice(0, 50) : '';
+    if (!orderName) return { error: '名前を入力してください' };
     if (!CHEST_LOGOS.includes(b.chestLogo)) return { error: '胸ロゴを選択してください' };
     if (!BACK_PRINTS.includes(b.backPrint)) return { error: 'バックプリントを選択してください' };
     if (!SIZES.includes(b.size)) return { error: 'サイズを選択してください' };
@@ -136,7 +133,7 @@ function parseOrderInput(body) {
     }
     if (Object.keys(quantities).length === 0) return { error: '数量を1色以上入力してください' };
     const note = typeof b.note === 'string' ? b.note.trim().slice(0, MAX_NOTE_LENGTH) : '';
-    return { value: { chestLogo: b.chestLogo, backPrint: b.backPrint, size: b.size, quantities, note } };
+    return { value: { orderName, chestLogo: b.chestLogo, backPrint: b.backPrint, size: b.size, quantities, note } };
 }
 
 app.get('/api/orders', requireAuth, async (req, res) => {
@@ -254,7 +251,6 @@ store.init()
         app.listen(PORT, () => {
             console.log(`🛒 Order app is running on port ${PORT}`);
             if (!process.env.LIFF_ID) console.warn('[Config] LIFF_ID is not set');
-            if (!process.env.APP_PASSCODE) console.warn('[Config] APP_PASSCODE is not set (anyone with the URL can access)');
         });
     })
     .catch((err) => {

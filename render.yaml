@@ -11,8 +11,6 @@ services:
         sync: false
       - key: LINE_LOGIN_CHANNEL_ID
         sync: false
-      - key: APP_PASSCODE
-        sync: false
       - key: ADMIN_PASSCODE
         sync: false
       - key: DATABASE_URL

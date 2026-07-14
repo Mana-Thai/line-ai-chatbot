@@ -26,16 +26,6 @@
     </div>
 </div>
 
-<div id="screen-passcode" class="screen hidden">
-    <div class="center-box">
-        <h2>合言葉を入力してください</h2>
-        <p class="hint">グループのノートに書いてある合言葉です</p>
-        <input id="passcode-input" class="input" placeholder="合言葉" autocomplete="off">
-        <p id="passcode-error" class="error-text hidden"></p>
-        <button id="passcode-btn" class="btn btn-primary">入室する</button>
-    </div>
-</div>
-
 <div id="screen-main" class="screen hidden">
     <header class="app-header">
         <h1 id="app-title">グッズ注文とりまとめ</h1>
@@ -77,6 +67,10 @@
 <div id="form-modal" class="modal hidden">
     <div class="modal-card">
         <h2 id="form-title">注文を追加</h2>
+
+        <label class="field-label">名前(注文する人)</label>
+        <input id="order-name-input" class="input" placeholder="例: 山田太郎" maxlength="50">
+        <p class="hint form-hint">友人の分を代わりに入力する場合は、その人の名前を入れてください</p>
 
         <label class="field-label">胸ロゴ</label>
         <div id="chest-logo-options" class="chip-group"></div>

@@ -35,7 +35,7 @@
 
     // ---------- 画面切り替え ----------
 
-    const SCREENS = ['screen-loading', 'screen-error', 'screen-devlogin', 'screen-passcode', 'screen-main'];
+    const SCREENS = ['screen-loading', 'screen-error', 'screen-devlogin', 'screen-main'];
     function showScreen(id) {
         SCREENS.forEach((s) => $(s).classList.toggle('hidden', s !== id));
     }
@@ -68,7 +68,7 @@
                 return showError(`LIFFの初期化に失敗しました: ${err.message}`);
             }
             if (!liff.isLoggedIn()) return liff.login();
-            proceedToPasscode();
+            authenticate();
         } else if (state.config.devMode) {
             const saved = localStorage.getItem('devName');
             if (saved) $('dev-name').value = saved;
@@ -78,17 +78,8 @@
         }
     }
 
-    function proceedToPasscode() {
-        const saved = localStorage.getItem('appPasscode') || '';
-        if (state.config.passcodeRequired && !saved) {
-            showScreen('screen-passcode');
-        } else {
-            authenticate(saved);
-        }
-    }
-
-    async function authenticate(passcode) {
-        const body = { passcode };
+    async function authenticate() {
+        const body = {};
         if (state.config.liffId) {
             body.idToken = liff.getIDToken();
             if (!body.idToken) {
@@ -102,17 +93,9 @@
             const data = await api('/api/auth', { method: 'POST', body: JSON.stringify(body) });
             state.token = data.token;
             state.user = data.user;
-            if (state.config.passcodeRequired) localStorage.setItem('appPasscode', passcode);
             enterMain();
         } catch (err) {
-            if (err.data && err.data.error === 'passcode') {
-                localStorage.removeItem('appPasscode');
-                $('passcode-error').textContent = err.message;
-                $('passcode-error').classList.remove('hidden');
-                showScreen('screen-passcode');
-            } else {
-                showError(err.message);
-            }
+            showError(err.message);
         }
     }
 
@@ -127,9 +110,12 @@
 
     // ---------- 注文リスト ----------
 
+    let refreshSeq = 0;
     async function refreshOrders() {
+        const seq = ++refreshSeq;
         try {
             const data = await api('/api/orders');
+            if (seq !== refreshSeq) return; // 古いレスポンスで新しい表示を上書きしない
             state.orders = data.orders;
             renderOrders();
             renderSummary();
@@ -167,10 +153,11 @@
             const updated = new Date(o.updatedAt).toLocaleString('ja-JP', {
                 month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
             });
+            const proxy = o.orderName !== o.displayName;
             return `
             <div class="order-card${mine ? ' mine' : ''}">
                 <div class="order-top">
-                    <span class="order-name">${escapeHtml(o.displayName)}${mine ? '<span class="you">(自分)</span>' : ''}</span>
+                    <span class="order-name">${escapeHtml(o.orderName)}${mine ? '<span class="you">(自分の入力)</span>' : ''}</span>
                     ${editable ? `
                     <span class="order-actions">
                         <button class="btn btn-small" data-edit="${o.id}">編集</button>
@@ -184,7 +171,7 @@
                 </div>
                 <div class="order-qty">${escapeHtml(qtyText(o.quantities))} <b>(計${totalQty(o.quantities)}枚)</b></div>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
-                <div class="order-meta">更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
+                <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
             </div>`;
         }).join('');
 
@@ -322,6 +309,8 @@
     }
 
     function fillForm(order) {
+        // 新規は自分のLINE名を初期値に(代行入力時は書き換えてもらう)
+        $('order-name-input').value = order ? order.orderName : state.user.name;
         setChip('chestLogo', order ? order.chestLogo : null);
         setChip('backPrint', order ? order.backPrint : null);
         setChip('size', order ? order.size : null);
@@ -356,6 +345,7 @@
 
     async function saveForm() {
         const body = {
+            orderName: $('order-name-input').value.trim(),
             chestLogo: selectedChip('chestLogo'),
             backPrint: selectedChip('backPrint'),
             size: selectedChip('size'),
@@ -368,6 +358,7 @@
         });
 
         const errBox = $('form-error');
+        if (!body.orderName) return showFormError('名前を入力してください');
         if (!body.chestLogo) return showFormError('胸ロゴを選択してください');
         if (!body.backPrint) return showFormError('バックプリントを選択してください');
         if (!body.size) return showFormError('サイズを選択してください');
@@ -396,7 +387,7 @@
     async function deleteOrder(id) {
         const order = state.orders.find((o) => o.id === id);
         if (!order) return;
-        if (!window.confirm(`${order.displayName}さんの注文(${order.size}/計${totalQty(order.quantities)}枚)を削除しますか?`)) return;
+        if (!window.confirm(`${order.orderName}さんの注文(${order.size}/計${totalQty(order.quantities)}枚)を削除しますか?`)) return;
         try {
             await api(`/api/orders/${id}`, { method: 'DELETE' });
             refreshOrders();
@@ -427,13 +418,13 @@
     // 明細CSV(1行 = 注文×カラー)。Excelで開けるようBOM付きUTF-8
     function downloadCsv() {
         if (state.orders.length === 0) return showPopup('注文がまだありません');
-        const rows = [['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '備考', '更新日時']];
+        const rows = [['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '備考', '入力者', '更新日時']];
         for (const o of state.orders) {
             for (const color of C.COLORS) {
                 if (!o.quantities[color]) continue;
                 rows.push([
-                    o.displayName, o.chestLogo, o.backPrint, o.size,
-                    color, o.quantities[color], o.note,
+                    o.orderName, o.chestLogo, o.backPrint, o.size,
+                    color, o.quantities[color], o.note, o.displayName,
                     new Date(o.updatedAt).toLocaleString('ja-JP'),
                 ]);
             }
@@ -481,16 +472,11 @@
     $('form-save').addEventListener('click', saveForm);
     $('popup-ok').addEventListener('click', () => $('popup').classList.add('hidden'));
 
-    $('passcode-btn').addEventListener('click', () => authenticate($('passcode-input').value.trim()));
-    $('passcode-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') authenticate($('passcode-input').value.trim());
-    });
-
     $('dev-login-btn').addEventListener('click', () => {
         const name = $('dev-name').value.trim();
         if (!name) return;
         localStorage.setItem('devName', name);
-        proceedToPasscode();
+        authenticate();
     });
 
     $('admin-link').addEventListener('click', () => {
