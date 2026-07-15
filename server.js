@@ -239,12 +239,50 @@ async function loadEditableOrder(req, res) {
     return order;
 }
 
+// 注文内容が変わったら、対応しなくなった受け渡しチェックを取り除く
+function sanitizeDelivered(delivered, items) {
+    const out = {};
+    for (const [key, val] of Object.entries(delivered || {})) {
+        const sep = key.indexOf(':');
+        const idx = Number(key.slice(0, sep));
+        const color = key.slice(sep + 1);
+        if (items[idx] && items[idx].quantities[color]) out[key] = val;
+    }
+    return out;
+}
+
 app.put('/api/orders/:id', requireAuth, async (req, res) => {
     const order = await loadEditableOrder(req, res);
     if (!order) return;
     const parsed = parseOrderInput(req.body);
     if (parsed.error) return res.status(400).json({ message: parsed.error });
-    const updated = await store.update(order.id, { ...parsed.value, updatedBy: req.user.name });
+    const updated = await store.update(order.id, {
+        ...parsed.value,
+        delivered: sanitizeDelivered(order.delivered, parsed.value.items),
+        updatedBy: req.user.name,
+    });
+    broadcast({ type: 'orders' });
+    res.json({ order: updated });
+});
+
+// 受け渡しチェックの切り替え(入力した本人または管理者のみ)
+app.post('/api/orders/:id/delivery', requireAuth, async (req, res) => {
+    const order = await loadEditableOrder(req, res);
+    if (!order) return;
+    const { itemIndex, color, delivered } = req.body || {};
+    const idx = Number(itemIndex);
+    const item = Number.isInteger(idx) ? order.items[idx] : null;
+    if (!item || !item.quantities[color]) {
+        return res.status(400).json({ message: '対象の明細が見つかりません' });
+    }
+    const key = `${idx}:${color}`;
+    const next = { ...order.delivered };
+    if (delivered) {
+        next[key] = { by: req.user.name, at: new Date().toISOString() };
+    } else {
+        delete next[key];
+    }
+    const updated = await store.setDelivered(order.id, next);
     broadcast({ type: 'orders' });
     res.json({ order: updated });
 });

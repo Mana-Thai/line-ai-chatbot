@@ -229,6 +229,8 @@
         renderPersonTotals();
         renderPriceTable();
         renderSummary();
+        renderDelivery();
+        renderRemaining();
     }
 
     function itemQtyHtml(order, item) {
@@ -419,6 +421,142 @@
                 </div>
             </div>`;
         }).join('') || '<p class="muted">注文が入ると自動で集計表が表示されます。</p>';
+    }
+
+    // ---------- 受け渡しチェック・残数 ----------
+
+    // 明細行(注文×サイズ×カラー)を列挙する共通処理
+    function eachLine(order, fn) {
+        order.items.forEach((item, idx) => {
+            for (const color of C.COLORS) {
+                const qty = item.quantities[color];
+                if (qty) fn(idx, item, color, qty, order.delivered[`${idx}:${color}`]);
+            }
+        });
+    }
+
+    function renderDelivery() {
+        const box = $('delivery-list');
+        if (state.orders.length === 0) {
+            $('delivery-progress').textContent = '';
+            box.innerHTML = '<p class="muted">注文が入るとチェックリストが表示されます。</p>';
+            return;
+        }
+        let totalQty = 0;
+        let doneQty = 0;
+        const orders = state.orders.slice().sort((a, b) => a.orderName.localeCompare(b.orderName, 'ja'));
+
+        box.innerHTML = orders.map((o) => {
+            const mine = o.userId === state.user.userId;
+            const canCheck = mine || state.user.admin;
+            const rows = [];
+            eachLine(o, (idx, item, color, qty, check) => {
+                totalQty += qty;
+                if (check) doneQty += qty;
+                const meta = check
+                    ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                    : '';
+                rows.push(`
+                    <label class="delivery-row${check ? ' done' : ''}">
+                        <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
+                            ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
+                        <span class="delivery-text">
+                            <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
+                            <span class="tag size">${escapeHtml(item.size)}</span>
+                            ${escapeHtml(color)}×${qty}
+                        </span>
+                        <span class="delivery-meta">${meta}</span>
+                    </label>`);
+            });
+            return `
+            <div class="delivery-group${mine ? ' mine' : ''}">
+                <div class="delivery-name">${escapeHtml(o.orderName)}${mine ? '<span class="you">(自分の入力)</span>' : ''}</div>
+                ${rows.join('')}
+            </div>`;
+        }).join('');
+
+        $('delivery-progress').textContent = `受け渡し済み ${doneQty} / ${totalQty}枚`;
+
+        box.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            cb.addEventListener('change', () => toggleDelivery(cb));
+        });
+    }
+
+    async function toggleDelivery(cb) {
+        cb.disabled = true;
+        try {
+            await api(`/api/orders/${cb.dataset.order}/delivery`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    itemIndex: Number(cb.dataset.item),
+                    color: cb.dataset.color,
+                    delivered: cb.checked,
+                }),
+            });
+            refreshOrders();
+        } catch (err) {
+            showPopup(err.message);
+            refreshOrders();
+        }
+    }
+
+    // 残数 = 発注数 − 受け渡し済み数(デザイン×サイズ×カラー別)
+    function renderRemaining() {
+        const groups = new Map();
+        let remainingTotal = 0;
+
+        for (const o of state.orders) {
+            eachLine(o, (idx, item, color, qty, check) => {
+                if (check) return; // 受け渡し済みは残数に含めない
+                const key = `${o.chestLogo}|${o.backPrint}`;
+                if (!groups.has(key)) {
+                    groups.set(key, { chestLogo: o.chestLogo, backPrint: o.backPrint, cells: {}, total: 0 });
+                }
+                const g = groups.get(key);
+                g.cells[color] = g.cells[color] || {};
+                g.cells[color][item.size] = (g.cells[color][item.size] || 0) + qty;
+                g.total += qty;
+                remainingTotal += qty;
+            });
+        }
+
+        $('remaining-total').textContent = state.orders.length ? `残り ${remainingTotal}枚` : '';
+
+        if (state.orders.length === 0) {
+            $('remaining').innerHTML = '<p class="muted">注文が入ると残数が表示されます。</p>';
+            return;
+        }
+        if (remainingTotal === 0) {
+            $('remaining').innerHTML = '<p class="all-done">🎉 すべての受け渡しが完了しました!</p>';
+            return;
+        }
+
+        $('remaining').innerHTML = [...groups.values()].map((g) => {
+            const sizes = C.SIZES.filter((s) => Object.values(g.cells).some((row) => row[s]));
+            const colors = C.COLORS.filter((c) => g.cells[c]);
+            const colTotals = Object.fromEntries(sizes.map((s) => [s, 0]));
+            const rows = colors.map((color) => {
+                let rowTotal = 0;
+                const cells = sizes.map((s) => {
+                    const v = g.cells[color][s] || 0;
+                    rowTotal += v;
+                    colTotals[s] += v;
+                    return `<td class="num">${v || ''}</td>`;
+                }).join('');
+                return `<tr><th>${escapeHtml(color)}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
+            }).join('');
+            const totalRow = `<tr class="total-row"><th>残り</th>${sizes.map((s) => `<td class="num">${colTotals[s]}</td>`).join('')}<td class="num total-col">${g.total}</td></tr>`;
+            return `
+            <div class="summary-group">
+                <div class="summary-title">胸ロゴ:${escapeHtml(g.chestLogo)} / バックプリント:${escapeHtml(g.backPrint)}(残り${g.total}枚)</div>
+                <div class="table-wrap">
+                    <table class="summary">
+                        <tr><th>カラー</th>${sizes.map((s) => `<th>${s}</th>`).join('')}<th>計</th></tr>
+                        ${rows}${totalRow}
+                    </table>
+                </div>
+            </div>`;
+        }).join('');
     }
 
     // ---------- 編集ロック ----------
@@ -754,15 +892,16 @@
     function downloadCsv(lang) {
         if (state.orders.length === 0) return showPopup('注文がまだありません');
         const pm = state.priceModel;
-        const header = ['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '単価', '金額', '備考', '入力者', '更新日時']
+        const header = ['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '単価', '金額', '受け渡し', '確認者', '備考', '入力者', '更新日時']
             .map((h) => tr(h, lang));
         const rows = [header];
         for (const o of state.orders) {
-            for (const item of o.items) {
+            o.items.forEach((item, idx) => {
                 for (const color of C.COLORS) {
                     const qty = item.quantities[color];
                     if (!qty) continue;
                     const unit = pm.unit(o.chestLogo, o.backPrint, item.size, color);
+                    const check = o.delivered[`${idx}:${color}`];
                     rows.push([
                         o.orderName,
                         tr(o.chestLogo, lang),
@@ -772,12 +911,14 @@
                         qty,
                         Math.round(unit * 100) / 100,
                         Math.round(unit * qty * 100) / 100,
+                        tr(check ? '済' : '未', lang),
+                        check ? check.by : '',
                         o.note,
                         o.displayName,
                         new Date(o.updatedAt).toLocaleString('ja-JP'),
                     ]);
                 }
-            }
+            });
         }
         const csv = '\ufeff' + rows
             .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))

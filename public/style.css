@@ -287,6 +287,53 @@ table.summary .total-row th, table.summary .total-col {
 .item-block .chip-group { margin-bottom: 8px; }
 .item-block .chip { padding: 4px 12px; font-size: 13px; }
 
+/* 受け渡しチェック */
+.delivery-group {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+.delivery-group.mine { border-color: var(--line-green); }
+.delivery-name { font-weight: 700; margin-bottom: 6px; }
+.delivery-name .you {
+    color: var(--line-green-dark);
+    font-size: 12px;
+    margin-left: 4px;
+}
+.delivery-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 4px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+}
+.delivery-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--line-green);
+    flex-shrink: 0;
+}
+.delivery-row input[type="checkbox"]:disabled { opacity: 0.45; }
+.delivery-row .delivery-text { flex: 1; font-size: 14px; }
+.delivery-row.done .delivery-text { color: var(--muted); text-decoration: line-through; }
+.delivery-row .delivery-meta {
+    font-size: 11px;
+    color: var(--line-green-dark);
+    white-space: nowrap;
+}
+.all-done {
+    background: #eefaf2;
+    border: 1px solid #bfe8cd;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--line-green-dark);
+}
+
 /* 価格設定 */
 .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
 .price-row {
