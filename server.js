@@ -176,7 +176,7 @@ function parsePricing(body) {
     if (b.plates.length > MAX_PLATES) return { error: `スクリーン版は最大${MAX_PLATES}件までです` };
     const plates = [];
     for (const raw of b.plates) {
-        if (!raw || !['logo', 'back'].includes(raw.type)) return { error: 'スクリーン版の種類を選択してください' };
+        if (!raw || !['logo', 'logoLarge', 'back'].includes(raw.type)) return { error: 'スクリーン版の種類を選択してください' };
         const cost = parseNonNegNumber(raw.cost, 'スクリーン版代');
         if (cost.error) return { error: cost.error };
         const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 50) : '';

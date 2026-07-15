@@ -153,6 +153,7 @@
     // ロゴ用スクリーン版代 : 白/カラーの発注数合計で割って1枚あたりを算出(ロゴ無=0)
     //   白の分配費用      = 版代 ÷ (白合計+カラー合計) × 白合計
     //   カラーの分配費用  = 版代 ÷ (白合計+カラー合計) × カラー合計
+    // ロゴ大用スクリーン版代 : 白・大/カラー・大の発注数合計で割る(通常ロゴとは別勘定)
     // バックプリント用版代 : 有の発注数合計で割って1枚あたりを算出(無=0)
     // 完成Tシャツ単価 = サイズ別Tシャツ代(持ち込みは持ち込み価格)
     //                 + ロゴ用版代の1枚あたり + BP用版代の1枚あたり + スクリーン工賃
@@ -173,21 +174,32 @@
 
     function buildPriceModel() {
         const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0, plates: [], labor: {} };
-        const counts = { white: 0, color: 0, none: 0, bpYes: 0, bpNo: 0 };
+        const counts = { white: 0, color: 0, whiteLarge: 0, colorLarge: 0, none: 0, bpYes: 0, bpNo: 0 };
         for (const o of state.orders) {
             const q = orderQty(o);
             if (o.chestLogo === '有(白)') counts.white += q;
             else if (o.chestLogo === '有(カラー)') counts.color += q;
+            else if (o.chestLogo === '有(白・大)') counts.whiteLarge += q;
+            else if (o.chestLogo === '有(カラー・大)') counts.colorLarge += q;
             else counts.none += q;
             if (o.backPrint === '有') counts.bpYes += q;
             else counts.bpNo += q;
         }
         const logoDen = counts.white + counts.color;
+        const logoLargeDen = counts.whiteLarge + counts.colorLarge;
         let logoUnit = 0;
+        let logoLargeUnit = 0;
         let bpUnit = 0;
         for (const plate of p.plates || []) {
             if (plate.type === 'logo' && logoDen > 0) logoUnit += plate.cost / logoDen;
+            if (plate.type === 'logoLarge' && logoLargeDen > 0) logoLargeUnit += plate.cost / logoLargeDen;
             if (plate.type === 'back' && counts.bpYes > 0) bpUnit += plate.cost / counts.bpYes;
+        }
+
+        // 胸ロゴの種類に応じた版代の1枚あたり負担(ロゴ無=0)
+        function logoAddFor(chestLogo) {
+            if (chestLogo === '無') return 0;
+            return C.LARGE_LOGOS.includes(chestLogo) ? logoLargeUnit : logoUnit;
         }
 
         function laborFor(chestLogo, backPrint) {
@@ -202,12 +214,14 @@
         }
 
         function unit(chestLogo, backPrint, size, color) {
-            const logoAdd = chestLogo === '無' ? 0 : logoUnit;
             const bpAdd = backPrint === '有' ? bpUnit : 0;
-            return roundUp10(basePrice(size, color) + logoAdd + bpAdd + laborFor(chestLogo, backPrint));
+            return roundUp10(basePrice(size, color) + logoAddFor(chestLogo) + bpAdd + laborFor(chestLogo, backPrint));
         }
 
-        return { counts, logoDen, logoUnit, bpUnit, laborFor, basePrice, unit, hasPricing: !!state.pricing };
+        return {
+            counts, logoDen, logoLargeDen, logoUnit, logoLargeUnit, bpUnit,
+            laborFor, basePrice, logoAddFor, unit, hasPricing: !!state.pricing,
+        };
     }
 
     function orderAmount(order) {
@@ -341,7 +355,7 @@
         }
 
         box.innerHTML = combos.map((combo) => {
-            const logoAdd = combo.chestLogo === '無' ? 0 : pm.logoUnit;
+            const logoAdd = pm.logoAddFor(combo.chestLogo);
             const bpAdd = combo.backPrint === '有' ? pm.bpUnit : 0;
             const labor = pm.laborFor(combo.chestLogo, combo.backPrint);
             const rows = C.SIZES.map((size) => {
@@ -792,6 +806,7 @@
             <div class="plate-inputs">
                 <select class="input plate-type">
                     <option value="logo">ロゴ用</option>
+                    <option value="logoLarge">ロゴ大用</option>
                     <option value="back">バックプリント用</option>
                 </select>
                 <input class="input plate-cost" type="number" inputmode="decimal" min="0" placeholder="版代">
@@ -812,18 +827,24 @@
 
     // 仕様の分配計算:
     //  ロゴ用   白 = 版代/(白+カラー)×白, カラー = 版代/(白+カラー)×カラー, ロゴ無 = 0
+    //  ロゴ大用 白・大/カラー・大で同様に分配(通常ロゴとは別勘定)
     //  BP用     有 = 版代/有合計(1枚あたり), 無 = 0
     function updatePlateAlloc(row) {
         const { counts } = state.priceModel;
         const type = row.querySelector('.plate-type').value;
         const cost = Number(row.querySelector('.plate-cost').value) || 0;
         const box = row.querySelector('.plate-alloc');
-        if (type === 'logo') {
-            const den = counts.white + counts.color;
-            const white = den > 0 ? (cost / den) * counts.white : 0;
-            const color = den > 0 ? (cost / den) * counts.color : 0;
-            box.innerHTML = `発注数 → 白:${counts.white}枚 / カラー:${counts.color}枚 / ロゴ無:${counts.none}枚<br>`
-                + `分配 → 白:${fmtMoney(white)} / カラー:${fmtMoney(color)} / ロゴ無:0`
+        if (type === 'logo' || type === 'logoLarge') {
+            const large = type === 'logoLarge';
+            const nWhite = large ? counts.whiteLarge : counts.white;
+            const nColor = large ? counts.colorLarge : counts.color;
+            const wLabel = large ? '白・大' : '白';
+            const cLabel = large ? 'カラー・大' : 'カラー';
+            const den = nWhite + nColor;
+            const white = den > 0 ? (cost / den) * nWhite : 0;
+            const color = den > 0 ? (cost / den) * nColor : 0;
+            box.innerHTML = `発注数 → ${wLabel}:${nWhite}枚 / ${cLabel}:${nColor}枚 / ロゴ無:${counts.none}枚<br>`
+                + `分配 → ${wLabel}:${fmtMoney(white)} / ${cLabel}:${fmtMoney(color)} / ロゴ無:0`
                 + (den > 0 ? `(1枚あたり ${fmtMoney(cost / den)})` : '');
         } else {
             const perUnit = counts.bpYes > 0 ? cost / counts.bpYes : 0;
