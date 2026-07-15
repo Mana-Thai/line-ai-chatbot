@@ -7,7 +7,8 @@
     }
 })(typeof self !== 'undefined' ? self : this, function () {
     return {
-        CHEST_LOGOS: ['有(白)', '有(カラー)', '無'],
+        CHEST_LOGOS: ['有(白)', '有(カラー)', '有(白・大)', '有(カラー・大)', '無'],
+        LARGE_LOGOS: ['有(白・大)', '有(カラー・大)'],
         BACK_PRINTS: ['有', '無'],
         SIZES: ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'],
         COLORS: [
@@ -23,13 +24,17 @@
         MAX_ITEMS: 20,
         MAX_PLATES: 30,
 
-        // スクリーン工賃の5種類(胸ロゴ×バックプリントの組み合わせ)
+        // スクリーン工賃の9種類(胸ロゴ×バックプリントの組み合わせ)
         LABOR_COMBOS: [
             { key: 'whiteBp', chestLogo: '有(白)', backPrint: '有', label: '白ロゴ+バックプリント' },
             { key: 'colorBp', chestLogo: '有(カラー)', backPrint: '有', label: 'カラーロゴ+バックプリント' },
+            { key: 'whiteLargeBp', chestLogo: '有(白・大)', backPrint: '有', label: '白ロゴ大+バックプリント' },
+            { key: 'colorLargeBp', chestLogo: '有(カラー・大)', backPrint: '有', label: 'カラーロゴ大+バックプリント' },
             { key: 'noneBp', chestLogo: '無', backPrint: '有', label: 'ロゴ無+バックプリント' },
             { key: 'whiteNoBp', chestLogo: '有(白)', backPrint: '無', label: '白ロゴ+バックプリント無' },
             { key: 'colorNoBp', chestLogo: '有(カラー)', backPrint: '無', label: 'カラーロゴ+バックプリント無' },
+            { key: 'whiteLargeNoBp', chestLogo: '有(白・大)', backPrint: '無', label: '白ロゴ大+バックプリント無' },
+            { key: 'colorLargeNoBp', chestLogo: '有(カラー・大)', backPrint: '無', label: 'カラーロゴ大+バックプリント無' },
         ],
 
         // CSV出力用 日本語→タイ語辞書(固定文言のみ。名前・備考は原文のまま)
@@ -47,6 +52,8 @@
             '更新日時': 'วันที่อัปเดต',
             '有(白)': 'มี (สีขาว)',
             '有(カラー)': 'มี (หลายสี)',
+            '有(白・大)': 'มี (สีขาว ใหญ่)',
+            '有(カラー・大)': 'มี (หลายสี ใหญ่)',
             '有': 'มี',
             '無': 'ไม่มี',
             '持ち込み': 'นำมาเอง',
