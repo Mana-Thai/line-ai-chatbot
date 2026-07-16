@@ -74,3 +74,5 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `new-website` | ウェブサイト(案内ページ・LP等)の新規作成テンプレート(静的サイト) |
 | `website-publish` | ウェブサイトの無料公開(GitHub Pages)とURL共有 |
 | `website-quality-check` | ウェブサイトの公開前チェック(スマホ表示・OGP・リンク切れ等) |
+| `roblox-game-dev` | Robloxゲーム開発(Luau・Studio連携・サーバー権威設計・公開) |
+| `new-web-game` | ブラウザミニゲーム(Canvas)の作成とURL共有 |
