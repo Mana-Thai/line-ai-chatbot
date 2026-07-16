@@ -6,7 +6,8 @@
     "scripts": {
         "start": "node server.js",
         "dev": "node server.js",
-        "chatbot": "node index.js"
+        "chatbot": "node index.js",
+        "sync-skills": "node scripts/sync-skills.js"
     },
     "dependencies": {
         "@google/generative-ai": "^0.22.0",

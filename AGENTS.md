@@ -1,0 +1,65 @@
+# line-ai-chatbot プロジェクトガイド
+
+このファイルは Claude Code と OpenAI Codex の共通コンテキストです(CLAUDE.md から取り込まれます)。
+
+## リポジトリの構成
+
+このリポジトリには独立した2つのアプリが入っている:
+
+1. **グッズ注文とりまとめアプリ(メイン・本番運用中)** — グループLINEのメンバーで
+   Tシャツ等の注文を取りまとめるWebアプリ。LIFF(LINEログイン)使用、Messaging API(Bot)不使用。
+   - `server.js` — Express APIサーバー(認証・注文CRUD・価格設定・編集ロック・SSE・サンプル画像)
+   - `lib/auth.js` — LINE IDトークン検証+HMAC署名セッショントークン(12時間)
+   - `lib/store.js` — 保存層。`DATABASE_URL` があればPostgreSQL(Supabase)、なければ
+     ローカルJSON(`data/orders.json`)。**起動時に自動マイグレーション**を行う
+   - `public/` — フロントエンド(素のHTML/CSS/JS、依存ライブラリなし)。`app.js` に
+     描画・価格計算・CSV出力(日本語/タイ語)・SSE受信のすべてがある
+   - `shared/constants.js` — 選択肢(胸ロゴ6種・カラー20色+持ち込み・サイズS〜5XL)と
+     タイ語辞書 `TH`。サーバー/ブラウザ共用(UMD形式)
+2. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+
+## 重要な仕様・約束事
+
+- **価格は工賃込みの一律価格**。管理者が入力したサイズ別価格(+持ち込み価格)をそのまま単価に
+  使う。計算・切り上げは一切しない
+- **権限**: 注文の編集/削除/支払い/受け渡しチェックは「入力した本人」と「管理者」のみ
+  (API側で403)。価格設定・サンプル画像は管理者のみ
+- **編集ロック**: 全体で1人だけ編集可(TTL30秒+10秒ハートビート)。競合は409
+- **リアルタイム反映**: 変更はすべてSSE(`/api/stream`)で全クライアントに配信される
+- **二言語**: CSVは日本語版とタイ語版。固定文言は `shared/constants.js` の `TH` 辞書で翻訳。
+  辞書に無い文言は日本語のまま出る(サイレントに漏れるので注意)
+- **選択肢の改名・データ構造変更**時は `lib/store.js` に起動時マイグレーションを必ず入れる
+  (PgStore・FileStoreの両方)
+
+## ローカルでの起動・テスト
+
+```bash
+npm install
+rm -rf data
+ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
+```
+
+`ALLOW_INSECURE_DEV=1` でLINEログイン不要のdevログイン(名前入力のみ)が使える。開発専用。
+テストフレームワークは無く、curlによるAPIテスト+Playwrightの複数ユーザー同時UIテストで
+検証する(手順はSkill `order-app-regression` にある)。
+
+## デプロイ
+
+- Render(無料プラン)。設定は `render.yaml`(ヘルスチェック `/healthz`)
+- DBはSupabase。`DATABASE_URL` 未設定だと再デプロイでデータが消えるため本番はDB必須
+- 環境変数を追加したら `render.yaml` / `.env.example` / `SETUP.md` の3つにも必ず反映
+- 公開手順の正本は `SETUP.md`
+
+## Skill(Claude Code / Codex 共通)
+
+再利用ワークフローは Skill として管理している。**正本は `.claude/skills/`**(Claude Code用)、
+`.agents/skills/` は Codex 用の同期コピー。Skillを追加・編集したら必ず
+`npm run sync-skills` で同期してから両方をコミットすること。
+
+| Skill | 用途 |
+|---|---|
+| `order-app-regression` | 注文アプリ変更後のフルリグレッションテスト(PR前に必須) |
+| `thai-i18n` | 選択肢・CSV列・文言の追加/変更時の日タイ二言語チェックリスト |
+| `order-data-migration` | 選択肢改名・データ構造変更時の既存データ自動移行パターン |
+| `deploy-check` | 環境変数・render.yaml・SETUP.md の整合チェック(マージ前) |
+| `gift-video-run` | ギフト動画パイプラインの実行(PR #1 の `gift-video/` が前提) |
