@@ -3,7 +3,9 @@
 
 使い方:
     python scripts/new_order.py sample-001
-    python scripts/new_order.py sample-001 --dummy   # テスト用ダミー素材も生成
+    python scripts/new_order.py sample-001 --dummy                 # テスト用ダミー素材も生成
+    python scripts/new_order.py demo-60s --target-sec 60 --dummy --scenes 6
+                                          # 約1分構成 (ダミーのシーン尺は自動計算)
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ anniversary_date: "2021.10.15"
 scene1_caption: "Autumn, 2019"      # Scene 1に小さく表示
 message: "Thank you for dropping that book."
 message_start_sec: 22               # メッセージのフェードイン開始秒(BGMの山に合わせて調整可能)
+target_duration: {target:g}                 # 完成動画の目標秒数(許容 -2/+5秒。60で約1分)
 output_formats: ["portrait", "landscape"]  # 1080x1920 と 1920x1080
 portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
 """
@@ -81,10 +84,19 @@ def main() -> None:
     ap.add_argument("order_id", help="注文ID (例: sample-001)")
     ap.add_argument("--dummy", action="store_true",
                     help="テスト用ダミー素材 (sceneN.mp4 / bgm.mp3) も生成する")
+    ap.add_argument("--target-sec", type=float, default=30.0,
+                    help="完成動画の目標秒数。order.yaml の target_duration に書き込む (既定: 30。60で約1分)")
     ap.add_argument("--scenes", type=int, default=3, help="ダミーのシーン数 (既定: 3)")
-    ap.add_argument("--scene-sec", type=float, default=10.0, help="ダミー1シーンの秒数 (既定: 10)")
+    ap.add_argument("--scene-sec", type=float, default=None,
+                    help="ダミー1シーンの秒数 (省略時は target-sec ÷ scenes で自動計算)")
     ap.add_argument("--force", action="store_true", help="既存の order.yaml を上書きする")
     args = ap.parse_args()
+
+    if args.target_sec < 10 or args.target_sec > 300:
+        ap.error("--target-sec は 10〜300 の範囲で指定してください")
+    # 紙テクスチャ転換は既定値 (PAPER_HOLD=1.0 / XFADE=0.5) では合計尺を変えないため、
+    # ダミーのシーン尺は単純に 目標秒数÷シーン数 でよい
+    scene_sec = args.scene_sec if args.scene_sec is not None else args.target_sec / args.scenes
 
     odir = common.order_dir(args.order_id)
     yaml_path = odir / "order.yaml"
@@ -93,7 +105,9 @@ def main() -> None:
     else:
         (odir / "input").mkdir(parents=True, exist_ok=True)
         (odir / "output").mkdir(parents=True, exist_ok=True)
-        yaml_path.write_text(ORDER_YAML_TEMPLATE.format(order_id=args.order_id), encoding="utf-8")
+        yaml_path.write_text(
+            ORDER_YAML_TEMPLATE.format(order_id=args.order_id, target=args.target_sec),
+            encoding="utf-8")
         print(f"[new]  {yaml_path}")
 
     (odir / "input").mkdir(parents=True, exist_ok=True)
@@ -107,7 +121,7 @@ def main() -> None:
     common.ensure_transition_png()
 
     if args.dummy:
-        make_dummy_assets(args.order_id, args.scenes, args.scene_sec)
+        make_dummy_assets(args.order_id, args.scenes, scene_sec)
 
     print(f"""
 次のステップ:

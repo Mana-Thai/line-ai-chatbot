@@ -41,6 +41,11 @@ LOUDNORM_LRA = 11.0
 PAPER_HOLD = 1.0        # 紙テクスチャクリップの長さ
 XFADE_DUR = 0.5         # 紙への/紙からのクロスフェード長 (合計約1秒の転換)
 
+# 総再生時間の許容範囲 (order.yaml の target_duration 基準)
+# 既定30秒の注文なら 28〜35 秒、60秒(約1分)の注文なら 58〜65 秒が合格
+DURATION_UNDER = 2.0
+DURATION_OVER = 5.0
+
 # テキスト演出の秒数
 CAPTION_START = 1.0
 CAPTION_END = 6.0
@@ -165,6 +170,7 @@ ORDER_DEFAULTS = {
     "scene1_caption": "",
     "message": "",
     "message_start_sec": 22,
+    "target_duration": 30,     # 完成動画の目標秒数 (60 で約1分)
     "output_formats": ["portrait", "landscape"],
     "portrait_mode": "crop",   # crop: センタークロップ / pad: 余白パディング
     "text_color": "white",
@@ -193,7 +199,21 @@ def load_order(order_id: str) -> dict:
     if merged["portrait_mode"] not in ("crop", "pad"):
         raise PipelineError("portrait_mode は crop か pad を指定してください")
     merged["message_start_sec"] = float(merged["message_start_sec"])
+    merged["target_duration"] = float(merged["target_duration"])
+    if not 10 <= merged["target_duration"] <= 300:
+        raise PipelineError("target_duration は 10〜300 秒の範囲で指定してください")
     return merged
+
+
+def duration_range(target: float) -> tuple[float, float]:
+    """target_duration に対する総再生時間の合格範囲 (下限, 上限)。"""
+    return target - DURATION_UNDER, target + DURATION_OVER
+
+
+def planned_total(scene_durs: list[float]) -> float:
+    """シーン尺から xfade 連鎖後の総再生時間を計算する (assemble と同じ式)。"""
+    n = len(scene_durs)
+    return round(sum(scene_durs) + (n - 1) * (PAPER_HOLD - 2 * XFADE_DUR), 3)
 
 
 def discover_scenes(order_id: str) -> list[Path]:

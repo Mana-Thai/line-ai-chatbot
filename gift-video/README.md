@@ -1,14 +1,18 @@
 # ギフト動画 組み立てパイプライン
 
-AI生成済みのシーン素材(scene1〜N.mp4)とBGMから、約30秒のパーソナライズギフト動画を
-自動で組み立てる再利用可能なパイプラインです。注文ごとに独立したフォルダで管理します。
+AI生成済みのシーン素材(scene1〜N.mp4)とBGMから、パーソナライズギフト動画
+(約30秒〜、`target_duration` で1分等に変更可)を自動で組み立てる再利用可能な
+パイプラインです。注文ごとに独立したフォルダで管理します。
 
 ```
 gift-video/
 ├── scripts/
 │   ├── new_order.py      # 新規注文フォルダを生成 (--dummy でテスト素材も生成)
+│   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
+│   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
 │   ├── qc.py             # 品質チェック (時間・解像度・コーデック・音量・テキストタイミング)
+│   ├── batch.py          # 複数注文の一括処理 (precheck → assemble → qc + 結果一覧)
 │   └── common.py         # 共通処理 (環境検出 / order.yaml 読み込み / フォント解決)
 ├── assets/
 │   ├── transition.png    # 場面転換用の紙テクスチャ (なければ自動生成)
@@ -72,6 +76,30 @@ python scripts/qc.py sample-001
 **実素材がなくてもパイプライン全体をテストできます**。
 シーン数やダミー長は `--scenes 4 --scene-sec 8` のように変更できます。
 
+### 1分動画を作る
+
+目標秒数は `order.yaml` の `target_duration` で指定します(既定30秒)。
+1分なら `target_duration: 60` にして、シーン素材の合計を約60秒にします
+(例: 10秒×6本。紙テクスチャ転換は既定設定では合計尺を変えません)。
+
+```powershell
+# 約1分のダミー注文 (シーン尺は 60÷6=10秒 に自動計算される)
+python scripts/new_order.py demo-60s --target-sec 60 --dummy --scenes 6
+```
+
+### 複数注文をまとめて作る
+
+```powershell
+python scripts/make_orders.py --template   # 雛形CSVの内容を表示 (> orders.csv で保存)
+# CSVに注文を記入 (1行=1注文。Excel保存のBOM付きUTF-8もOK)
+python scripts/make_orders.py orders.csv   # 注文フォルダを一括生成
+# 各注文の input/ に素材を配置してから:
+python scripts/precheck.py --all           # 素材の事前チェック (エンコード前に問題を検出)
+python scripts/batch.py                    # 全注文を一括で precheck → assemble → qc
+```
+
+`batch.py` は1件失敗しても止まらず全件を処理し、最後に PASS/FAIL の一覧表を表示します。
+
 ## 3. order.yaml の仕様
 
 ```yaml
@@ -81,6 +109,7 @@ anniversary_date: "2021.10.15"
 scene1_caption: "Autumn, 2019"      # Scene 1の左下に小さく表示 (空なら非表示)
 message: "Thank you for dropping that book."
 message_start_sec: 22               # メッセージのフェードイン開始秒 (BGMの山に合わせて調整)
+target_duration: 30                 # 完成動画の目標秒数 (許容 -2/+5秒。60で約1分)
 output_formats: ["portrait", "landscape"]  # 1080x1920 / 1920x1080
 portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
 ```
@@ -108,7 +137,7 @@ portrait_mode: "crop"               # 縦型変換: crop=センタークロッ�
 
 | 項目 | 基準 |
 |---|---|
-| 総再生時間 | 28〜35秒の範囲内、かつ組み立て時の想定値と±0.5秒以内 |
+| 総再生時間 | `target_duration` −2〜+5秒の範囲内(既定30秒なら28〜35秒、60秒なら58〜65秒)、かつ組み立て時の想定値と±0.5秒以内 |
 | 解像度 | portrait=1080x1920 / landscape=1920x1080 |
 | コーデック | 映像 H.264、音声 AAC |
 | ラウドネス | 実測の統合ラウドネスが -14 LUFS ±3dB |

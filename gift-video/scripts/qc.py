@@ -4,7 +4,8 @@
     python scripts/qc.py sample-001
 
 チェック項目:
-  - 総再生時間が 28〜35 秒の範囲内か (組み立て時の想定値とも照合)
+  - 総再生時間が order.yaml の target_duration −2〜+5 秒の範囲内か
+    (既定30秒なら 28〜35 秒、60秒=約1分なら 58〜65 秒。組み立て時の想定値とも照合)
   - 解像度・コーデック (H.264 / AAC) が仕様通りか
   - 音声の統合ラウドネス (loudnorm 目標 -14 LUFS との差)
   - テキスト表示タイミングが order.yaml の指定と一致しているか
@@ -24,8 +25,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common
 from common import FORMATS, LOUDNORM_I, NAMES_LEAD, PipelineError
 
-DURATION_MIN = 28.0
-DURATION_MAX = 35.0
 DURATION_TOL = 0.5      # manifest の想定総時間との許容差 (秒)
 LOUDNESS_TOL = 3.0      # 目標 LUFS との許容差 (dB) ※1パス loudnorm のばらつきを考慮
 TIMING_TOL = 0.05       # テキストタイミングの許容差 (秒)
@@ -77,12 +76,13 @@ def qc_format(fmt: str, fmt_info: dict, order: dict, output_dir: Path,
     vstreams = [s for s in info["streams"] if s["codec_type"] == "video"]
     astreams = [s for s in info["streams"] if s["codec_type"] == "audio"]
 
-    # --- 総再生時間 ---
-    in_range = DURATION_MIN <= duration <= DURATION_MAX
+    # --- 総再生時間 (order.yaml の target_duration 基準) ---
+    dmin, dmax = common.duration_range(order["target_duration"])
+    in_range = dmin <= duration <= dmax
     matches_plan = abs(duration - fmt_info["total_duration"]) <= DURATION_TOL
     report.check(in_range and matches_plan, label + "総再生時間",
-                 f"{duration:.2f}s (規定 {DURATION_MIN:.0f}-{DURATION_MAX:.0f}s / "
-                 f"想定 {fmt_info['total_duration']:.2f}s)")
+                 f"{duration:.2f}s (目標 {order['target_duration']:.0f}s → "
+                 f"規定 {dmin:.0f}-{dmax:.0f}s / 想定 {fmt_info['total_duration']:.2f}s)")
 
     # --- 解像度・コーデック ---
     if vstreams:
