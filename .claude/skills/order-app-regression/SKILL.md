@@ -67,8 +67,10 @@ TOKEN_ADMIN=$(curl -s -X POST localhost:3000/api/admin -H "Authorization: Bearer
 devログインは `#dev-name` に名前を入れて `#dev-login-btn` をクリック。
 管理者化はページ最下部の `#admin-link` → `#admin-passcode-input` → `#admin-ok`。
 
-※ Claudeのリモート環境ではChromiumが `/opt/pw-browsers/chromium` にプリインストール済み
-(`PLAYWRIGHT_BROWSERS_PATH` 設定済み)。`playwright install` は実行しないこと。
+※ 実行環境のChromium: Claude Codeのリモート環境では `/opt/pw-browsers/chromium` に
+プリインストール済み(`PLAYWRIGHT_BROWSERS_PATH` 設定済み・`playwright install` 不要)。
+Codex等それ以外の環境では、システムのChromium/Chromeを `executablePath` で指定するか
+`npx playwright install chromium` で導入する。
 
 チェックリスト:
 
