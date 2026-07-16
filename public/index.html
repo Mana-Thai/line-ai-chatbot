@@ -54,7 +54,7 @@
 
     <section class="section">
         <div class="section-head">
-            <h2>💰 単価表(価格の内訳)</h2>
+            <h2>💰 単価表</h2>
             <button id="pricing-edit-btn" class="btn btn-small hidden">価格を設定</button>
         </div>
         <div id="price-table"></div>
@@ -130,19 +130,17 @@
 <div id="pricing-modal" class="modal hidden">
     <div class="modal-card">
         <h2>💰 価格設定(管理者)</h2>
+        <p class="hint">工賃込みの一律価格を入力してください。入力した金額がそのまま単価として表示されます。</p>
 
-        <label class="field-label">Tシャツ代(サイズ別)</label>
+        <label class="field-label">Tシャツ価格(サイズ別・工賃込み)</label>
         <div id="size-price-grid" class="price-grid"></div>
 
-        <label class="field-label">持ち込みTシャツ代(1枚あたり)</label>
+        <label class="field-label">持ち込み価格(1枚あたり・工賃込み)</label>
         <input id="bring-own-price" class="input" type="number" inputmode="decimal" min="0" placeholder="0">
 
-        <label class="field-label">スクリーン版代</label>
-        <div id="plates-list"></div>
-        <button id="add-plate-btn" type="button" class="btn btn-small">＋ スクリーン版を追加</button>
-
-        <label class="field-label">スクリーン工賃(1枚あたり)</label>
-        <div id="labor-list" class="price-grid"></div>
+        <label class="field-label">デザインのサンプル画像</label>
+        <p class="hint">注文フォームの選択肢の横に小さく表示されます。選ぶとその場で保存されます。</p>
+        <div id="design-images"></div>
 
         <p id="pricing-error" class="error-text hidden"></p>
         <div class="modal-actions">

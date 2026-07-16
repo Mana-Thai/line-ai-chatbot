@@ -9,6 +9,7 @@
         token: null,
         user: null,
         orders: [],
+        designImages: {},    // デザイン項目ごとのサンプル画像(dataURL)
         pricing: null,       // 管理者が設定した価格(未設定なら null)
         priceModel: null,    // pricing + 注文数から算出した単価モデル
         editingOrderId: null, // null = 新規追加
@@ -116,7 +117,8 @@
         $('user-name').textContent = state.user.name;
         updateAdminUi();
         showScreen('screen-main');
-        await Promise.all([loadPricing(), refreshOrders()]);
+        await Promise.all([loadPricing(), loadDesigns(), refreshOrders()]);
+        refreshChipImages();
         openStream();
     }
 
@@ -148,21 +150,34 @@
         } catch { /* 価格未設定でもアプリは動く */ }
     }
 
-    // ---------- 価格計算 ----------
-    //
-    // ロゴ用スクリーン版代 : 白/カラーの発注数合計で割って1枚あたりを算出(ロゴ無=0)
-    //   白の分配費用      = 版代 ÷ (白合計+カラー合計) × 白合計
-    //   カラーの分配費用  = 版代 ÷ (白合計+カラー合計) × カラー合計
-    // ロゴ大用スクリーン版代 : 白・大/カラー・大の発注数合計で割る(通常ロゴとは別勘定)
-    // バックプリント用版代 : 有の発注数合計で割って1枚あたりを算出(無=0)
-    // 完成Tシャツ単価 = サイズ別Tシャツ代(持ち込みは持ち込み価格)
-    //                 + ロゴ用版代の1枚あたり + BP用版代の1枚あたり + スクリーン工賃
-    //                 を10の位で切り上げ(例: 221 → 230)
-
-    // 浮動小数点誤差でちょうど10の倍数が繰り上がらないよう、小数2桁で丸めてから切り上げる
-    function roundUp10(n) {
-        return Math.ceil(Math.round(n * 100) / 1000) * 10;
+    async function loadDesigns() {
+        try {
+            const data = await api('/api/designs');
+            state.designImages = data.images || {};
+        } catch { /* 画像未設定でもアプリは動く */ }
     }
+
+    // 選択肢に対応するサンプル画像のキー(胸ロゴは項目名そのまま、バックプリントは「有」のみ)
+    function designImageKey(group, value) {
+        if (group === 'chestLogo' && value !== '無') return value;
+        if (group === 'backPrint' && value === '有') return C.BACK_PRINT_IMAGE_KEY;
+        return null;
+    }
+
+    // チップ(選択肢ボタン)にサンプル画像を反映
+    function refreshChipImages() {
+        document.querySelectorAll('.chip[data-group]').forEach((chip) => {
+            const key = designImageKey(chip.dataset.group, chip.dataset.value);
+            const img = key ? state.designImages[key] : null;
+            chip.innerHTML = (img ? `<img class="chip-img" src="${img}" alt="">` : '')
+                + escapeHtml(chip.dataset.value);
+        });
+    }
+
+    // ---------- 価格 ----------
+    //
+    // 価格は工賃込みの一律。管理者が入力したサイズ別価格(持ち込みは持ち込み価格)を
+    // そのまま単価として表示する(計算・切り上げなし)
 
     function orderQty(order) {
         let q = 0;
@@ -173,55 +188,13 @@
     }
 
     function buildPriceModel() {
-        const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0, plates: [], labor: {} };
-        const counts = { white: 0, color: 0, whiteLarge: 0, colorLarge: 0, none: 0, bpYes: 0, bpNo: 0 };
-        for (const o of state.orders) {
-            const q = orderQty(o);
-            if (o.chestLogo === '有(白)') counts.white += q;
-            else if (o.chestLogo === '有(カラー)') counts.color += q;
-            else if (o.chestLogo === '有(白・大)') counts.whiteLarge += q;
-            else if (o.chestLogo === '有(カラー・大)') counts.colorLarge += q;
-            else counts.none += q;
-            if (o.backPrint === '有') counts.bpYes += q;
-            else counts.bpNo += q;
-        }
-        const logoDen = counts.white + counts.color;
-        const logoLargeDen = counts.whiteLarge + counts.colorLarge;
-        let logoUnit = 0;
-        let logoLargeUnit = 0;
-        let bpUnit = 0;
-        for (const plate of p.plates || []) {
-            if (plate.type === 'logo' && logoDen > 0) logoUnit += plate.cost / logoDen;
-            if (plate.type === 'logoLarge' && logoLargeDen > 0) logoLargeUnit += plate.cost / logoLargeDen;
-            if (plate.type === 'back' && counts.bpYes > 0) bpUnit += plate.cost / counts.bpYes;
-        }
+        const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0 };
 
-        // 胸ロゴの種類に応じた版代の1枚あたり負担(ロゴ無=0)
-        function logoAddFor(chestLogo) {
-            if (chestLogo === '無') return 0;
-            return C.LARGE_LOGOS.includes(chestLogo) ? logoLargeUnit : logoUnit;
-        }
-
-        function laborFor(chestLogo, backPrint) {
-            const combo = C.LABOR_COMBOS.find(
-                (l) => l.chestLogo === chestLogo && l.backPrint === backPrint,
-            );
-            return combo ? (p.labor || {})[combo.key] || 0 : 0; // 「無+無」は工賃0
-        }
-
-        function basePrice(size, color) {
+        function unit(chestLogo, backPrint, size, color) {
             return color === C.BRING_OWN ? (p.bringOwnPrice || 0) : ((p.sizePrices || {})[size] || 0);
         }
 
-        function unit(chestLogo, backPrint, size, color) {
-            const bpAdd = backPrint === '有' ? bpUnit : 0;
-            return roundUp10(basePrice(size, color) + logoAddFor(chestLogo) + bpAdd + laborFor(chestLogo, backPrint));
-        }
-
-        return {
-            counts, logoDen, logoLargeDen, logoUnit, logoLargeUnit, bpUnit,
-            laborFor, basePrice, logoAddFor, unit, hasPricing: !!state.pricing,
-        };
+        return { unit, hasPricing: !!state.pricing };
     }
 
     function orderAmount(order) {
@@ -289,6 +262,11 @@
                 </div>
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
                 <div class="order-total">合計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
+                <label class="pay-row${o.paid ? ' paid' : ''}">
+                    <input type="checkbox" data-pay="${o.id}" ${o.paid ? 'checked' : ''} ${editable ? '' : 'disabled'}>
+                    <span class="pay-label">支払い済み</span>
+                    <span class="pay-meta">${o.paid ? `✓ ${escapeHtml(o.paid.by)} ${new Date(o.paid.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
+                </label>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
                 <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
             </div>`;
@@ -300,14 +278,32 @@
         list.querySelectorAll('[data-delete]').forEach((btn) => {
             btn.addEventListener('click', () => deleteOrder(Number(btn.dataset.delete)));
         });
+        list.querySelectorAll('[data-pay]').forEach((cb) => {
+            cb.addEventListener('change', () => togglePayment(cb));
+        });
+    }
+
+    async function togglePayment(cb) {
+        cb.disabled = true;
+        try {
+            await api(`/api/orders/${cb.dataset.pay}/payment`, {
+                method: 'POST',
+                body: JSON.stringify({ paid: cb.checked }),
+            });
+        } catch (err) {
+            showPopup(err.message);
+        }
+        refreshOrders();
     }
 
     function renderPersonTotals() {
         const totals = new Map();
         for (const o of state.orders) {
-            const t = totals.get(o.orderName) || { qty: 0, amount: 0 };
+            const t = totals.get(o.orderName) || { qty: 0, amount: 0, paidAmount: 0 };
+            const amount = orderAmount(o);
             t.qty += orderQty(o);
-            t.amount += orderAmount(o);
+            t.amount += amount;
+            if (o.paid) t.paidAmount += amount;
             totals.set(o.orderName, t);
         }
         if (totals.size === 0) {
@@ -316,22 +312,32 @@
         }
         let allQty = 0;
         let allAmount = 0;
+        let allPaid = 0;
+
+        function payStatus(t) {
+            if (t.amount > 0 && t.paidAmount >= t.amount) return '<span class="pay-ok">✓ 済</span>';
+            if (t.paidAmount === 0) return '<span class="pay-no">未</span>';
+            return `<span class="pay-part">一部(残 ${fmtMoney(t.amount - t.paidAmount)})</span>`;
+        }
+
         const rows = [...totals.entries()].map(([name, t]) => {
             allQty += t.qty;
             allAmount += t.amount;
-            return `<tr><th>${escapeHtml(name)}</th><td class="num">${t.qty}</td><td class="num">${fmtMoney(t.amount)}</td></tr>`;
+            allPaid += t.paidAmount;
+            return `<tr><th>${escapeHtml(name)}</th><td class="num">${t.qty}</td><td class="num">${fmtMoney(t.amount)}</td><td>${payStatus(t)}</td></tr>`;
         }).join('');
+        const unpaid = allAmount - allPaid;
         $('person-totals').innerHTML = `
             <div class="summary-group"><div class="table-wrap">
             <table class="summary">
-                <tr><th>名前</th><th>枚数</th><th>金額</th></tr>
+                <tr><th>名前</th><th>枚数</th><th>金額</th><th>支払い</th></tr>
                 ${rows}
-                <tr class="total-row"><th>合計</th><td class="num">${allQty}</td><td class="num">${fmtMoney(allAmount)}</td></tr>
+                <tr class="total-row"><th>合計</th><td class="num">${allQty}</td><td class="num">${fmtMoney(allAmount)}</td><td>${unpaid > 0 ? `未収 ${fmtMoney(unpaid)}` : '<span class="pay-ok">全員済 ✓</span>'}</td></tr>
             </table>
             </div></div>`;
     }
 
-    // 単価表:デザインの組み合わせごとに内訳(Tシャツ代+版代+工賃=単価)を表示
+    // 単価表:管理者が入力した価格(工賃込み)をそのまま表示
     function renderPriceTable() {
         const pm = state.priceModel;
         const box = $('price-table');
@@ -341,43 +347,19 @@
             return;
         }
 
-        // 注文に存在する組み合わせ+工賃が設定されている組み合わせを表示
-        const comboKeys = new Set();
-        for (const o of state.orders) comboKeys.add(`${o.chestLogo}|${o.backPrint}`);
-        const combos = C.LABOR_COMBOS.filter(
-            (l) => comboKeys.has(`${l.chestLogo}|${l.backPrint}`) || (state.pricing.labor || {})[l.key] > 0,
-        );
-        if (comboKeys.has('無|無')) combos.push({ key: null, chestLogo: '無', backPrint: '無', label: 'ロゴ無+バックプリント無' });
-
-        if (combos.length === 0) {
-            box.innerHTML = '<p class="muted">注文が入ると、デザインごとの単価と内訳が表示されます。</p>';
-            return;
-        }
-
-        box.innerHTML = combos.map((combo) => {
-            const logoAdd = pm.logoAddFor(combo.chestLogo);
-            const bpAdd = combo.backPrint === '有' ? pm.bpUnit : 0;
-            const labor = pm.laborFor(combo.chestLogo, combo.backPrint);
-            const rows = C.SIZES.map((size) => {
-                const base = pm.basePrice(size, null);
-                return `<tr><th>${size}</th><td class="num">${fmtMoney(base)}</td><td class="num total-col">${fmtMoney(pm.unit(combo.chestLogo, combo.backPrint, size, null))}</td></tr>`;
-            }).join('');
-            const bringBase = pm.basePrice(null, C.BRING_OWN);
-            const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num">${fmtMoney(bringBase)}</td><td class="num total-col">${fmtMoney(pm.unit(combo.chestLogo, combo.backPrint, null, C.BRING_OWN))}</td></tr>`;
-            return `
+        const rows = C.SIZES.map((size) => `
+            <tr><th>${size}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, size, null))}</td></tr>`).join('');
+        const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, null, C.BRING_OWN))}</td></tr>`;
+        box.innerHTML = `
             <div class="summary-group">
-                <div class="summary-title">${escapeHtml(combo.label)}</div>
-                <div class="price-breakdown muted">
-                    内訳: Tシャツ代(サイズ別) + ロゴ版代 ${fmtMoney(logoAdd)} + バックプリント版代 ${fmtMoney(bpAdd)} + 工賃 ${fmtMoney(labor)}(単価は10の位で切り上げ)
-                </div>
+                <div class="price-breakdown muted">工賃込みの一律価格です(デザインによる差はありません)</div>
                 <div class="table-wrap">
                     <table class="summary">
-                        <tr><th>サイズ</th><th>Tシャツ代</th><th>完成単価</th></tr>
+                        <tr><th>サイズ</th><th>単価</th></tr>
                         ${rows}${bringRow}
                     </table>
                 </div>
             </div>`;
-        }).join('');
     }
 
     function renderSummary() {
@@ -794,103 +776,26 @@
 
     // ---------- 価格設定(管理者) ----------
 
-    function pricingOrDefault() {
-        return state.pricing || { sizePrices: {}, bringOwnPrice: 0, plates: [], labor: {} };
-    }
-
-    // スクリーン版1件分の入力行と、発注数合計・分配費用の表示
-    function createPlateRow(plate) {
-        const div = document.createElement('div');
-        div.className = 'plate-row';
-        div.innerHTML = `
-            <div class="plate-inputs">
-                <select class="input plate-type">
-                    <option value="logo">ロゴ用</option>
-                    <option value="logoLarge">ロゴ大用</option>
-                    <option value="back">バックプリント用</option>
-                </select>
-                <input class="input plate-cost" type="number" inputmode="decimal" min="0" placeholder="版代">
-                <button type="button" class="btn btn-small btn-danger plate-remove">削除</button>
-            </div>
-            <div class="plate-alloc muted"></div>`;
-        if (plate) {
-            div.querySelector('.plate-type').value = plate.type;
-            div.querySelector('.plate-cost').value = plate.cost || '';
-        }
-        const update = () => updatePlateAlloc(div);
-        div.querySelector('.plate-type').addEventListener('change', update);
-        div.querySelector('.plate-cost').addEventListener('input', update);
-        div.querySelector('.plate-remove').addEventListener('click', () => div.remove());
-        update();
-        return div;
-    }
-
-    // 仕様の分配計算:
-    //  ロゴ用   白 = 版代/(白+カラー)×白, カラー = 版代/(白+カラー)×カラー, ロゴ無 = 0
-    //  ロゴ大用 白・大/カラー・大で同様に分配(通常ロゴとは別勘定)
-    //  BP用     有 = 版代/有合計(1枚あたり), 無 = 0
-    function updatePlateAlloc(row) {
-        const { counts } = state.priceModel;
-        const type = row.querySelector('.plate-type').value;
-        const cost = Number(row.querySelector('.plate-cost').value) || 0;
-        const box = row.querySelector('.plate-alloc');
-        if (type === 'logo' || type === 'logoLarge') {
-            const large = type === 'logoLarge';
-            const nWhite = large ? counts.whiteLarge : counts.white;
-            const nColor = large ? counts.colorLarge : counts.color;
-            const wLabel = large ? '白・大' : '白';
-            const cLabel = large ? 'カラー・大' : 'カラー';
-            const den = nWhite + nColor;
-            const white = den > 0 ? (cost / den) * nWhite : 0;
-            const color = den > 0 ? (cost / den) * nColor : 0;
-            box.innerHTML = `発注数 → ${wLabel}:${nWhite}枚 / ${cLabel}:${nColor}枚 / ロゴ無:${counts.none}枚<br>`
-                + `分配 → ${wLabel}:${fmtMoney(white)} / ${cLabel}:${fmtMoney(color)} / ロゴ無:0`
-                + (den > 0 ? `(1枚あたり ${fmtMoney(cost / den)})` : '');
-        } else {
-            const perUnit = counts.bpYes > 0 ? cost / counts.bpYes : 0;
-            box.innerHTML = `発注数 → 有:${counts.bpYes}枚 / 無:${counts.bpNo}枚<br>`
-                + `分配 → 有:1枚あたり ${fmtMoney(perUnit)}(合計 ${fmtMoney(cost)}) / 無:0`;
-        }
-    }
-
     function openPricingModal() {
-        const p = pricingOrDefault();
+        const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0 };
         $('size-price-grid').innerHTML = C.SIZES.map((s) => `
             <div class="price-row">
                 <label>${s}</label>
                 <input data-size="${s}" class="input" type="number" inputmode="decimal" min="0" placeholder="0" value="${p.sizePrices[s] || ''}">
             </div>`).join('');
         $('bring-own-price').value = p.bringOwnPrice || '';
-
-        $('plates-list').innerHTML = '';
-        (p.plates || []).forEach((plate) => $('plates-list').appendChild(createPlateRow(plate)));
-
-        $('labor-list').innerHTML = C.LABOR_COMBOS.map((combo) => `
-            <div class="price-row labor-row">
-                <label>${escapeHtml(combo.label)}</label>
-                <input data-labor="${combo.key}" class="input" type="number" inputmode="decimal" min="0" placeholder="0" value="${(p.labor || {})[combo.key] || ''}">
-            </div>`).join('');
-
+        renderDesignImageRows();
         $('pricing-error').classList.add('hidden');
         $('pricing-modal').classList.remove('hidden');
         $('pricing-modal').querySelector('.modal-card').scrollTop = 0;
     }
 
     async function savePricing() {
-        const body = { sizePrices: {}, plates: [], labor: {} };
+        const body = { sizePrices: {} };
         $('size-price-grid').querySelectorAll('input').forEach((input) => {
             body.sizePrices[input.dataset.size] = Number(input.value) || 0;
         });
         body.bringOwnPrice = Number($('bring-own-price').value) || 0;
-        for (const row of $('plates-list').querySelectorAll('.plate-row')) {
-            body.plates.push({
-                type: row.querySelector('.plate-type').value,
-                cost: Number(row.querySelector('.plate-cost').value) || 0,
-            });
-        }
-        $('labor-list').querySelectorAll('input').forEach((input) => {
-            body.labor[input.dataset.labor] = Number(input.value) || 0;
-        });
 
         try {
             const data = await api('/api/pricing', { method: 'PUT', body: JSON.stringify(body) });
@@ -903,6 +808,77 @@
         }
     }
 
+    // ---------- デザインのサンプル画像(管理者) ----------
+
+    function renderDesignImageRows() {
+        const box = $('design-images');
+        box.innerHTML = C.DESIGN_IMAGE_KEYS.map((key) => {
+            const img = state.designImages[key];
+            return `
+            <div class="design-row" data-key="${escapeHtml(key)}">
+                ${img ? `<img class="design-thumb" src="${img}" alt="">` : '<span class="design-thumb empty">なし</span>'}
+                <span class="design-label">${escapeHtml(key)}</span>
+                <button type="button" class="btn btn-small design-pick">画像を選択</button>
+                ${img ? '<button type="button" class="btn btn-small btn-danger design-clear">削除</button>' : ''}
+                <input type="file" accept="image/*" class="design-file hidden">
+            </div>`;
+        }).join('');
+
+        box.querySelectorAll('.design-row').forEach((row) => {
+            const key = row.dataset.key;
+            const fileInput = row.querySelector('.design-file');
+            row.querySelector('.design-pick').addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+                try {
+                    const dataUrl = await resizeImage(file, 256);
+                    await saveDesignImage(key, dataUrl);
+                } catch (err) {
+                    showPopup(err.message || '画像の読み込みに失敗しました');
+                }
+            });
+            const clearBtn = row.querySelector('.design-clear');
+            if (clearBtn) clearBtn.addEventListener('click', () => saveDesignImage(key, null));
+        });
+    }
+
+    async function saveDesignImage(key, image) {
+        try {
+            const data = await api('/api/designs', { method: 'PUT', body: JSON.stringify({ key, image }) });
+            state.designImages = data.images;
+            renderDesignImageRows();
+            refreshChipImages();
+        } catch (err) {
+            showPopup(err.message);
+        }
+    }
+
+    // アップロード画像を最大 maxSize px に縮小して JPEG の dataURL に変換
+    function resizeImage(file, maxSize) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.width * scale));
+                canvas.height = Math.max(1, Math.round(img.height * scale));
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('画像を読み込めませんでした'));
+            };
+            img.src = url;
+        });
+    }
+
     // ---------- CSV出力(日本語/タイ語) ----------
 
     function tr(text, lang) {
@@ -913,7 +889,7 @@
     function downloadCsv(lang) {
         if (state.orders.length === 0) return showPopup('注文がまだありません');
         const pm = state.priceModel;
-        const header = ['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '単価', '金額', '受け渡し', '確認者', '備考', '入力者', '更新日時']
+        const header = ['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '単価', '金額', '支払い', '受け渡し', '確認者', '備考', '入力者', '更新日時']
             .map((h) => tr(h, lang));
         const rows = [header];
         for (const o of state.orders) {
@@ -932,6 +908,7 @@
                         qty,
                         Math.round(unit * 100) / 100,
                         Math.round(unit * qty * 100) / 100,
+                        tr(o.paid ? '済' : '未', lang),
                         tr(check ? '済' : '未', lang),
                         check ? check.by : '',
                         o.note,
@@ -965,6 +942,11 @@
             if (event.type === 'pricing') {
                 await loadPricing();
                 renderAll();
+            }
+            if (event.type === 'designs') {
+                await loadDesigns();
+                refreshChipImages();
+                if (!$('pricing-modal').classList.contains('hidden')) renderDesignImageRows();
             }
             if (event.type === 'lock') {
                 const showBanner = event.locked && event.holderId !== state.user.userId;
@@ -1007,7 +989,6 @@
     $('csv-th-btn').addEventListener('click', () => downloadCsv('th'));
 
     $('pricing-edit-btn').addEventListener('click', openPricingModal);
-    $('add-plate-btn').addEventListener('click', () => $('plates-list').appendChild(createPlateRow(null)));
     $('pricing-cancel').addEventListener('click', () => $('pricing-modal').classList.add('hidden'));
     $('pricing-save').addEventListener('click', savePricing);
 

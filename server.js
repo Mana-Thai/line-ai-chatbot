@@ -4,14 +4,14 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const {
-    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH,
-    MAX_ITEMS, MAX_PLATES, LABOR_COMBOS,
+    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH, MAX_ITEMS,
+    DESIGN_IMAGE_KEYS, MAX_IMAGE_DATAURL_LENGTH,
 } = require('./shared/constants');
 const { createStore } = require('./lib/store');
 const auth = require('./lib/auth');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '2mb' })); // デザインのサンプル画像(dataURL)を受けるため
 
 const store = createStore();
 
@@ -153,6 +153,7 @@ function parseOrderInput(body) {
 
 // ============================================
 // 価格設定(管理者のみ変更可能)
+// 価格は工賃込みの一律。入力された金額をそのまま単価として使う
 // ============================================
 
 function parseNonNegNumber(val, name) {
@@ -165,31 +166,13 @@ function parsePricing(body) {
     const b = body || {};
     const sizePrices = {};
     for (const size of SIZES) {
-        const parsed = parseNonNegNumber((b.sizePrices || {})[size] || 0, `Tシャツ代(${size})`);
+        const parsed = parseNonNegNumber((b.sizePrices || {})[size] || 0, `Tシャツ価格(${size})`);
         if (parsed.error) return { error: parsed.error };
         sizePrices[size] = parsed.value;
     }
-    const bring = parseNonNegNumber(b.bringOwnPrice || 0, '持ち込みTシャツ代');
+    const bring = parseNonNegNumber(b.bringOwnPrice || 0, '持ち込み価格');
     if (bring.error) return { error: bring.error };
-
-    if (!Array.isArray(b.plates)) return { error: 'スクリーン版代の形式が不正です' };
-    if (b.plates.length > MAX_PLATES) return { error: `スクリーン版は最大${MAX_PLATES}件までです` };
-    const plates = [];
-    for (const raw of b.plates) {
-        if (!raw || !['logo', 'logoLarge', 'back'].includes(raw.type)) return { error: 'スクリーン版の種類を選択してください' };
-        const cost = parseNonNegNumber(raw.cost, 'スクリーン版代');
-        if (cost.error) return { error: cost.error };
-        const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 50) : '';
-        plates.push({ type: raw.type, label, cost: cost.value });
-    }
-
-    const labor = {};
-    for (const combo of LABOR_COMBOS) {
-        const parsed = parseNonNegNumber((b.labor || {})[combo.key] || 0, `工賃(${combo.label})`);
-        if (parsed.error) return { error: parsed.error };
-        labor[combo.key] = parsed.value;
-    }
-    return { value: { sizePrices, bringOwnPrice: bring.value, plates, labor } };
+    return { value: { sizePrices, bringOwnPrice: bring.value } };
 }
 
 app.get('/api/orders', requireAuth, async (req, res) => {
@@ -209,6 +192,39 @@ app.put('/api/pricing', requireAuth, async (req, res) => {
     await store.setSetting('pricing', parsed.value);
     broadcast({ type: 'pricing' });
     res.json({ pricing: parsed.value });
+});
+
+// ============================================
+// デザインのサンプル画像(閲覧は全員・変更は管理者のみ)
+// ============================================
+
+app.get('/api/designs', requireAuth, async (req, res) => {
+    res.json({ images: (await store.getSetting('designImages')) || {} });
+});
+
+app.put('/api/designs', requireAuth, async (req, res) => {
+    if (!req.user.admin) {
+        return res.status(403).json({ message: 'サンプル画像は管理者のみ変更できます' });
+    }
+    const { key, image } = req.body || {};
+    if (!DESIGN_IMAGE_KEYS.includes(key)) {
+        return res.status(400).json({ message: '対象のデザイン項目が不正です' });
+    }
+    const images = (await store.getSetting('designImages')) || {};
+    if (image === null || image === '') {
+        delete images[key];
+    } else {
+        if (typeof image !== 'string' || !/^data:image\/(png|jpeg|jpg|webp|gif);base64,/.test(image)) {
+            return res.status(400).json({ message: '画像の形式が不正です' });
+        }
+        if (image.length > MAX_IMAGE_DATAURL_LENGTH) {
+            return res.status(400).json({ message: '画像が大きすぎます(縮小して再度お試しください)' });
+        }
+        images[key] = image;
+    }
+    await store.setSetting('designImages', images);
+    broadcast({ type: 'designs' });
+    res.json({ images });
 });
 
 app.post('/api/orders', requireAuth, async (req, res) => {
@@ -261,6 +277,18 @@ app.put('/api/orders/:id', requireAuth, async (req, res) => {
         delivered: sanitizeDelivered(order.delivered, parsed.value.items),
         updatedBy: req.user.name,
     });
+    broadcast({ type: 'orders' });
+    res.json({ order: updated });
+});
+
+// 支払い済みチェックの切り替え(入力した本人または管理者のみ)
+app.post('/api/orders/:id/payment', requireAuth, async (req, res) => {
+    const order = await loadEditableOrder(req, res);
+    if (!order) return;
+    const paid = (req.body || {}).paid
+        ? { by: req.user.name, at: new Date().toISOString() }
+        : null;
+    const updated = await store.setPaid(order.id, paid);
     broadcast({ type: 'orders' });
     res.json({ order: updated });
 });
