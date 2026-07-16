@@ -76,3 +76,4 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `website-quality-check` | ウェブサイトの公開前チェック(スマホ表示・OGP・リンク切れ等) |
 | `roblox-game-dev` | Robloxゲーム開発(Luau・Studio連携・サーバー権威設計・公開) |
 | `new-web-game` | ブラウザミニゲーム(Canvas)の作成とURL共有 |
+| `illustration-animation` | イラスト・静止画のアニメーション化(animate.py・ギフト動画連携) |

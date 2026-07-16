@@ -8,6 +8,7 @@ AI生成済みのシーン素材(scene1〜N.mp4)とBGMから、パーソナラ�
 gift-video/
 ├── scripts/
 │   ├── new_order.py      # 新規注文フォルダを生成 (--dummy でテスト素材も生成)
+│   ├── animate.py        # イラスト(静止画)からシーン動画を生成 (ズーム/パン/揺れ/パラパラ)
 │   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
 │   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
@@ -86,6 +87,20 @@ python scripts/qc.py sample-001
 # 約1分のダミー注文 (シーン尺は 60÷6=10秒 に自動計算される)
 python scripts/new_order.py demo-60s --target-sec 60 --dummy --scenes 6
 ```
+
+### イラスト(静止画)をシーン素材にする
+
+動画素材がなくても、イラスト1枚からカメラワーク付きのシーンを作れます。
+
+```powershell
+# ズーム/パン/揺れの7プリセット。出力仕様はシーン素材と同じ (H.264/yuv420p/30fps)
+python scripts/animate.py illust.png --out orders/sample-001/input/scene1.mp4 --preset zoom-in --duration 10
+
+# 差分イラストのフォルダを渡すとパラパラ漫画になる
+python scripts/animate.py frames_dir/ --out orders/sample-001/input/scene2.mp4 --frame-fps 8 --duration 10
+```
+
+入力イラストは出力解像度の1.5〜2倍以上を推奨(ズーム・パンの余白になる)。
 
 ### 複数注文をまとめて作る
 
