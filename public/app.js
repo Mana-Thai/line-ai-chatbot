@@ -9,6 +9,7 @@
         token: null,
         user: null,
         orders: [],
+        designImages: {},    // デザイン項目ごとのサンプル画像(dataURL)
         pricing: null,       // 管理者が設定した価格(未設定なら null)
         priceModel: null,    // pricing + 注文数から算出した単価モデル
         editingOrderId: null, // null = 新規追加
@@ -116,7 +117,8 @@
         $('user-name').textContent = state.user.name;
         updateAdminUi();
         showScreen('screen-main');
-        await Promise.all([loadPricing(), refreshOrders()]);
+        await Promise.all([loadPricing(), loadDesigns(), refreshOrders()]);
+        refreshChipImages();
         openStream();
     }
 
@@ -146,6 +148,30 @@
             const data = await api('/api/pricing');
             state.pricing = data.pricing;
         } catch { /* 価格未設定でもアプリは動く */ }
+    }
+
+    async function loadDesigns() {
+        try {
+            const data = await api('/api/designs');
+            state.designImages = data.images || {};
+        } catch { /* 画像未設定でもアプリは動く */ }
+    }
+
+    // 選択肢に対応するサンプル画像のキー(胸ロゴは項目名そのまま、バックプリントは「有」のみ)
+    function designImageKey(group, value) {
+        if (group === 'chestLogo' && value !== '無') return value;
+        if (group === 'backPrint' && value === '有') return C.BACK_PRINT_IMAGE_KEY;
+        return null;
+    }
+
+    // チップ(選択肢ボタン)にサンプル画像を反映
+    function refreshChipImages() {
+        document.querySelectorAll('.chip[data-group]').forEach((chip) => {
+            const key = designImageKey(chip.dataset.group, chip.dataset.value);
+            const img = key ? state.designImages[key] : null;
+            chip.innerHTML = (img ? `<img class="chip-img" src="${img}" alt="">` : '')
+                + escapeHtml(chip.dataset.value);
+        });
     }
 
     // ---------- 価格 ----------
@@ -725,6 +751,7 @@
                 <input data-size="${s}" class="input" type="number" inputmode="decimal" min="0" placeholder="0" value="${p.sizePrices[s] || ''}">
             </div>`).join('');
         $('bring-own-price').value = p.bringOwnPrice || '';
+        renderDesignImageRows();
         $('pricing-error').classList.add('hidden');
         $('pricing-modal').classList.remove('hidden');
         $('pricing-modal').querySelector('.modal-card').scrollTop = 0;
@@ -746,6 +773,77 @@
             $('pricing-error').textContent = err.message;
             $('pricing-error').classList.remove('hidden');
         }
+    }
+
+    // ---------- デザインのサンプル画像(管理者) ----------
+
+    function renderDesignImageRows() {
+        const box = $('design-images');
+        box.innerHTML = C.DESIGN_IMAGE_KEYS.map((key) => {
+            const img = state.designImages[key];
+            return `
+            <div class="design-row" data-key="${escapeHtml(key)}">
+                ${img ? `<img class="design-thumb" src="${img}" alt="">` : '<span class="design-thumb empty">なし</span>'}
+                <span class="design-label">${escapeHtml(key)}</span>
+                <button type="button" class="btn btn-small design-pick">画像を選択</button>
+                ${img ? '<button type="button" class="btn btn-small btn-danger design-clear">削除</button>' : ''}
+                <input type="file" accept="image/*" class="design-file hidden">
+            </div>`;
+        }).join('');
+
+        box.querySelectorAll('.design-row').forEach((row) => {
+            const key = row.dataset.key;
+            const fileInput = row.querySelector('.design-file');
+            row.querySelector('.design-pick').addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+                try {
+                    const dataUrl = await resizeImage(file, 256);
+                    await saveDesignImage(key, dataUrl);
+                } catch (err) {
+                    showPopup(err.message || '画像の読み込みに失敗しました');
+                }
+            });
+            const clearBtn = row.querySelector('.design-clear');
+            if (clearBtn) clearBtn.addEventListener('click', () => saveDesignImage(key, null));
+        });
+    }
+
+    async function saveDesignImage(key, image) {
+        try {
+            const data = await api('/api/designs', { method: 'PUT', body: JSON.stringify({ key, image }) });
+            state.designImages = data.images;
+            renderDesignImageRows();
+            refreshChipImages();
+        } catch (err) {
+            showPopup(err.message);
+        }
+    }
+
+    // アップロード画像を最大 maxSize px に縮小して JPEG の dataURL に変換
+    function resizeImage(file, maxSize) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.width * scale));
+                canvas.height = Math.max(1, Math.round(img.height * scale));
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('画像を読み込めませんでした'));
+            };
+            img.src = url;
+        });
     }
 
     // ---------- CSV出力(日本語/タイ語) ----------
@@ -810,6 +908,11 @@
             if (event.type === 'pricing') {
                 await loadPricing();
                 renderAll();
+            }
+            if (event.type === 'designs') {
+                await loadDesigns();
+                refreshChipImages();
+                if (!$('pricing-modal').classList.contains('hidden')) renderDesignImageRows();
             }
             if (event.type === 'lock') {
                 const showBanner = event.locked && event.holderId !== state.user.userId;

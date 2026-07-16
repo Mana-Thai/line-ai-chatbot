@@ -5,12 +5,13 @@ const express = require('express');
 const path = require('path');
 const {
     CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH, MAX_ITEMS,
+    DESIGN_IMAGE_KEYS, MAX_IMAGE_DATAURL_LENGTH,
 } = require('./shared/constants');
 const { createStore } = require('./lib/store');
 const auth = require('./lib/auth');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '2mb' })); // デザインのサンプル画像(dataURL)を受けるため
 
 const store = createStore();
 
@@ -191,6 +192,39 @@ app.put('/api/pricing', requireAuth, async (req, res) => {
     await store.setSetting('pricing', parsed.value);
     broadcast({ type: 'pricing' });
     res.json({ pricing: parsed.value });
+});
+
+// ============================================
+// デザインのサンプル画像(閲覧は全員・変更は管理者のみ)
+// ============================================
+
+app.get('/api/designs', requireAuth, async (req, res) => {
+    res.json({ images: (await store.getSetting('designImages')) || {} });
+});
+
+app.put('/api/designs', requireAuth, async (req, res) => {
+    if (!req.user.admin) {
+        return res.status(403).json({ message: 'サンプル画像は管理者のみ変更できます' });
+    }
+    const { key, image } = req.body || {};
+    if (!DESIGN_IMAGE_KEYS.includes(key)) {
+        return res.status(400).json({ message: '対象のデザイン項目が不正です' });
+    }
+    const images = (await store.getSetting('designImages')) || {};
+    if (image === null || image === '') {
+        delete images[key];
+    } else {
+        if (typeof image !== 'string' || !/^data:image\/(png|jpeg|jpg|webp|gif);base64,/.test(image)) {
+            return res.status(400).json({ message: '画像の形式が不正です' });
+        }
+        if (image.length > MAX_IMAGE_DATAURL_LENGTH) {
+            return res.status(400).json({ message: '画像が大きすぎます(縮小して再度お試しください)' });
+        }
+        images[key] = image;
+    }
+    await store.setSetting('designImages', images);
+    broadcast({ type: 'designs' });
+    res.json({ images });
 });
 
 app.post('/api/orders', requireAuth, async (req, res) => {

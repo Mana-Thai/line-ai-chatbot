@@ -255,7 +255,45 @@ table.summary .total-row th, table.summary .total-col {
     padding: 6px 14px;
     font-size: 14px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
+.chip-img {
+    width: 26px;
+    height: 26px;
+    object-fit: cover;
+    border-radius: 5px;
+    pointer-events: none;
+}
+
+/* デザインのサンプル画像(管理者設定) */
+.design-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+}
+.design-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.design-thumb.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f2f4f6;
+    color: var(--muted);
+    font-size: 10px;
+}
+.design-label { flex: 1; font-size: 12px; }
 .chip.selected {
     background: var(--line-green);
     border-color: var(--line-green);
