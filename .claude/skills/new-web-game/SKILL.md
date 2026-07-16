@@ -50,7 +50,7 @@ OGP画像をゲーム画面風にするとLINEで共有したとき遊んでも�
 
 1. `python3 -m http.server 8000` で起動し、Playwrightでスマホサイズ(375x812)で実際に
    プレイ操作(タップ)して動作確認+スクリーンショット
-   (リモート環境のChromiumは `/opt/pw-browsers/chromium`、`playwright install` 不要)
+   (Chromiumの場所や導入方法は環境ごとの注記を `website-quality-check` Skill参照)
 2. チェック項目: タイトル→プレイ→ゲームオーバー→リトライが一巡する /
    スコアとハイスコアが正しい / 連打・同時タッチで壊れない /
    画面回転しても崩れない / 60秒放置でエラーが出ない(コンソール確認)

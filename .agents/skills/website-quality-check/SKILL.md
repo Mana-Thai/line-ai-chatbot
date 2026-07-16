@@ -18,8 +18,9 @@ python3 -m http.server 8000
 ## 2. 表示確認(Playwrightでスクリーンショット)
 
 スマホ(375x812)とPC(1280x800)の2サイズで全ページを撮影し、目視確認する。
-Claudeのリモート環境ではChromiumが `/opt/pw-browsers/chromium` にあり
-`playwright install` は不要。
+実行環境のChromium: Claude Codeのリモート環境では `/opt/pw-browsers/chromium` にあり
+`playwright install` 不要。Codex等それ以外の環境ではシステムのChromium/Chromeを
+`executablePath` で指定するか `npx playwright install chromium` で導入する。
 
 確認ポイント:
 
