@@ -4,8 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const {
-    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH,
-    MAX_ITEMS, MAX_PLATES, LABOR_COMBOS,
+    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH, MAX_ITEMS,
 } = require('./shared/constants');
 const { createStore } = require('./lib/store');
 const auth = require('./lib/auth');
@@ -153,6 +152,7 @@ function parseOrderInput(body) {
 
 // ============================================
 // 価格設定(管理者のみ変更可能)
+// 価格は工賃込みの一律。入力された金額をそのまま単価として使う
 // ============================================
 
 function parseNonNegNumber(val, name) {
@@ -165,31 +165,13 @@ function parsePricing(body) {
     const b = body || {};
     const sizePrices = {};
     for (const size of SIZES) {
-        const parsed = parseNonNegNumber((b.sizePrices || {})[size] || 0, `Tシャツ代(${size})`);
+        const parsed = parseNonNegNumber((b.sizePrices || {})[size] || 0, `Tシャツ価格(${size})`);
         if (parsed.error) return { error: parsed.error };
         sizePrices[size] = parsed.value;
     }
-    const bring = parseNonNegNumber(b.bringOwnPrice || 0, '持ち込みTシャツ代');
+    const bring = parseNonNegNumber(b.bringOwnPrice || 0, '持ち込み価格');
     if (bring.error) return { error: bring.error };
-
-    if (!Array.isArray(b.plates)) return { error: 'スクリーン版代の形式が不正です' };
-    if (b.plates.length > MAX_PLATES) return { error: `スクリーン版は最大${MAX_PLATES}件までです` };
-    const plates = [];
-    for (const raw of b.plates) {
-        if (!raw || !['logo', 'logoLarge', 'back'].includes(raw.type)) return { error: 'スクリーン版の種類を選択してください' };
-        const cost = parseNonNegNumber(raw.cost, 'スクリーン版代');
-        if (cost.error) return { error: cost.error };
-        const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 50) : '';
-        plates.push({ type: raw.type, label, cost: cost.value });
-    }
-
-    const labor = {};
-    for (const combo of LABOR_COMBOS) {
-        const parsed = parseNonNegNumber((b.labor || {})[combo.key] || 0, `工賃(${combo.label})`);
-        if (parsed.error) return { error: parsed.error };
-        labor[combo.key] = parsed.value;
-    }
-    return { value: { sizePrices, bringOwnPrice: bring.value, plates, labor } };
+    return { value: { sizePrices, bringOwnPrice: bring.value } };
 }
 
 app.get('/api/orders', requireAuth, async (req, res) => {

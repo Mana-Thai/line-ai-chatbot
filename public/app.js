@@ -148,21 +148,10 @@
         } catch { /* 価格未設定でもアプリは動く */ }
     }
 
-    // ---------- 価格計算 ----------
+    // ---------- 価格 ----------
     //
-    // ロゴ用スクリーン版代 : 白/カラーの発注数合計で割って1枚あたりを算出(ロゴ無=0)
-    //   白の分配費用      = 版代 ÷ (白合計+カラー合計) × 白合計
-    //   カラーの分配費用  = 版代 ÷ (白合計+カラー合計) × カラー合計
-    // ロゴ大用スクリーン版代 : 白・大/カラー・大の発注数合計で割る(通常ロゴとは別勘定)
-    // バックプリント用版代 : 有の発注数合計で割って1枚あたりを算出(無=0)
-    // 完成Tシャツ単価 = サイズ別Tシャツ代(持ち込みは持ち込み価格)
-    //                 + ロゴ用版代の1枚あたり + BP用版代の1枚あたり + スクリーン工賃
-    //                 を10の位で切り上げ(例: 221 → 230)
-
-    // 浮動小数点誤差でちょうど10の倍数が繰り上がらないよう、小数2桁で丸めてから切り上げる
-    function roundUp10(n) {
-        return Math.ceil(Math.round(n * 100) / 1000) * 10;
-    }
+    // 価格は工賃込みの一律。管理者が入力したサイズ別価格(持ち込みは持ち込み価格)を
+    // そのまま単価として表示する(計算・切り上げなし)
 
     function orderQty(order) {
         let q = 0;
@@ -173,55 +162,13 @@
     }
 
     function buildPriceModel() {
-        const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0, plates: [], labor: {} };
-        const counts = { white: 0, color: 0, whiteLarge: 0, colorLarge: 0, none: 0, bpYes: 0, bpNo: 0 };
-        for (const o of state.orders) {
-            const q = orderQty(o);
-            if (o.chestLogo === '有(白)') counts.white += q;
-            else if (o.chestLogo === '有(カラー)') counts.color += q;
-            else if (o.chestLogo === '有(白・大)') counts.whiteLarge += q;
-            else if (o.chestLogo === '有(カラー・大)') counts.colorLarge += q;
-            else counts.none += q;
-            if (o.backPrint === '有') counts.bpYes += q;
-            else counts.bpNo += q;
-        }
-        const logoDen = counts.white + counts.color;
-        const logoLargeDen = counts.whiteLarge + counts.colorLarge;
-        let logoUnit = 0;
-        let logoLargeUnit = 0;
-        let bpUnit = 0;
-        for (const plate of p.plates || []) {
-            if (plate.type === 'logo' && logoDen > 0) logoUnit += plate.cost / logoDen;
-            if (plate.type === 'logoLarge' && logoLargeDen > 0) logoLargeUnit += plate.cost / logoLargeDen;
-            if (plate.type === 'back' && counts.bpYes > 0) bpUnit += plate.cost / counts.bpYes;
-        }
+        const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0 };
 
-        // 胸ロゴの種類に応じた版代の1枚あたり負担(ロゴ無=0)
-        function logoAddFor(chestLogo) {
-            if (chestLogo === '無') return 0;
-            return C.LARGE_LOGOS.includes(chestLogo) ? logoLargeUnit : logoUnit;
-        }
-
-        function laborFor(chestLogo, backPrint) {
-            const combo = C.LABOR_COMBOS.find(
-                (l) => l.chestLogo === chestLogo && l.backPrint === backPrint,
-            );
-            return combo ? (p.labor || {})[combo.key] || 0 : 0; // 「無+無」は工賃0
-        }
-
-        function basePrice(size, color) {
+        function unit(chestLogo, backPrint, size, color) {
             return color === C.BRING_OWN ? (p.bringOwnPrice || 0) : ((p.sizePrices || {})[size] || 0);
         }
 
-        function unit(chestLogo, backPrint, size, color) {
-            const bpAdd = backPrint === '有' ? bpUnit : 0;
-            return roundUp10(basePrice(size, color) + logoAddFor(chestLogo) + bpAdd + laborFor(chestLogo, backPrint));
-        }
-
-        return {
-            counts, logoDen, logoLargeDen, logoUnit, logoLargeUnit, bpUnit,
-            laborFor, basePrice, logoAddFor, unit, hasPricing: !!state.pricing,
-        };
+        return { unit, hasPricing: !!state.pricing };
     }
 
     function orderAmount(order) {
@@ -331,7 +278,7 @@
             </div></div>`;
     }
 
-    // 単価表:デザインの組み合わせごとに内訳(Tシャツ代+版代+工賃=単価)を表示
+    // 単価表:管理者が入力した価格(工賃込み)をそのまま表示
     function renderPriceTable() {
         const pm = state.priceModel;
         const box = $('price-table');
@@ -341,43 +288,19 @@
             return;
         }
 
-        // 注文に存在する組み合わせ+工賃が設定されている組み合わせを表示
-        const comboKeys = new Set();
-        for (const o of state.orders) comboKeys.add(`${o.chestLogo}|${o.backPrint}`);
-        const combos = C.LABOR_COMBOS.filter(
-            (l) => comboKeys.has(`${l.chestLogo}|${l.backPrint}`) || (state.pricing.labor || {})[l.key] > 0,
-        );
-        if (comboKeys.has('無|無')) combos.push({ key: null, chestLogo: '無', backPrint: '無', label: 'ロゴ無+バックプリント無' });
-
-        if (combos.length === 0) {
-            box.innerHTML = '<p class="muted">注文が入ると、デザインごとの単価と内訳が表示されます。</p>';
-            return;
-        }
-
-        box.innerHTML = combos.map((combo) => {
-            const logoAdd = pm.logoAddFor(combo.chestLogo);
-            const bpAdd = combo.backPrint === '有' ? pm.bpUnit : 0;
-            const labor = pm.laborFor(combo.chestLogo, combo.backPrint);
-            const rows = C.SIZES.map((size) => {
-                const base = pm.basePrice(size, null);
-                return `<tr><th>${size}</th><td class="num">${fmtMoney(base)}</td><td class="num total-col">${fmtMoney(pm.unit(combo.chestLogo, combo.backPrint, size, null))}</td></tr>`;
-            }).join('');
-            const bringBase = pm.basePrice(null, C.BRING_OWN);
-            const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num">${fmtMoney(bringBase)}</td><td class="num total-col">${fmtMoney(pm.unit(combo.chestLogo, combo.backPrint, null, C.BRING_OWN))}</td></tr>`;
-            return `
+        const rows = C.SIZES.map((size) => `
+            <tr><th>${size}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, size, null))}</td></tr>`).join('');
+        const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, null, C.BRING_OWN))}</td></tr>`;
+        box.innerHTML = `
             <div class="summary-group">
-                <div class="summary-title">${escapeHtml(combo.label)}</div>
-                <div class="price-breakdown muted">
-                    内訳: Tシャツ代(サイズ別) + ロゴ版代 ${fmtMoney(logoAdd)} + バックプリント版代 ${fmtMoney(bpAdd)} + 工賃 ${fmtMoney(labor)}(単価は10の位で切り上げ)
-                </div>
+                <div class="price-breakdown muted">工賃込みの一律価格です(デザインによる差はありません)</div>
                 <div class="table-wrap">
                     <table class="summary">
-                        <tr><th>サイズ</th><th>Tシャツ代</th><th>完成単価</th></tr>
+                        <tr><th>サイズ</th><th>単価</th></tr>
                         ${rows}${bringRow}
                     </table>
                 </div>
             </div>`;
-        }).join('');
     }
 
     function renderSummary() {
@@ -794,103 +717,25 @@
 
     // ---------- 価格設定(管理者) ----------
 
-    function pricingOrDefault() {
-        return state.pricing || { sizePrices: {}, bringOwnPrice: 0, plates: [], labor: {} };
-    }
-
-    // スクリーン版1件分の入力行と、発注数合計・分配費用の表示
-    function createPlateRow(plate) {
-        const div = document.createElement('div');
-        div.className = 'plate-row';
-        div.innerHTML = `
-            <div class="plate-inputs">
-                <select class="input plate-type">
-                    <option value="logo">ロゴ用</option>
-                    <option value="logoLarge">ロゴ大用</option>
-                    <option value="back">バックプリント用</option>
-                </select>
-                <input class="input plate-cost" type="number" inputmode="decimal" min="0" placeholder="版代">
-                <button type="button" class="btn btn-small btn-danger plate-remove">削除</button>
-            </div>
-            <div class="plate-alloc muted"></div>`;
-        if (plate) {
-            div.querySelector('.plate-type').value = plate.type;
-            div.querySelector('.plate-cost').value = plate.cost || '';
-        }
-        const update = () => updatePlateAlloc(div);
-        div.querySelector('.plate-type').addEventListener('change', update);
-        div.querySelector('.plate-cost').addEventListener('input', update);
-        div.querySelector('.plate-remove').addEventListener('click', () => div.remove());
-        update();
-        return div;
-    }
-
-    // 仕様の分配計算:
-    //  ロゴ用   白 = 版代/(白+カラー)×白, カラー = 版代/(白+カラー)×カラー, ロゴ無 = 0
-    //  ロゴ大用 白・大/カラー・大で同様に分配(通常ロゴとは別勘定)
-    //  BP用     有 = 版代/有合計(1枚あたり), 無 = 0
-    function updatePlateAlloc(row) {
-        const { counts } = state.priceModel;
-        const type = row.querySelector('.plate-type').value;
-        const cost = Number(row.querySelector('.plate-cost').value) || 0;
-        const box = row.querySelector('.plate-alloc');
-        if (type === 'logo' || type === 'logoLarge') {
-            const large = type === 'logoLarge';
-            const nWhite = large ? counts.whiteLarge : counts.white;
-            const nColor = large ? counts.colorLarge : counts.color;
-            const wLabel = large ? '白・大' : '白';
-            const cLabel = large ? 'カラー・大' : 'カラー';
-            const den = nWhite + nColor;
-            const white = den > 0 ? (cost / den) * nWhite : 0;
-            const color = den > 0 ? (cost / den) * nColor : 0;
-            box.innerHTML = `発注数 → ${wLabel}:${nWhite}枚 / ${cLabel}:${nColor}枚 / ロゴ無:${counts.none}枚<br>`
-                + `分配 → ${wLabel}:${fmtMoney(white)} / ${cLabel}:${fmtMoney(color)} / ロゴ無:0`
-                + (den > 0 ? `(1枚あたり ${fmtMoney(cost / den)})` : '');
-        } else {
-            const perUnit = counts.bpYes > 0 ? cost / counts.bpYes : 0;
-            box.innerHTML = `発注数 → 有:${counts.bpYes}枚 / 無:${counts.bpNo}枚<br>`
-                + `分配 → 有:1枚あたり ${fmtMoney(perUnit)}(合計 ${fmtMoney(cost)}) / 無:0`;
-        }
-    }
-
     function openPricingModal() {
-        const p = pricingOrDefault();
+        const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0 };
         $('size-price-grid').innerHTML = C.SIZES.map((s) => `
             <div class="price-row">
                 <label>${s}</label>
                 <input data-size="${s}" class="input" type="number" inputmode="decimal" min="0" placeholder="0" value="${p.sizePrices[s] || ''}">
             </div>`).join('');
         $('bring-own-price').value = p.bringOwnPrice || '';
-
-        $('plates-list').innerHTML = '';
-        (p.plates || []).forEach((plate) => $('plates-list').appendChild(createPlateRow(plate)));
-
-        $('labor-list').innerHTML = C.LABOR_COMBOS.map((combo) => `
-            <div class="price-row labor-row">
-                <label>${escapeHtml(combo.label)}</label>
-                <input data-labor="${combo.key}" class="input" type="number" inputmode="decimal" min="0" placeholder="0" value="${(p.labor || {})[combo.key] || ''}">
-            </div>`).join('');
-
         $('pricing-error').classList.add('hidden');
         $('pricing-modal').classList.remove('hidden');
         $('pricing-modal').querySelector('.modal-card').scrollTop = 0;
     }
 
     async function savePricing() {
-        const body = { sizePrices: {}, plates: [], labor: {} };
+        const body = { sizePrices: {} };
         $('size-price-grid').querySelectorAll('input').forEach((input) => {
             body.sizePrices[input.dataset.size] = Number(input.value) || 0;
         });
         body.bringOwnPrice = Number($('bring-own-price').value) || 0;
-        for (const row of $('plates-list').querySelectorAll('.plate-row')) {
-            body.plates.push({
-                type: row.querySelector('.plate-type').value,
-                cost: Number(row.querySelector('.plate-cost').value) || 0,
-            });
-        }
-        $('labor-list').querySelectorAll('input').forEach((input) => {
-            body.labor[input.dataset.labor] = Number(input.value) || 0;
-        });
 
         try {
             const data = await api('/api/pricing', { method: 'PUT', body: JSON.stringify(body) });
@@ -1007,7 +852,6 @@
     $('csv-th-btn').addEventListener('click', () => downloadCsv('th'));
 
     $('pricing-edit-btn').addEventListener('click', openPricingModal);
-    $('add-plate-btn').addEventListener('click', () => $('plates-list').appendChild(createPlateRow(null)));
     $('pricing-cancel').addEventListener('click', () => $('pricing-modal').classList.add('hidden'));
     $('pricing-save').addEventListener('click', savePricing);
 
