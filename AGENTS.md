@@ -68,3 +68,9 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `gift-video-run` | ギフト動画1本の作成(new_order → precheck → assemble → qc) |
 | `gift-video-batch` | ギフト動画の一括量産(CSV → make_orders → precheck → batch) |
 | `gift-video-material-check` | ギフト動画素材の事前チェックとFAIL/WARNの対処 |
+| `new-shared-webapp` | URL共有型Webアプリの新規立ち上げ(注文アプリを雛形に流用) |
+| `webapp-access-control` | URL共有アプリのアクセス制御(認証方式の選択+公開前チェック) |
+| `app-publish` | 新アプリの公開手順(Render+Supabase)とグループLINEでのURL共有 |
+| `new-website` | ウェブサイト(案内ページ・LP等)の新規作成テンプレート(静的サイト) |
+| `website-publish` | ウェブサイトの無料公開(GitHub Pages)とURL共有 |
+| `website-quality-check` | ウェブサイトの公開前チェック(スマホ表示・OGP・リンク切れ等) |
