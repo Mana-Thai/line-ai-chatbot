@@ -1,0 +1,8 @@
+order_id: "sample-001"
+couple_names: "Kenji & Yuki"
+anniversary_date: "2021.10.15"
+scene1_caption: "Autumn, 2019"      # Scene 1に小さく表示
+message: "Thank you for dropping that book."
+message_start_sec: 22               # メッセージのフェードイン開始秒(BGMの山に合わせて調整可能)
+output_formats: ["portrait", "landscape"]  # 1080x1920 と 1920x1080
+portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
