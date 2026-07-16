@@ -281,6 +281,18 @@ app.put('/api/orders/:id', requireAuth, async (req, res) => {
     res.json({ order: updated });
 });
 
+// 支払い済みチェックの切り替え(入力した本人または管理者のみ)
+app.post('/api/orders/:id/payment', requireAuth, async (req, res) => {
+    const order = await loadEditableOrder(req, res);
+    if (!order) return;
+    const paid = (req.body || {}).paid
+        ? { by: req.user.name, at: new Date().toISOString() }
+        : null;
+    const updated = await store.setPaid(order.id, paid);
+    broadcast({ type: 'orders' });
+    res.json({ order: updated });
+});
+
 // 受け渡しチェックの切り替え(入力した本人または管理者のみ)
 app.post('/api/orders/:id/delivery', requireAuth, async (req, res) => {
     const order = await loadEditableOrder(req, res);

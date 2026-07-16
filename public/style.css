@@ -150,6 +150,28 @@ body {
     padding-top: 6px;
 }
 .order-total b { color: var(--line-green-dark); font-size: 16px; }
+
+/* 支払い済みチェック */
+.pay-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.pay-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--line-green);
+    flex-shrink: 0;
+}
+.pay-row input[type="checkbox"]:disabled { opacity: 0.45; }
+.pay-row.paid .pay-label { color: var(--line-green-dark); font-weight: 700; }
+.pay-meta { font-size: 11px; color: var(--line-green-dark); }
+.pay-ok { color: var(--line-green-dark); font-weight: 700; }
+.pay-no { color: var(--danger); font-weight: 700; }
+.pay-part { color: #b8860b; font-size: 12px; font-weight: 700; }
 .order-note { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: pre-wrap; }
 .order-meta { font-size: 11px; color: #bbb; margin-top: 6px; }
 

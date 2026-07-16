@@ -262,6 +262,11 @@
                 </div>
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
                 <div class="order-total">合計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
+                <label class="pay-row${o.paid ? ' paid' : ''}">
+                    <input type="checkbox" data-pay="${o.id}" ${o.paid ? 'checked' : ''} ${editable ? '' : 'disabled'}>
+                    <span class="pay-label">支払い済み</span>
+                    <span class="pay-meta">${o.paid ? `✓ ${escapeHtml(o.paid.by)} ${new Date(o.paid.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
+                </label>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
                 <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
             </div>`;
@@ -273,14 +278,32 @@
         list.querySelectorAll('[data-delete]').forEach((btn) => {
             btn.addEventListener('click', () => deleteOrder(Number(btn.dataset.delete)));
         });
+        list.querySelectorAll('[data-pay]').forEach((cb) => {
+            cb.addEventListener('change', () => togglePayment(cb));
+        });
+    }
+
+    async function togglePayment(cb) {
+        cb.disabled = true;
+        try {
+            await api(`/api/orders/${cb.dataset.pay}/payment`, {
+                method: 'POST',
+                body: JSON.stringify({ paid: cb.checked }),
+            });
+        } catch (err) {
+            showPopup(err.message);
+        }
+        refreshOrders();
     }
 
     function renderPersonTotals() {
         const totals = new Map();
         for (const o of state.orders) {
-            const t = totals.get(o.orderName) || { qty: 0, amount: 0 };
+            const t = totals.get(o.orderName) || { qty: 0, amount: 0, paidAmount: 0 };
+            const amount = orderAmount(o);
             t.qty += orderQty(o);
-            t.amount += orderAmount(o);
+            t.amount += amount;
+            if (o.paid) t.paidAmount += amount;
             totals.set(o.orderName, t);
         }
         if (totals.size === 0) {
@@ -289,17 +312,27 @@
         }
         let allQty = 0;
         let allAmount = 0;
+        let allPaid = 0;
+
+        function payStatus(t) {
+            if (t.amount > 0 && t.paidAmount >= t.amount) return '<span class="pay-ok">✓ 済</span>';
+            if (t.paidAmount === 0) return '<span class="pay-no">未</span>';
+            return `<span class="pay-part">一部(残 ${fmtMoney(t.amount - t.paidAmount)})</span>`;
+        }
+
         const rows = [...totals.entries()].map(([name, t]) => {
             allQty += t.qty;
             allAmount += t.amount;
-            return `<tr><th>${escapeHtml(name)}</th><td class="num">${t.qty}</td><td class="num">${fmtMoney(t.amount)}</td></tr>`;
+            allPaid += t.paidAmount;
+            return `<tr><th>${escapeHtml(name)}</th><td class="num">${t.qty}</td><td class="num">${fmtMoney(t.amount)}</td><td>${payStatus(t)}</td></tr>`;
         }).join('');
+        const unpaid = allAmount - allPaid;
         $('person-totals').innerHTML = `
             <div class="summary-group"><div class="table-wrap">
             <table class="summary">
-                <tr><th>名前</th><th>枚数</th><th>金額</th></tr>
+                <tr><th>名前</th><th>枚数</th><th>金額</th><th>支払い</th></tr>
                 ${rows}
-                <tr class="total-row"><th>合計</th><td class="num">${allQty}</td><td class="num">${fmtMoney(allAmount)}</td></tr>
+                <tr class="total-row"><th>合計</th><td class="num">${allQty}</td><td class="num">${fmtMoney(allAmount)}</td><td>${unpaid > 0 ? `未収 ${fmtMoney(unpaid)}` : '<span class="pay-ok">全員済 ✓</span>'}</td></tr>
             </table>
             </div></div>`;
     }
@@ -856,7 +889,7 @@
     function downloadCsv(lang) {
         if (state.orders.length === 0) return showPopup('注文がまだありません');
         const pm = state.priceModel;
-        const header = ['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '単価', '金額', '受け渡し', '確認者', '備考', '入力者', '更新日時']
+        const header = ['名前', '胸ロゴ', 'バックプリント', 'サイズ', 'カラー', '数量', '単価', '金額', '支払い', '受け渡し', '確認者', '備考', '入力者', '更新日時']
             .map((h) => tr(h, lang));
         const rows = [header];
         for (const o of state.orders) {
@@ -875,6 +908,7 @@
                         qty,
                         Math.round(unit * 100) / 100,
                         Math.round(unit * qty * 100) / 100,
+                        tr(o.paid ? '済' : '未', lang),
                         tr(check ? '済' : '未', lang),
                         check ? check.by : '',
                         o.note,
