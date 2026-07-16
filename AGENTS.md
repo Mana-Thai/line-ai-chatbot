@@ -4,7 +4,7 @@
 
 ## リポジトリの構成
 
-このリポジトリには独立した2つのアプリが入っている:
+このリポジトリには独立した3つのアプリが入っている:
 
 1. **グッズ注文とりまとめアプリ(メイン・本番運用中)** — グループLINEのメンバーで
    Tシャツ等の注文を取りまとめるWebアプリ。LIFF(LINEログイン)使用、Messaging API(Bot)不使用。
@@ -20,6 +20,30 @@
    パーソナライズ動画(30秒〜1分等、`order.yaml` の `target_duration` で指定)を組み立てる
    Python+ffmpegのCLI。詳細は `gift-video/README.md`
 3. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+
+## アーキテクチャ(注文アプリ)
+
+複数ファイルにまたがる設計。変更時はここを前提にすること:
+
+- **認証フロー**: フロント(LIFF)がIDトークンを取得 → `POST /api/auth` がLINEの検証API
+  (`api.line.me/oauth2/v2.1/verify`)で確認 → HMAC署名セッショントークン
+  (`base64url(JSON).署名`、12時間、`lib/auth.js`)を発行。以降は `Authorization: Bearer`。
+  管理者は `POST /api/admin`(パスコード)で `admin: true` 入りトークンを再発行してもらう方式
+- **SSE**: EventSource はヘッダーを送れないため `/api/stream?token=...` とクエリで認証。
+  イベントは `orders` / `pricing` / `designs` / `lock` の種別通知のみで、データ本体は含まず
+  クライアントが該当APIを再取得する(`public/app.js` の `openStream`)
+- **保存層のインターフェース**: `createStore()`(`lib/store.js`)が PgStore / FileStore を返す。
+  両者は同一メソッド(`init/list/get/create/update/setDelivered/setPaid/remove/getSetting/setSetting`)
+  を実装。メソッドを追加するときは必ず両方に実装する。設定は key-value 形式で、
+  現在のキーは `pricing`(価格)と `designImages`(サンプル画像のdataURL)
+- **受け渡しチェック**: 注文の `delivered` オブジェクトに `"itemIndex:color"` をキーとして
+  `{ by, at }` を記録。注文編集時は `sanitizeDelivered`(server.js)が対応しなくなった
+  キーを取り除く。支払いは注文単位の `paid`(`{ by, at }` または null)
+- **編集ロックはサーバーメモリ内**(DBに載せない)。単一インスタンス前提の設計
+- **本人 or 管理者チェック**は `loadEditableOrder`(server.js)に集約。注文系の新規APIは
+  必ずこれを通す
+- **フロントは `public/app.js` 1ファイル(約1000行)のIIFE**。ビルド無し。変更イベントの
+  たびに `renderAll()` で全再描画するシンプル構成。描画・価格計算・CSV出力もすべてここ
 
 ## 重要な仕様・約束事
 
@@ -46,10 +70,24 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 テストフレームワークは無く、curlによるAPIテスト+Playwrightの複数ユーザー同時UIテストで
 検証する(手順はSkill `order-app-regression` にある)。
 
+### ギフト動画パイプライン(gift-video/)
+
+Python 3.10+ / ffmpeg / PyYAML が必要。`--dummy` で実素材なしに全工程をテストできる:
+
+```bash
+cd gift-video
+python scripts/new_order.py sample-001 --dummy   # 注文フォルダ+ダミー素材生成
+python scripts/precheck.py sample-001            # 素材の事前チェック
+python scripts/assemble.py sample-001            # 組み立て(縦型/横型mp4を output/ へ)
+python scripts/qc.py sample-001                  # 品質チェック(ALL PASSで exit 0)
+python scripts/batch.py                          # 全注文を一括 precheck→assemble→qc
+```
+
 ## デプロイ
 
 - Render(無料プラン)。設定は `render.yaml`(ヘルスチェック `/healthz`)
 - DBはSupabase。`DATABASE_URL` 未設定だと再デプロイでデータが消えるため本番はDB必須
+  (SSLは既定で `rejectUnauthorized: false`。`DATABASE_SSL=false` で無効化可)
 - 環境変数を追加したら `render.yaml` / `.env.example` / `SETUP.md` の3つにも必ず反映
 - 公開手順の正本は `SETUP.md`
 
