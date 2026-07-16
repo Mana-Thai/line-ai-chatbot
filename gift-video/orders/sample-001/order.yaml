@@ -6,3 +6,4 @@ message: "Thank you for dropping that book."
 message_start_sec: 22               # メッセージのフェードイン開始秒(BGMの山に合わせて調整可能)
 output_formats: ["portrait", "landscape"]  # 1080x1920 と 1920x1080
 portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
+target_duration: 30                 # 完成動画の目標秒数(許容 -2/+5秒。60で約1分)

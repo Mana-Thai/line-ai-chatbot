@@ -16,7 +16,10 @@
      描画・価格計算・CSV出力(日本語/タイ語)・SSE受信のすべてがある
    - `shared/constants.js` — 選択肢(胸ロゴ6種・カラー20色+持ち込み・サイズS〜5XL)と
      タイ語辞書 `TH`。サーバー/ブラウザ共用(UMD形式)
-2. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+2. **ギフト動画 組み立てパイプライン** — `gift-video/`。AI生成済みシーン素材+BGMから
+   パーソナライズ動画(30秒〜1分等、`order.yaml` の `target_duration` で指定)を組み立てる
+   Python+ffmpegのCLI。詳細は `gift-video/README.md`
+3. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
 
 ## 重要な仕様・約束事
 
@@ -62,4 +65,6 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `thai-i18n` | 選択肢・CSV列・文言の追加/変更時の日タイ二言語チェックリスト |
 | `order-data-migration` | 選択肢改名・データ構造変更時の既存データ自動移行パターン |
 | `deploy-check` | 環境変数・render.yaml・SETUP.md の整合チェック(マージ前) |
-| `gift-video-run` | ギフト動画パイプラインの実行(PR #1 の `gift-video/` が前提) |
+| `gift-video-run` | ギフト動画1本の作成(new_order → precheck → assemble → qc) |
+| `gift-video-batch` | ギフト動画の一括量産(CSV → make_orders → precheck → batch) |
+| `gift-video-material-check` | ギフト動画素材の事前チェックとFAIL/WARNの対処 |

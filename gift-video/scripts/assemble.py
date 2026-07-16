@@ -228,6 +228,18 @@ def assemble(order_id: str, keep_work: bool) -> None:
     print(f"[probe] scenes={len(scenes)} " +
           " ".join(f"{p.name}={d:.2f}s" for p, d in zip(scenes, scene_durs)))
 
+    # エンコード前に総再生時間を検算する (時間のかかるエンコード後に QC で落ちるのを防ぐ)
+    target = order["target_duration"]
+    dmin, dmax = common.duration_range(target)
+    total_planned = common.planned_total(scene_durs)
+    print(f"[plan]  総再生時間 {total_planned:.1f}s (目標 {target:.0f}s / 規定 {dmin:.0f}-{dmax:.0f}s)")
+    if not dmin <= total_planned <= dmax:
+        raise PipelineError(
+            f"計算上の総再生時間 {total_planned:.1f}s が目標 {target:.0f}s の"
+            f"許容範囲 ({dmin:.0f}〜{dmax:.0f}s) 外です。\n"
+            f"  - シーンの追加/削除、または各シーンの尺を調整してください\n"
+            f"  - この尺で良い場合は order.yaml の target_duration を変更してください")
+
     manifest = {
         "order_id": order_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -235,6 +247,7 @@ def assemble(order_id: str, keep_work: bool) -> None:
         "scene_durations": [round(d, 3) for d in scene_durs],
         "order": {k: order[k] for k in ("message_start_sec", "scene1_caption",
                                         "couple_names", "anniversary_date",
+                                        "target_duration",
                                         "output_formats", "portrait_mode")},
         "formats": {},
     }
