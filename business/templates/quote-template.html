@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<!-- 見積書テンプレート (日タイ併記・LINE送付用の縦長PNG向け)
+     使い方: {{...}} を実際の値に置き換えて quote.html として保存し、
+       python artwork/tools/rasterize.py quote.html --out quote.png --width 1080 --height 1528
+     明細行が多い/少ないときは <tr> を増減し、--height を調整する -->
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: #F7F5F0;
+    font-family: "Hiragino Sans", "Noto Sans JP", "Noto Sans Thai", "Yu Gothic", sans-serif;
+    color: #2A2A2A; }
+  .sheet { box-sizing: border-box; width: 100vw; min-height: 100vh; padding: 56px 64px; }
+  h1 { font-size: 40px; margin: 0; letter-spacing: 2px; }
+  .th { color: #777; font-size: 0.62em; font-weight: normal; margin-left: 10px; }
+  .meta { margin-top: 10px; color: #666; font-size: 22px; }
+  .to { font-size: 30px; margin: 36px 0 6px; border-bottom: 2px solid #2A2A2A;
+        display: inline-block; padding: 0 8px 6px 2px; }
+  .lead { font-size: 22px; color: #555; margin: 8px 0 28px; }
+  table { width: 100%; border-collapse: collapse; font-size: 24px; }
+  th, td { border: 1px solid #C9C4B8; padding: 14px 16px; text-align: left; }
+  th { background: #EDE9DF; font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .total td { background: #FBF3DC; font-weight: 700; font-size: 28px; }
+  .notes { margin-top: 30px; font-size: 20px; color: #555; line-height: 1.7; }
+  .from { margin-top: 40px; font-size: 22px; text-align: right; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>お見積り <span class="th">ใบเสนอราคา</span></h1>
+  <div class="meta">見積日 / วันที่: {{DATE}}　　有効期限 / ใช้ได้ถึง: {{VALID_UNTIL}}</div>
+
+  <div class="to">{{CUSTOMER_NAME}} 様 / คุณ{{CUSTOMER_NAME_TH}}</div>
+  <div class="lead">下記のとおりお見積りいたします。/ ขอเสนอราคาดังต่อไปนี้</div>
+
+  <table>
+    <tr>
+      <th>内容 / รายการ</th>
+      <th class="num">数量 / จำนวน</th>
+      <th class="num">金額 / ราคา</th>
+    </tr>
+    <tr><td>{{ITEM_1}}</td><td class="num">{{QTY_1}}</td><td class="num">{{PRICE_1}}</td></tr>
+    <tr><td>{{ITEM_2}}</td><td class="num">{{QTY_2}}</td><td class="num">{{PRICE_2}}</td></tr>
+    <tr class="total"><td colspan="2">合計 / รวมทั้งหมด</td><td class="num">{{TOTAL}}</td></tr>
+  </table>
+
+  <div class="notes">
+    ・納期 / กำหนดส่งงาน: {{DEADLINE}}<br>
+    ・お支払い / การชำระเงิน: {{PAYMENT}}<br>
+    ・{{NOTE}}
+  </div>
+
+  <div class="from">{{SHOP_NAME}}<br>{{CONTACT}}</div>
+</div>
+</body>
+</html>

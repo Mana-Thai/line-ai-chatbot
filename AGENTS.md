@@ -19,7 +19,12 @@
 2. **ギフト動画 組み立てパイプライン** — `gift-video/`。AI生成済みシーン素材+BGMから
    パーソナライズ動画(30秒〜1分等、`order.yaml` の `target_duration` で指定)を組み立てる
    Python+ffmpegのCLI。詳細は `gift-video/README.md`
-3. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+3. **アートワーク制作ツール** — `artwork/tools/`。SVG→高解像度PNGの `rasterize.py`
+   (ヘッドレスChrome利用・透過/生地色プレビュー対応)と、テキストグリッド→ドット絵SVGの
+   `pixel2svg.py`。作品は `artwork/works/<作品名>/` に置く
+4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)と
+   見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)
+5. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
 
 ## 重要な仕様・約束事
 
@@ -77,3 +82,10 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `roblox-game-dev` | Robloxゲーム開発(Luau・Studio連携・サーバー権威設計・公開) |
 | `new-web-game` | ブラウザミニゲーム(Canvas)の作成とURL共有 |
 | `illustration-animation` | イラスト・静止画のアニメーション化(animate.py・ギフト動画連携) |
+| `apparel-graphic-design` | アパレルプリントのデザイン制作(SVG→300dpi透過PNG・印刷制約) |
+| `pixel-art` | ピクセルアート制作(テキストグリッド作画→SVG→PNG) |
+| `gimmick-art` | 仕掛けアート(逆さ絵・隠し文字・QRアート等)の制作と検証 |
+| `biz-quote` | 副業の見積もり作成(ヒアリング→日タイ併記の見積書PNG) |
+| `biz-order-ledger` | 受注管理台帳(business/orders.csv)の運用とレポート |
+| `biz-customer-messages` | 顧客対応メッセージの日タイテンプレート |
+| `biz-delivery` | 納品手順(透かしプレビュー→入金→本納品) |
