@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../../portfolio/fonts/fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1350px;
+    font-family: "Kanit", "Noto Sans Thai", "Garuda", "Noto Sans CJK JP", sans-serif;
+    background:
+      radial-gradient(circle at 90% 8%, rgba(255,255,255,0.9) 0 10px, transparent 11px),
+      radial-gradient(circle at 6% 30%, rgba(255,255,255,0.8) 0 8px, transparent 9px),
+      radial-gradient(circle at 94% 58%, rgba(255,255,255,0.8) 0 8px, transparent 9px),
+      linear-gradient(168deg, #F4FAFF 0%, #DFF0FF 45%, #BFDFF8 100%);
+    color: #17307E;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+    padding: 54px 60px 40px;
+    position: relative; overflow: hidden;
+  }
+  .jasmine { position: absolute; opacity: 0.9; }
+  .badge {
+    background: #17307E; color: #fff;
+    padding: 12px 46px; border-radius: 999px;
+    font-size: 34px; font-weight: 700; letter-spacing: 0.04em;
+    box-shadow: 0 6px 16px rgba(23, 48, 126, 0.25);
+  }
+  h1 { font-size: 74px; line-height: 1.25; margin-top: 14px; font-weight: 800; }
+  .jp { font-size: 34px; color: #33528F; margin-top: 8px; font-weight: 500; }
+  .visual {
+    margin-top: 24px;
+    width: 330px; height: 330px; border-radius: 50%;
+    border: 10px solid #FFFFFF;
+    outline: 4px solid #E8A03C;
+    overflow: hidden; flex-shrink: 0;
+    box-shadow: 0 14px 34px rgba(23, 48, 126, 0.22);
+  }
+  .visual img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 72%; }
+  .price-row { margin-top: 16px; display: flex; align-items: baseline; gap: 20px; }
+  .price-label { font-size: 40px; font-weight: 600; }
+  .price { font-size: 90px; font-weight: 800; color: #F0662E; letter-spacing: 0.01em; }
+  .price small { font-size: 46px; font-weight: 700; }
+  .deadline {
+    margin-top: 16px;
+    background: #FFFFFF; border-radius: 20px;
+    padding: 14px 38px; font-size: 30px; font-weight: 600; line-height: 1.65;
+    box-shadow: 0 6px 18px rgba(23, 48, 126, 0.14);
+    border: 2px solid #E8A03C;
+  }
+  .deadline .jp-s { font-size: 25px; font-weight: 400; color: #33528F; }
+  .cta {
+    margin-top: 20px;
+    background: #06C755; color: #fff;
+    border-radius: 999px; padding: 18px 54px;
+    font-size: 40px; font-weight: 800;
+    box-shadow: 0 8px 20px rgba(6, 199, 85, 0.35);
+  }
+  footer { margin-top: auto; padding-bottom: 2px; font-size: 27px; color: #33528F; }
+</style>
+</head>
+<body>
+  <!-- ジャスミン(タイ母の日の花)の装飾 -->
+  <svg class="jasmine" style="top:150px; left:36px;" width="120" height="120" viewBox="0 0 100 100">
+    <g transform="translate(50,50)">
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(0)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(72)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(144)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(216)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(288)"/>
+      <circle r="10" fill="#E8A03C"/>
+    </g>
+  </svg>
+  <svg class="jasmine" style="top:420px; right:30px;" width="90" height="90" viewBox="0 0 100 100">
+    <g transform="translate(50,50) rotate(20)">
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(0)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(72)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(144)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(216)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(288)"/>
+      <circle r="10" fill="#E8A03C"/>
+    </g>
+  </svg>
+  <svg class="jasmine" style="bottom:210px; left:40px;" width="100" height="100" viewBox="0 0 100 100">
+    <g transform="translate(50,50) rotate(-15)">
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(0)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(72)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(144)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(216)"/>
+      <ellipse cx="0" cy="-26" rx="13" ry="24" fill="#FFFFFF" transform="rotate(288)"/>
+      <circle r="10" fill="#E8A03C"/>
+    </g>
+  </svg>
+
+  <div class="badge">วันแม่แห่งชาติ 12 สิงหา 🤍</div>
+  <h1>เปลี่ยนรูปคู่คุณแม่<br>เป็นวิดีโอสุดพิเศษ 🎬</h1>
+  <div class="jp">お母さんとの写真を、想い出のギフト動画に</div>
+  <div class="visual"><img src="visual.jpg" alt=""></div>
+  <div class="price-row">
+    <span class="price-label">30 วิ เริ่มต้น</span>
+    <span class="price">1,500<small>.-</small></span>
+  </div>
+  <div class="deadline">
+    ✅ สั่งภายใน 8 ส.ค. ได้รับทันวันแม่ ・ แก้ฟรี 2 ครั้ง<br>
+    <span class="jp-s">8/8(土)までのお申込みで母の日までにお届け・修正2回無料</span>
+  </div>
+  <div class="cta">ทักไลน์เลย ประเมินราคาฟรี 💬</div>
+  <footer>Gift &amp; Design Studio — ภาษาไทย・日本語 OK</footer>
+</body>
+</html>

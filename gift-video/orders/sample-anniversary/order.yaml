@@ -1,0 +1,9 @@
+order_id: "sample-anniversary"
+couple_names: "Kenji & Yuki"
+anniversary_date: "2021.10.15"
+scene1_caption: "Autumn, 2019"
+message: "Thank you for everything"
+message_start_sec: 22
+output_formats: ["portrait", "landscape"]
+portrait_mode: "crop"
+target_duration: 30

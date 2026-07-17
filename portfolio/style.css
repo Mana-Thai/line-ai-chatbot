@@ -1,0 +1,197 @@
+/* 幅375px基準・スマホ最優先。LINEのアプリ内ブラウザから開かれる前提。
+   タイ向けデザイン: 見出しKanit(タイで最も使われる書体)+本文Sarabun、
+   母の日=水色×白ジャスミン×金(タイの文化色)、価格を大きく、締切と特典を明示 */
+@import url("fonts/fonts.css");
+
+:root {
+  --ink: #1E2433;
+  --sub: #5E6678;
+  --bg: #FFFFFF;
+  --blue: #2E6FDB;        /* 信頼のブルー(見出しアクセント) */
+  --sky: #EAF4FF;         /* 母の日の水色(สีฟ้าวันแม่) */
+  --sky-deep: #CFE5FB;
+  --gold: #E8A03C;        /* 縁起の良い金 */
+  --price: #F0662E;       /* 価格・強調(タイECの定番の暖色) */
+  --line-green: #06C755;
+  --card: #FFFFFF;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: "Sarabun", "Noto Sans Thai", "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.85; /* タイ文字は上下に伸びるため広めに取る */
+}
+h1, h2, h3 {
+  font-family: "Kanit", "Noto Sans Thai", "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
+  line-height: 1.5;
+}
+section, header, footer { padding: 34px 20px; }
+h2 { font-size: 1.35rem; margin-bottom: 4px; }
+.h2-sub { color: var(--sub); font-size: 0.9rem; margin-bottom: 18px; }
+h2::after {
+  content: "";
+  display: block;
+  width: 44px; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--gold));
+  margin: 8px 0 2px;
+}
+.center h2::after { margin-left: auto; margin-right: auto; }
+
+/* ヒーロー: 水色×白ジャスミン(タイ母の日の色) */
+.hero {
+  text-align: center;
+  padding: 52px 20px 46px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,0.9) 0 6px, transparent 7px),
+    radial-gradient(circle at 88% 26%, rgba(255,255,255,0.9) 0 5px, transparent 6px),
+    radial-gradient(circle at 78% 82%, rgba(255,255,255,0.8) 0 6px, transparent 7px),
+    linear-gradient(165deg, #F2F9FF 0%, var(--sky) 45%, var(--sky-deep) 100%);
+}
+.hero-mark { font-size: 2.4rem; }
+.hero h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: 0.02em; margin: 4px 0 8px; color: #17307E; }
+.hero-lead { color: #33528F; margin-bottom: 10px; font-size: 1.02rem; font-weight: 700; }
+.hero-lead-jp { color: var(--sub); font-size: 0.92rem; margin-bottom: 20px; }
+.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 22px; }
+.chip {
+  background: #FFFFFF;
+  border: 1px solid var(--sky-deep);
+  color: #33528F;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.btn {
+  display: inline-block;
+  padding: 15px 30px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.btn-line {
+  background: var(--line-green);
+  color: #fff;
+  box-shadow: 0 5px 16px rgba(6, 199, 85, 0.35);
+}
+.btn-line:active { transform: translateY(1px); }
+
+/* 母の日キャンペーン: 水色×白×金 */
+.campaign {
+  background: linear-gradient(170deg, var(--sky) 0%, #DDEEFF 100%);
+  border-top: 3px solid var(--gold);
+  border-bottom: 3px solid var(--gold);
+  text-align: center;
+}
+.campaign-flowers { font-size: 1.5rem; letter-spacing: 0.35em; margin-bottom: 4px; }
+.campaign h2 { color: #17307E; }
+.campaign h2::after { background: var(--gold); margin-left: auto; margin-right: auto; }
+.campaign-th { font-family: "Kanit", sans-serif; font-weight: 700; font-size: 1.1rem; color: #17307E; margin-top: 10px; }
+.campaign p { margin-top: 6px; }
+.price-big {
+  font-family: "Kanit", sans-serif;
+  font-weight: 800;
+  font-size: 2.2rem;
+  color: var(--price);
+  line-height: 1.2;
+}
+.price-big small { font-size: 1.1rem; font-weight: 700; }
+.deadline-box {
+  background: #FFFFFF;
+  border-radius: 14px;
+  display: inline-block;
+  padding: 10px 22px;
+  margin-top: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(46, 111, 219, 0.12);
+}
+.deadline-box .th { color: #33528F; font-weight: 400; font-size: 0.88rem; }
+
+/* 作品(動画ファースト: タイはSNS動画で商品を選ぶ) */
+.works { text-align: center; }
+.works-grid { display: grid; gap: 22px; margin-top: 16px; }
+.works-grid video {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 9 / 16;
+  border-radius: 18px;
+  background: #000;
+  box-shadow: 0 8px 24px rgba(23, 48, 126, 0.16);
+}
+.works-grid figcaption {
+  margin-top: 8px;
+  font-family: "Kanit", sans-serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+/* サービス: 白カード+価格を大きく */
+.services { background: #F4F8FD; }
+.service-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(30, 36, 51, 0.07);
+  border-top: 4px solid var(--sky-deep);
+}
+.service-card h3 { font-size: 1.1rem; margin-bottom: 6px; color: #17307E; }
+.service-card p { font-size: 0.94rem; margin-bottom: 6px; }
+.service-card .th { color: #33528F; }
+.price {
+  font-family: "Kanit", sans-serif;
+  font-weight: 800;
+  color: var(--price);
+  font-size: 1.25rem;
+}
+.price small { font-size: 0.85rem; color: var(--sub); font-weight: 400; }
+
+/* 流れ: 番号を丸バッジに */
+.flow ol { list-style: none; counter-reset: step; }
+.flow li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 46px;
+  margin-bottom: 14px;
+}
+.flow li::before {
+  content: counter(step);
+  position: absolute; left: 0; top: 2px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--blue), #6FA5EE);
+  color: #fff;
+  font-family: "Kanit", sans-serif;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.flow .th { color: #33528F; font-size: 0.9rem; }
+
+/* 連絡先 */
+.contact {
+  text-align: center;
+  background: linear-gradient(170deg, var(--sky) 0%, var(--sky-deep) 100%);
+}
+.contact h2 { color: #17307E; }
+.contact p { margin-bottom: 16px; }
+.contact-note { font-size: 0.9rem; color: #33528F; margin-top: 12px; }
+
+footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--sub);
+  padding-bottom: 44px;
+}
+
+/* PC */
+@media (min-width: 768px) {
+  section, header, footer { padding-left: max(20px, calc(50vw - 430px)); padding-right: max(20px, calc(50vw - 430px)); }
+  .works-grid { grid-template-columns: repeat(3, 1fr); }
+  .service-card { padding: 26px; }
+  .hero h1 { font-size: 2.3rem; }
+}

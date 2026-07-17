@@ -1,0 +1,9 @@
+order_id: "sample-mothersday"
+couple_names: "For Mom"
+anniversary_date: "2026.08.12"
+scene1_caption: "Happy Mother's Day"
+message: "お母さん、いつもありがとう"
+message_start_sec: 22
+output_formats: ["portrait", "landscape"]
+portrait_mode: "crop"
+target_duration: 30
