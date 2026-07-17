@@ -190,19 +190,25 @@
     function buildPriceModel() {
         const p = state.pricing || { sizePrices: {}, bringOwnPrice: 0 };
 
-        function unit(chestLogo, backPrint, size, color) {
-            return color === C.BRING_OWN ? (p.bringOwnPrice || 0) : ((p.sizePrices || {})[size] || 0);
+        function unit(chestLogo, backPrint, size) {
+            return size === C.BRING_OWN ? (p.bringOwnPrice || 0) : ((p.sizePrices || {})[size] || 0);
         }
 
         return { unit, hasPricing: !!state.pricing };
+    }
+
+    // 明細の数量キー(通常サイズはカラー、持ち込みサイズは「持ち込み」のみ)
+    function itemKeys(item) {
+        return item.size === C.BRING_OWN ? [C.BRING_OWN] : C.COLORS;
     }
 
     function orderAmount(order) {
         const pm = state.priceModel;
         let total = 0;
         for (const item of order.items) {
-            for (const [color, qty] of Object.entries(item.quantities)) {
-                total += qty * pm.unit(order.chestLogo, order.backPrint, item.size, color);
+            const u = pm.unit(order.chestLogo, order.backPrint, item.size);
+            for (const qty of Object.values(item.quantities)) {
+                total += qty * u;
             }
         }
         return total;
@@ -222,13 +228,14 @@
 
     function itemQtyHtml(order, item) {
         const pm = state.priceModel;
-        const parts = C.COLORS.filter((c) => item.quantities[c]).map((c) => {
-            const u = pm.unit(order.chestLogo, order.backPrint, item.size, c);
-            return `${escapeHtml(c)}×${item.quantities[c]}<span class="unit">(@${fmtMoney(u)})</span>`;
+        const u = pm.unit(order.chestLogo, order.backPrint, item.size);
+        const parts = itemKeys(item).filter((c) => item.quantities[c]).map((c) => {
+            const label = item.size === C.BRING_OWN ? '' : `${escapeHtml(c)}`;
+            return `${label}×${item.quantities[c]}<span class="unit">(@${fmtMoney(u)})</span>`;
         });
         let amount = 0;
-        for (const [color, qty] of Object.entries(item.quantities)) {
-            amount += qty * pm.unit(order.chestLogo, order.backPrint, item.size, color);
+        for (const qty of Object.values(item.quantities)) {
+            amount += qty * u;
         }
         return `<div class="order-item"><span class="tag size">${escapeHtml(item.size)}</span> ${parts.join('、')} <b>= ${fmtMoney(amount)}</b></div>`;
     }
@@ -348,8 +355,8 @@
         }
 
         const rows = C.SIZES.map((size) => `
-            <tr><th>${size}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, size, null))}</td></tr>`).join('');
-        const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, null, C.BRING_OWN))}</td></tr>`;
+            <tr><th>${size}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, size))}</td></tr>`).join('');
+        const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, C.BRING_OWN))}</td></tr>`;
         box.innerHTML = `
             <div class="summary-group">
                 <div class="price-breakdown muted">工賃込みの一律価格です(デザインによる差はありません)</div>
@@ -389,8 +396,8 @@
             : '';
 
         $('summary').innerHTML = [...groups.values()].map((g) => {
-            const sizes = C.SIZES.filter((s) => Object.values(g.cells).some((row) => row[s]));
-            const colors = C.COLORS.filter((c) => g.cells[c]);
+            const sizes = [...C.SIZES, C.BRING_OWN].filter((s) => Object.values(g.cells).some((row) => row[s]));
+            const colors = [...C.COLORS, C.BRING_OWN].filter((c) => g.cells[c]);
             const colTotals = Object.fromEntries(sizes.map((s) => [s, 0]));
 
             const rows = colors.map((color) => {
@@ -424,7 +431,7 @@
     // 明細行(注文×サイズ×カラー)を列挙する共通処理
     function eachLine(order, fn) {
         order.items.forEach((item, idx) => {
-            for (const color of C.COLORS) {
+            for (const color of itemKeys(item)) {
                 const qty = item.quantities[color];
                 if (qty) fn(idx, item, color, qty, order.delivered[`${idx}:${color}`]);
             }
@@ -459,7 +466,7 @@
                         <span class="delivery-text">
                             <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
                             <span class="tag size">${escapeHtml(item.size)}</span>
-                            ${escapeHtml(color)}×${qty}
+                            ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
                         </span>
                         <span class="delivery-meta">${meta}</span>
                     </label>`);
@@ -528,8 +535,8 @@
         }
 
         $('remaining').innerHTML = [...groups.values()].map((g) => {
-            const sizes = C.SIZES.filter((s) => Object.values(g.cells).some((row) => row[s]));
-            const colors = C.COLORS.filter((c) => g.cells[c]);
+            const sizes = [...C.SIZES, C.BRING_OWN].filter((s) => Object.values(g.cells).some((row) => row[s]));
+            const colors = [...C.COLORS, C.BRING_OWN].filter((c) => g.cells[c]);
             const colTotals = Object.fromEntries(sizes.map((s) => [s, 0]));
             const rows = colors.map((color) => {
                 let rowTotal = 0;
@@ -610,7 +617,7 @@
         });
     }
 
-    // サイズ1件分の入力ブロック(サイズ選択+カラー別数量)
+    // サイズ1件分の入力ブロック(サイズ選択+カラー別数量。持ち込みは数量のみ)
     function createItemBlock(item) {
         const div = document.createElement('div');
         div.className = 'item-block';
@@ -620,14 +627,30 @@
                 <button type="button" class="btn btn-small btn-danger item-remove">このサイズを削除</button>
             </div>
             <div class="chip-group item-sizes"></div>
-            <div class="color-grid item-colors"></div>`;
+            <div class="color-grid item-colors"></div>
+            <div class="color-grid item-bring hidden">
+                <div class="color-row">
+                    <label>持ち込み数量</label>
+                    <input data-color="${escapeHtml(C.BRING_OWN)}" type="number" inputmode="numeric" min="0" max="${C.MAX_QTY}" placeholder="0">
+                </div>
+            </div>`;
+
+        // 持ち込みが選ばれたらカラー表を隠して数量入力だけにする
+        function updateMode() {
+            const selected = div.querySelector('.item-sizes .chip.selected');
+            const isBring = !!selected && selected.dataset.value === C.BRING_OWN;
+            div.querySelector('.item-colors').classList.toggle('hidden', isBring);
+            div.querySelector('.item-bring').classList.toggle('hidden', !isBring);
+        }
 
         const sizeBox = div.querySelector('.item-sizes');
-        sizeBox.innerHTML = C.SIZES.map((s) => `<button type="button" class="chip" data-value="${s}">${s}</button>`).join('');
+        sizeBox.innerHTML = [...C.SIZES, C.BRING_OWN]
+            .map((s) => `<button type="button" class="chip" data-value="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('');
         sizeBox.querySelectorAll('.chip').forEach((chip) => {
             chip.addEventListener('click', () => {
                 sizeBox.querySelectorAll('.chip').forEach((c) => c.classList.remove('selected'));
                 chip.classList.add('selected');
+                updateMode();
             });
         });
 
@@ -637,7 +660,7 @@
                 <label>${escapeHtml(color)}</label>
                 <input data-color="${escapeHtml(color)}" type="number" inputmode="numeric" min="0" max="${C.MAX_QTY}" placeholder="0">
             </div>`).join('');
-        colorBox.querySelectorAll('input').forEach((input) => {
+        div.querySelectorAll('.item-colors input, .item-bring input').forEach((input) => {
             input.addEventListener('input', () => {
                 input.closest('.color-row').classList.toggle('has-qty', Number(input.value) > 0);
             });
@@ -650,11 +673,15 @@
 
         if (item) {
             sizeBox.querySelectorAll('.chip').forEach((c) => c.classList.toggle('selected', c.dataset.value === item.size));
-            colorBox.querySelectorAll('input').forEach((input) => {
+            const inputs = item.size === C.BRING_OWN
+                ? div.querySelectorAll('.item-bring input')
+                : div.querySelectorAll('.item-colors input');
+            inputs.forEach((input) => {
                 const qty = item.quantities[input.dataset.color] || 0;
                 input.value = qty || '';
                 input.closest('.color-row').classList.toggle('has-qty', qty > 0);
             });
+            updateMode();
         }
         return div;
     }
@@ -712,12 +739,16 @@
         const items = [];
         for (const block of $('items-list').querySelectorAll('.item-block')) {
             const sizeChip = block.querySelector('.item-sizes .chip.selected');
+            const size = sizeChip ? sizeChip.dataset.value : null;
             const quantities = {};
-            block.querySelectorAll('.item-colors input').forEach((input) => {
+            const inputs = size === C.BRING_OWN
+                ? block.querySelectorAll('.item-bring input')
+                : block.querySelectorAll('.item-colors input');
+            inputs.forEach((input) => {
                 const n = Number(input.value);
                 if (n > 0) quantities[input.dataset.color] = n;
             });
-            items.push({ size: sizeChip ? sizeChip.dataset.value : null, quantities });
+            items.push({ size, quantities });
         }
         return items;
     }
@@ -738,7 +769,9 @@
         for (let i = 0; i < items.length; i++) {
             if (!items[i].size) return showFormError(`${i + 1}番目のサイズを選択してください`);
             if (Object.keys(items[i].quantities).length === 0) {
-                return showFormError(`サイズ${items[i].size}の数量を1色以上入力してください`);
+                return showFormError(items[i].size === C.BRING_OWN
+                    ? '持ち込みの数量を入力してください'
+                    : `サイズ${items[i].size}の数量を1色以上入力してください`);
             }
         }
         $('form-error').classList.add('hidden');
@@ -894,17 +927,17 @@
         const rows = [header];
         for (const o of state.orders) {
             o.items.forEach((item, idx) => {
-                for (const color of C.COLORS) {
+                for (const color of itemKeys(item)) {
                     const qty = item.quantities[color];
                     if (!qty) continue;
-                    const unit = pm.unit(o.chestLogo, o.backPrint, item.size, color);
+                    const unit = pm.unit(o.chestLogo, o.backPrint, item.size);
                     const check = o.delivered[`${idx}:${color}`];
                     rows.push([
                         o.orderName,
                         tr(o.chestLogo, lang),
                         tr(o.backPrint, lang),
-                        item.size,
-                        tr(color, lang),
+                        tr(item.size, lang),
+                        item.size === C.BRING_OWN ? '-' : tr(color, lang),
                         qty,
                         Math.round(unit * 100) / 100,
                         Math.round(unit * qty * 100) / 100,
