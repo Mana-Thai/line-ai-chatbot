@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-"""SVGを高解像度PNGに書き出す (ヘッドレスChrome/Chromium/Edgeを利用)。
+"""SVG/HTMLを高解像度PNGに書き出す (ヘッドレスChrome/Chromium/Edgeを利用)。
 
     python artwork/tools/rasterize.py design.svg --out print.png --width 3600
     python artwork/tools/rasterize.py design.svg --out preview.png --width 800 --background "#1A1A1A"
+    python artwork/tools/rasterize.py quote.html --out quote.png --width 1080 --height 1528
 
-- 背景は既定で透明 (プリント入稿用)。--background で生地色プレビューを作れる
-- 高さ省略時はSVGのviewBox/width/heightから自動計算
+- SVG: 背景は既定で透明 (プリント入稿用)。--background で生地色プレビューを作れる。
+  高さ省略時はSVGのviewBox/width/heightから自動計算
+- HTML (.html/.htm): ページをそのまま指定サイズで撮影 (見積書など文書のPNG化用。
+  --height 必須)
 - 追加ライブラリ不要。Chrome / Chromium / Edge のどれかがあれば動く
   (Claude Codeのリモート環境は /opt/pw-browsers のChromiumを自動検出。
    Windowsはインストール済みのChrome/Edgeを自動検出)
@@ -76,36 +79,45 @@ def main() -> None:
                     help="背景色 (例: '#1A1A1A'=濃色生地プレビュー。省略時は透明)")
     args = ap.parse_args()
 
-    svg_path = Path(args.svg)
-    if not svg_path.is_file():
-        sys.exit(f"ERROR: SVGが見つかりません: {svg_path}")
-    svg = svg_path.read_text(encoding="utf-8")
-    if "<svg" not in svg:
-        sys.exit(f"ERROR: SVGファイルではないようです: {svg_path}")
+    src_path = Path(args.svg)
+    if not src_path.is_file():
+        sys.exit(f"ERROR: 入力ファイルが見つかりません: {src_path}")
+    is_html = src_path.suffix.lower() in (".html", ".htm")
 
     W = args.width
-    H = args.height or max(2, round(W * svg_aspect(svg)))
-    if H % 2:
-        H += 1  # 動画素材への転用も考えて偶数に
     bg_css = args.background or "transparent"
-
-    html = (f'<!doctype html><html><head><meta charset="utf-8"><style>'
-            f'html,body{{margin:0;padding:0;background:{bg_css};overflow:hidden}}'
-            f'svg{{display:block;width:100vw;height:100vh}}'
-            f'</style></head><body>{svg}</body></html>')
+    if is_html:
+        if not args.height:
+            sys.exit("ERROR: HTML入力では --height を指定してください")
+        H = args.height
+        page_uri = src_path.resolve().as_uri()
+        page = None
+    else:
+        svg = src_path.read_text(encoding="utf-8")
+        if "<svg" not in svg:
+            sys.exit(f"ERROR: SVGファイルではないようです: {src_path}")
+        H = args.height or max(2, round(W * svg_aspect(svg)))
+        if H % 2:
+            H += 1  # 動画素材への転用も考えて偶数に
+        page = (f'<!doctype html><html><head><meta charset="utf-8"><style>'
+                f'html,body{{margin:0;padding:0;background:{bg_css};overflow:hidden}}'
+                f'svg{{display:block;width:100vw;height:100vh}}'
+                f'</style></head><body>{svg}</body></html>')
 
     out = Path(args.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     browser = find_browser()
 
     with tempfile.TemporaryDirectory() as td:
-        page = Path(td) / "page.html"
-        page.write_text(html, encoding="utf-8")
+        if page is not None:
+            page_file = Path(td) / "page.html"
+            page_file.write_text(page, encoding="utf-8")
+            page_uri = page_file.resolve().as_uri()
         cmd = [browser, "--headless", "--disable-gpu", "--no-sandbox",
                "--hide-scrollbars", "--force-device-scale-factor=1",
                "--default-background-color=00000000",
                f"--screenshot={out}", f"--window-size={W},{H}",
-               page.resolve().as_uri()]
+               page_uri]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0 or not out.is_file():
             tail = "\n".join((proc.stderr or "").splitlines()[-10:])
