@@ -89,3 +89,7 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `biz-order-ledger` | 受注管理台帳(business/orders.csv)の運用とレポート |
 | `biz-customer-messages` | 顧客対応メッセージの日タイテンプレート |
 | `biz-delivery` | 納品手順(透かしプレビュー→入金→本納品) |
+| `line-ai-bot` | 店舗向けLINE AI応答Botの商品化(構築・納品・月額運用) |
+| `biz-promotion` | 集客・告知コンテンツの作成(告知画像・日タイ投稿文・季節カレンダー) |
+| `biz-portfolio` | 実績・事例のポートフォリオ掲載(許可取り→匿名化→再公開) |
+| `biz-weekly-review` | 週次進捗レビュー(台帳×収入プランの目標突き合わせと対処判断) |
