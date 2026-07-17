@@ -4,7 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const {
-    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, MAX_QTY, MAX_NOTE_LENGTH, MAX_ITEMS,
+    CHEST_LOGOS, BACK_PRINTS, SIZES, COLORS, BRING_OWN, MAX_QTY, MAX_NOTE_LENGTH, MAX_ITEMS,
     DESIGN_IMAGE_KEYS, MAX_IMAGE_DATAURL_LENGTH,
 } = require('./shared/constants');
 const { createStore } = require('./lib/store');
@@ -115,16 +115,16 @@ app.post('/api/admin', requireAuth, (req, res) => {
 // 注文 API
 // ============================================
 
-function parseQuantities(q) {
+function parseQuantities(q, allowedKeys) {
     if (!q || typeof q !== 'object' || Array.isArray(q)) return { error: '数量の形式が不正です' };
     const quantities = {};
-    for (const [color, val] of Object.entries(q)) {
-        if (!COLORS.includes(color)) return { error: `不明なカラーです: ${color}` };
+    for (const [key, val] of Object.entries(q)) {
+        if (!allowedKeys.includes(key)) return { error: `不明なカラーです: ${key}` };
         const n = Number(val);
         if (!Number.isInteger(n) || n < 0 || n > MAX_QTY) {
             return { error: `数量は0〜${MAX_QTY}の整数で入力してください` };
         }
-        if (n > 0) quantities[color] = n;
+        if (n > 0) quantities[key] = n;
     }
     return { value: quantities };
 }
@@ -139,11 +139,19 @@ function parseOrderInput(body) {
     if (b.items.length > MAX_ITEMS) return { error: `サイズは最大${MAX_ITEMS}件までです` };
     const items = [];
     for (const raw of b.items) {
-        if (!raw || !SIZES.includes(raw.size)) return { error: 'サイズを選択してください' };
-        const parsed = parseQuantities(raw.quantities);
+        if (!raw || (!SIZES.includes(raw.size) && raw.size !== BRING_OWN)) {
+            return { error: 'サイズを選択してください' };
+        }
+        // 持ち込みは色を選ばず数量のみ(キーは「持ち込み」固定)
+        const allowedKeys = raw.size === BRING_OWN ? [BRING_OWN] : COLORS;
+        const parsed = parseQuantities(raw.quantities, allowedKeys);
         if (parsed.error) return { error: parsed.error };
         if (Object.keys(parsed.value).length === 0) {
-            return { error: `サイズ${raw.size}の数量を1色以上入力してください` };
+            return {
+                error: raw.size === BRING_OWN
+                    ? '持ち込みの数量を入力してください'
+                    : `サイズ${raw.size}の数量を1色以上入力してください`,
+            };
         }
         items.push({ size: raw.size, quantities: parsed.value });
     }
