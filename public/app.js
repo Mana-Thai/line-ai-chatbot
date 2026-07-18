@@ -247,7 +247,15 @@
         $('order-count').textContent = orders.length ? `${orders.length}件` : '';
         $('order-empty').classList.toggle('hidden', orders.length > 0);
 
-        list.innerHTML = orders.map((o) => {
+        const groups = new Map();
+        for (const order of orders) {
+            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
+            groups.get(order.orderName).push(order);
+        }
+
+        list.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
+            const hasMine = personOrders.some((o) => o.userId === state.user.userId);
+            const entries = personOrders.map((o) => {
             const mine = o.userId === state.user.userId;
             const editable = mine || state.user.admin;
             const proxy = o.orderName !== o.displayName;
@@ -255,18 +263,17 @@
                 month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
             });
             return `
-            <div class="order-card${mine ? ' mine' : ''}">
-                <div class="order-top">
-                    <span class="order-name">${escapeHtml(o.orderName)}${mine ? '<span class="you">(自分の入力)</span>' : ''}</span>
+            <div class="order-entry${mine ? ' mine' : ''}">
+                <div class="order-entry-head">
+                    <div class="order-tags">
+                        <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
+                        <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
+                    </div>
                     ${editable ? `
                     <span class="order-actions">
                         <button class="btn btn-small" data-edit="${o.id}">編集</button>
                         <button class="btn btn-small btn-danger" data-delete="${o.id}">削除</button>
                     </span>` : ''}
-                </div>
-                <div class="order-tags">
-                    <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
-                    <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
                 </div>
                 ${orderPreviewGallery(o)}
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
@@ -278,6 +285,14 @@
                 </label>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
                 <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
+            </div>`;
+            }).join('');
+            return `
+            <div class="order-card${hasMine ? ' mine' : ''}">
+                <div class="order-top">
+                    <span class="order-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</span>
+                </div>
+                ${entries}
             </div>`;
         }).join('');
 
@@ -754,6 +769,17 @@
         });
     }
 
+    function quantityStepper(color) {
+        const safeColor = escapeHtml(color);
+        return `
+            <div class="qty-stepper">
+                <button type="button" class="qty-step" data-delta="-1" aria-label="${safeColor}の数量を減らす">−</button>
+                <span class="qty-value" aria-live="polite">0</span>
+                <input data-color="${safeColor}" type="hidden" value="0">
+                <button type="button" class="qty-step" data-delta="1" aria-label="${safeColor}の数量を増やす">＋</button>
+            </div>`;
+    }
+
     // サイズ1件分の入力ブロック(サイズ選択+カラー別数量。持ち込みは数量のみ)
     function createItemBlock(item) {
         const div = document.createElement('div');
@@ -768,7 +794,7 @@
             <div class="color-grid item-bring hidden">
                 <div class="color-row">
                     <label>持ち込み数量</label>
-                    <input data-color="${escapeHtml(C.BRING_OWN)}" type="number" inputmode="numeric" min="0" max="${C.MAX_QTY}" placeholder="0">
+                    ${quantityStepper(C.BRING_OWN)}
                 </div>
             </div>`;
 
@@ -796,11 +822,17 @@
         colorBox.innerHTML = C.COLORS.map((color) => `
             <div class="color-row">
                 <label>${escapeHtml(color)}</label>
-                <input data-color="${escapeHtml(color)}" type="number" inputmode="numeric" min="0" max="${C.MAX_QTY}" placeholder="0">
+                ${quantityStepper(color)}
             </div>`).join('');
-        div.querySelectorAll('.item-colors input, .item-bring input').forEach((input) => {
-            input.addEventListener('input', () => {
-                input.closest('.color-row').classList.toggle('has-qty', Number(input.value) > 0);
+        div.querySelectorAll('.qty-step').forEach((button) => {
+            button.addEventListener('click', () => {
+                const stepper = button.closest('.qty-stepper');
+                const input = stepper.querySelector('input[data-color]');
+                const current = Number(input.value) || 0;
+                const next = Math.max(0, Math.min(C.MAX_QTY, current + Number(button.dataset.delta)));
+                input.value = String(next);
+                stepper.querySelector('.qty-value').textContent = String(next);
+                input.closest('.color-row').classList.toggle('has-qty', next > 0);
                 renderDesignPreviews();
             });
         });
@@ -818,7 +850,8 @@
                 : div.querySelectorAll('.item-colors input');
             inputs.forEach((input) => {
                 const qty = item.quantities[input.dataset.color] || 0;
-                input.value = qty || '';
+                input.value = String(qty);
+                input.closest('.qty-stepper').querySelector('.qty-value').textContent = String(qty);
                 input.closest('.color-row').classList.toggle('has-qty', qty > 0);
             });
             updateMode();
