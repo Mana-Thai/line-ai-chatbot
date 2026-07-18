@@ -470,33 +470,40 @@
         let totalQty = 0;
         let doneQty = 0;
         const orders = state.orders.slice().sort((a, b) => a.orderName.localeCompare(b.orderName, 'ja'));
+        const groups = new Map();
+        for (const order of orders) {
+            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
+            groups.get(order.orderName).push(order);
+        }
 
-        box.innerHTML = orders.map((o) => {
-            const mine = o.userId === state.user.userId;
-            const canCheck = mine || state.user.admin;
+        box.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
+            const hasMine = personOrders.some((o) => o.userId === state.user.userId);
             const rows = [];
-            eachLine(o, (idx, item, color, qty, check) => {
-                totalQty += qty;
-                if (check) doneQty += qty;
-                const meta = check
-                    ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                    : '';
-                rows.push(`
-                    <div class="delivery-row${check ? ' done' : ''}">
-                        <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
-                            ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
-                        ${color === C.BRING_OWN ? '' : previewThumbnail(color, o.chestLogo, o.backPrint)}
-                        <span class="delivery-text">
-                            <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
-                            <span class="tag size">${escapeHtml(item.size)}</span>
-                            ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
-                        </span>
-                        <span class="delivery-meta">${meta}</span>
-                    </div>`);
-            });
+            for (const o of personOrders) {
+                const canCheck = o.userId === state.user.userId || state.user.admin;
+                eachLine(o, (idx, item, color, qty, check) => {
+                    totalQty += qty;
+                    if (check) doneQty += qty;
+                    const meta = check
+                        ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                        : '';
+                    rows.push(`
+                        <div class="delivery-row${check ? ' done' : ''}">
+                            <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
+                                ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
+                            ${color === C.BRING_OWN ? '' : previewThumbnail(color, o.chestLogo, o.backPrint)}
+                            <span class="delivery-text">
+                                <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
+                                <span class="tag size">${escapeHtml(item.size)}</span>
+                                ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
+                            </span>
+                            <span class="delivery-meta">${meta}</span>
+                        </div>`);
+                });
+            }
             return `
-            <div class="delivery-group${mine ? ' mine' : ''}">
-                <div class="delivery-name">${escapeHtml(o.orderName)}${mine ? '<span class="you">(自分の入力)</span>' : ''}</div>
+            <div class="delivery-group${hasMine ? ' mine' : ''}">
+                <div class="delivery-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</div>
                 ${rows.join('')}
             </div>`;
         }).join('');
@@ -564,7 +571,7 @@
             return;
         }
 
-        $('remaining').innerHTML = [...groups.values()].map((g) => {
+        const sections = [...groups.values()].map((g) => {
             const sizes = [...C.SIZES, C.BRING_OWN].filter((s) => Object.values(g.cells).some((row) => row[s]));
             const colors = [...C.COLORS, C.BRING_OWN].filter((c) => g.cells[c]);
             const colTotals = Object.fromEntries(sizes.map((s) => [s, 0]));
@@ -581,7 +588,7 @@
             }).join('');
             const totalRow = `<tr class="total-row"><th>残り</th>${sizes.map((s) => `<td class="num">${colTotals[s]}</td>`).join('')}<td class="num total-col">${g.total}</td></tr>`;
             return `
-            <div class="summary-group">
+            <div class="remaining-design">
                 <div class="summary-title">胸ロゴ:${escapeHtml(g.chestLogo)} / バックプリント:${escapeHtml(g.backPrint)}(残り${g.total}枚)</div>
                 <div class="table-wrap">
                     <table class="summary">
@@ -591,6 +598,7 @@
                 </div>
             </div>`;
         }).join('');
+        $('remaining').innerHTML = `<div class="summary-group remaining-card">${sections}</div>`;
     }
 
     // ---------- 編集ロック ----------
