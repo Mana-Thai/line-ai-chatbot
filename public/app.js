@@ -596,6 +596,82 @@
 
     // ---------- 注文フォーム ----------
 
+    const PREVIEW_ASSET_BASE = 'https://layer-photo-switcher.vercel.app/images';
+    const CHEST_PREVIEW_POSITIONS = {
+        '有(ロゴ小 白)': 1,
+        '有(ロゴ小 カラー)': 2,
+        '有(ロゴ大 白)': 3,
+        '有(ロゴ大 カラー1)': 4,
+        '有(ロゴ大 カラー2)': 5,
+    };
+
+    function previewBackPosition(position) {
+        return position === 5 ? 1 : position === 6 ? 5 : position;
+    }
+
+    function previewFrontExtension(position) {
+        return position === 1 || position === 3 ? 'jpg' : 'png';
+    }
+
+    function previewSide(color, position, label) {
+        const scene = C.COLORS.indexOf(color) + 1;
+        const sceneNumber = String(scene).padStart(2, '0');
+        const backPosition = previewBackPosition(position);
+        const background = `${PREVIEW_ASSET_BASE}/back/set-${sceneNumber}-${backPosition}.jpg`;
+        const overlay = `${PREVIEW_ASSET_BASE}/front/front-${position}.${previewFrontExtension(position)}`;
+        return `
+            <div class="design-preview-side">
+                <div class="design-preview-side-label">${label}</div>
+                <div class="design-preview-stack design-preview-stack-${position}">
+                    <img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}">
+                    <img class="design-preview-overlay" src="${overlay}" alt="">
+                </div>
+            </div>`;
+    }
+
+    function selectedPreviewColors() {
+        const selected = new Set();
+        $('items-list').querySelectorAll('.item-block').forEach((block) => {
+            const size = block.querySelector('.item-sizes .chip.selected')?.dataset.value;
+            if (size === C.BRING_OWN) return;
+            block.querySelectorAll('.item-colors input').forEach((input) => {
+                if (Number(input.value) > 0) selected.add(input.dataset.color);
+            });
+        });
+        return C.COLORS.filter((color) => selected.has(color));
+    }
+
+    function renderDesignPreviews() {
+        const box = $('design-previews');
+        const colors = selectedPreviewColors();
+        if (colors.length === 0) {
+            box.innerHTML = '<p class="hint">色の数量を入力すると完成イメージが表示されます。</p>';
+            return;
+        }
+
+        const chestLogo = selectedChip('chestLogo');
+        const backPrint = selectedChip('backPrint');
+        if (!chestLogo || !backPrint) {
+            box.innerHTML = '<p class="hint">胸ロゴとバックプリントを選択してください。</p>';
+            return;
+        }
+
+        const chestPosition = CHEST_PREVIEW_POSITIONS[chestLogo] || null;
+        const showBack = backPrint === '有';
+        box.innerHTML = colors.map((color) => {
+            const sides = [];
+            if (chestPosition) sides.push(previewSide(color, chestPosition, '前面'));
+            if (showBack) sides.push(previewSide(color, 6, '背面'));
+            return `
+                <section class="design-preview-card">
+                    <div class="design-preview-color">${escapeHtml(color)}</div>
+                    ${sides.length
+                        ? `<div class="design-preview-sides">${sides.join('')}</div>`
+                        : '<div class="design-preview-none">プリントなし</div>'}
+                </section>`;
+        }).join('');
+    }
+
     function buildChips(containerId, values, name) {
         const box = $(containerId);
         box.innerHTML = values.map((v) => `<button type="button" class="chip" data-group="${name}" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
@@ -603,6 +679,7 @@
             chip.addEventListener('click', () => {
                 box.querySelectorAll('.chip').forEach((c) => c.classList.remove('selected'));
                 chip.classList.add('selected');
+                renderDesignPreviews();
             });
         });
     }
@@ -652,6 +729,7 @@
                 sizeBox.querySelectorAll('.chip').forEach((c) => c.classList.remove('selected'));
                 chip.classList.add('selected');
                 updateMode();
+                renderDesignPreviews();
             });
         });
 
@@ -664,12 +742,14 @@
         div.querySelectorAll('.item-colors input, .item-bring input').forEach((input) => {
             input.addEventListener('input', () => {
                 input.closest('.color-row').classList.toggle('has-qty', Number(input.value) > 0);
+                renderDesignPreviews();
             });
         });
 
         div.querySelector('.item-remove').addEventListener('click', () => {
             div.remove();
             updateItemRemoveButtons();
+            renderDesignPreviews();
         });
 
         if (item) {
@@ -691,6 +771,7 @@
         if ($('items-list').children.length >= C.MAX_ITEMS) return;
         $('items-list').appendChild(createItemBlock(item));
         updateItemRemoveButtons();
+        renderDesignPreviews();
     }
 
     // ブロックが1つだけの時は削除ボタンを隠す
@@ -714,6 +795,7 @@
         }
         $('note-input').value = order ? order.note : '';
         $('form-error').classList.add('hidden');
+        renderDesignPreviews();
     }
 
     async function openForm(order) {
