@@ -132,6 +132,18 @@ body {
 }
 .order-actions { display: flex; gap: 6px; }
 .order-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.order-entry {
+    border-top: 1px solid var(--border);
+    padding: 10px 0 4px;
+}
+.order-entry-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+.order-entry-head .order-tags { flex: 1; }
+.order-entry-head .order-actions { flex-shrink: 0; }
 .tag {
     background: #eef4ef;
     border-radius: 6px;
@@ -392,6 +404,16 @@ table.summary .total-row th, table.summary .total-col {
 }
 .design-preview-background { inset: 0; width: 100%; height: 100%; }
 .design-preview-overlay { z-index: 2; pointer-events: none; }
+.bring-own-preview-background {
+    position: absolute;
+    inset: 0;
+    background-color: #626a74;
+    background-image:
+        linear-gradient(45deg, rgba(255,255,255,.08) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.08) 75%),
+        linear-gradient(45deg, rgba(255,255,255,.08) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.08) 75%);
+    background-position: 0 0, 12px 12px;
+    background-size: 24px 24px;
+}
 .design-preview-stack-1 .design-preview-overlay,
 .design-preview-stack-2 .design-preview-overlay {
     inset: 24.8% auto auto 58%;
@@ -557,6 +579,11 @@ body.image-viewer-open { overflow: hidden; }
     font-weight: 700;
     color: var(--line-green-dark);
 }
+.remaining-design + .remaining-design {
+    border-top: 1px solid var(--border);
+    margin-top: 14px;
+    padding-top: 14px;
+}
 
 /* 価格設定 */
 .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
@@ -581,13 +608,34 @@ body.image-viewer-open { overflow: hidden; }
 }
 .color-row.has-qty { border-color: var(--line-green); background: #f2fcf6; }
 .color-row label { font-size: 13px; }
-.color-row input {
-    width: 52px;
+.qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 6px;
+    border-radius: 8px;
+    background: #fff;
+}
+.qty-step {
+    appearance: none;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: #f2f4f6;
+    color: var(--line-green-dark);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+.qty-step:active { background: #dff6e8; }
+.qty-value {
+    min-width: 30px;
+    padding: 0 3px;
     font-size: 14px;
-    text-align: right;
+    font-weight: 700;
+    text-align: center;
 }
 
 /* ---------- modal ---------- */

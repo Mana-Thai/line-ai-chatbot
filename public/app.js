@@ -247,7 +247,15 @@
         $('order-count').textContent = orders.length ? `${orders.length}件` : '';
         $('order-empty').classList.toggle('hidden', orders.length > 0);
 
-        list.innerHTML = orders.map((o) => {
+        const groups = new Map();
+        for (const order of orders) {
+            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
+            groups.get(order.orderName).push(order);
+        }
+
+        list.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
+            const hasMine = personOrders.some((o) => o.userId === state.user.userId);
+            const entries = personOrders.map((o) => {
             const mine = o.userId === state.user.userId;
             const editable = mine || state.user.admin;
             const proxy = o.orderName !== o.displayName;
@@ -255,18 +263,17 @@
                 month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
             });
             return `
-            <div class="order-card${mine ? ' mine' : ''}">
-                <div class="order-top">
-                    <span class="order-name">${escapeHtml(o.orderName)}${mine ? '<span class="you">(自分の入力)</span>' : ''}</span>
+            <div class="order-entry${mine ? ' mine' : ''}">
+                <div class="order-entry-head">
+                    <div class="order-tags">
+                        <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
+                        <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
+                    </div>
                     ${editable ? `
                     <span class="order-actions">
                         <button class="btn btn-small" data-edit="${o.id}">編集</button>
                         <button class="btn btn-small btn-danger" data-delete="${o.id}">削除</button>
                     </span>` : ''}
-                </div>
-                <div class="order-tags">
-                    <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
-                    <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
                 </div>
                 ${orderPreviewGallery(o)}
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
@@ -278,6 +285,14 @@
                 </label>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
                 <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
+            </div>`;
+            }).join('');
+            return `
+            <div class="order-card${hasMine ? ' mine' : ''}">
+                <div class="order-top">
+                    <span class="order-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</span>
+                </div>
+                ${entries}
             </div>`;
         }).join('');
 
@@ -360,8 +375,14 @@
             return;
         }
 
-        const rows = C.SIZES.map((size) => `
-            <tr><th>${size}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, size))}</td></tr>`).join('');
+        const sizeGroups = new Map();
+        for (const size of C.SIZES) {
+            const unit = pm.unit(null, null, size);
+            if (!sizeGroups.has(unit)) sizeGroups.set(unit, []);
+            sizeGroups.get(unit).push(size);
+        }
+        const rows = [...sizeGroups.entries()].map(([unit, sizes]) => `
+            <tr><th>${sizes.join('・')}</th><td class="num total-col">${fmtMoney(unit)}</td></tr>`).join('');
         const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, C.BRING_OWN))}</td></tr>`;
         box.innerHTML = `
             <div class="summary-group">
@@ -414,7 +435,7 @@
                     colTotals[s] += v;
                     return `<td class="num">${v || ''}</td>`;
                 }).join('');
-                const image = color === C.BRING_OWN ? '' : previewThumbnail(color, g.chestLogo, g.backPrint);
+                const image = previewThumbnail(color, g.chestLogo, g.backPrint);
                 return `<tr><th>${escapeHtml(color)}${image}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
             }).join('');
 
@@ -455,33 +476,40 @@
         let totalQty = 0;
         let doneQty = 0;
         const orders = state.orders.slice().sort((a, b) => a.orderName.localeCompare(b.orderName, 'ja'));
+        const groups = new Map();
+        for (const order of orders) {
+            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
+            groups.get(order.orderName).push(order);
+        }
 
-        box.innerHTML = orders.map((o) => {
-            const mine = o.userId === state.user.userId;
-            const canCheck = mine || state.user.admin;
+        box.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
+            const hasMine = personOrders.some((o) => o.userId === state.user.userId);
             const rows = [];
-            eachLine(o, (idx, item, color, qty, check) => {
-                totalQty += qty;
-                if (check) doneQty += qty;
-                const meta = check
-                    ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                    : '';
-                rows.push(`
-                    <div class="delivery-row${check ? ' done' : ''}">
-                        <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
-                            ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
-                        ${color === C.BRING_OWN ? '' : previewThumbnail(color, o.chestLogo, o.backPrint)}
-                        <span class="delivery-text">
-                            <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
-                            <span class="tag size">${escapeHtml(item.size)}</span>
-                            ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
-                        </span>
-                        <span class="delivery-meta">${meta}</span>
-                    </div>`);
-            });
+            for (const o of personOrders) {
+                const canCheck = o.userId === state.user.userId || state.user.admin;
+                eachLine(o, (idx, item, color, qty, check) => {
+                    totalQty += qty;
+                    if (check) doneQty += qty;
+                    const meta = check
+                        ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                        : '';
+                    rows.push(`
+                        <div class="delivery-row${check ? ' done' : ''}">
+                            <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
+                                ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
+                            ${previewThumbnail(color, o.chestLogo, o.backPrint)}
+                            <span class="delivery-text">
+                                <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
+                                <span class="tag size">${escapeHtml(item.size)}</span>
+                                ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
+                            </span>
+                            <span class="delivery-meta">${meta}</span>
+                        </div>`);
+                });
+            }
             return `
-            <div class="delivery-group${mine ? ' mine' : ''}">
-                <div class="delivery-name">${escapeHtml(o.orderName)}${mine ? '<span class="you">(自分の入力)</span>' : ''}</div>
+            <div class="delivery-group${hasMine ? ' mine' : ''}">
+                <div class="delivery-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</div>
                 ${rows.join('')}
             </div>`;
         }).join('');
@@ -549,7 +577,7 @@
             return;
         }
 
-        $('remaining').innerHTML = [...groups.values()].map((g) => {
+        const sections = [...groups.values()].map((g) => {
             const sizes = [...C.SIZES, C.BRING_OWN].filter((s) => Object.values(g.cells).some((row) => row[s]));
             const colors = [...C.COLORS, C.BRING_OWN].filter((c) => g.cells[c]);
             const colTotals = Object.fromEntries(sizes.map((s) => [s, 0]));
@@ -561,12 +589,12 @@
                     colTotals[s] += v;
                     return `<td class="num">${v || ''}</td>`;
                 }).join('');
-                const image = color === C.BRING_OWN ? '' : previewThumbnail(color, g.chestLogo, g.backPrint);
+                const image = previewThumbnail(color, g.chestLogo, g.backPrint);
                 return `<tr><th>${escapeHtml(color)}${image}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
             }).join('');
             const totalRow = `<tr class="total-row"><th>残り</th>${sizes.map((s) => `<td class="num">${colTotals[s]}</td>`).join('')}<td class="num total-col">${g.total}</td></tr>`;
             return `
-            <div class="summary-group">
+            <div class="remaining-design">
                 <div class="summary-title">胸ロゴ:${escapeHtml(g.chestLogo)} / バックプリント:${escapeHtml(g.backPrint)}(残り${g.total}枚)</div>
                 <div class="table-wrap">
                     <table class="summary">
@@ -576,6 +604,7 @@
                 </div>
             </div>`;
         }).join('');
+        $('remaining').innerHTML = `<div class="summary-group remaining-card">${sections}</div>`;
     }
 
     // ---------- 編集ロック ----------
@@ -630,17 +659,24 @@
 
     function previewSide(color, position, label, lazy = true) {
         const scene = C.COLORS.indexOf(color) + 1;
-        if (scene < 1) return '';
-        const sceneNumber = String(scene).padStart(2, '0');
-        const backPosition = previewBackPosition(position);
-        const background = `${PREVIEW_ASSET_BASE}/back/set-${sceneNumber}-${backPosition}.jpg`;
+        const bringOwn = color === C.BRING_OWN;
+        if (scene < 1 && !bringOwn) return '';
         const overlay = `${PREVIEW_ASSET_BASE}/front/front-${position}.${previewFrontExtension(position)}`;
         const loading = lazy ? ' loading="lazy"' : '';
+        let backgroundHtml;
+        if (bringOwn) {
+            backgroundHtml = '<div class="bring-own-preview-background" aria-hidden="true"></div>';
+        } else {
+            const sceneNumber = String(scene).padStart(2, '0');
+            const backPosition = previewBackPosition(position);
+            const background = `${PREVIEW_ASSET_BASE}/back/set-${sceneNumber}-${backPosition}.jpg`;
+            backgroundHtml = `<img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}"${loading}>`;
+        }
         return `
             <div class="design-preview-side">
                 <div class="design-preview-side-label">${label}</div>
-                <div class="design-preview-stack design-preview-stack-${position}">
-                    <img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}"${loading}>
+                <div class="design-preview-stack design-preview-stack-${position}${bringOwn ? ' bring-own-preview-stack' : ''}">
+                    ${backgroundHtml}
                     <img class="design-preview-overlay" src="${overlay}" alt=""${loading}>
                 </div>
             </div>`;
@@ -672,12 +708,15 @@
     function orderPreviewColors(order) {
         const colors = new Set();
         for (const item of order.items) {
-            if (item.size === C.BRING_OWN) continue;
+            if (item.size === C.BRING_OWN) {
+                if (item.quantities[C.BRING_OWN]) colors.add(C.BRING_OWN);
+                continue;
+            }
             for (const [color, qty] of Object.entries(item.quantities)) {
                 if (qty && C.COLORS.includes(color)) colors.add(color);
             }
         }
-        return C.COLORS.filter((color) => colors.has(color));
+        return [...C.COLORS.filter((color) => colors.has(color)), ...(colors.has(C.BRING_OWN) ? [C.BRING_OWN] : [])];
     }
 
     function orderPreviewGallery(order) {
@@ -690,12 +729,16 @@
         const selected = new Set();
         $('items-list').querySelectorAll('.item-block').forEach((block) => {
             const size = block.querySelector('.item-sizes .chip.selected')?.dataset.value;
-            if (size === C.BRING_OWN) return;
+            if (size === C.BRING_OWN) {
+                const input = block.querySelector('.item-bring input');
+                if (Number(input?.value) > 0) selected.add(C.BRING_OWN);
+                return;
+            }
             block.querySelectorAll('.item-colors input').forEach((input) => {
                 if (Number(input.value) > 0) selected.add(input.dataset.color);
             });
         });
-        return C.COLORS.filter((color) => selected.has(color));
+        return [...C.COLORS.filter((color) => selected.has(color)), ...(selected.has(C.BRING_OWN) ? [C.BRING_OWN] : [])];
     }
 
     function renderDesignPreviews() {
@@ -754,6 +797,17 @@
         });
     }
 
+    function quantityStepper(color) {
+        const safeColor = escapeHtml(color);
+        return `
+            <div class="qty-stepper">
+                <button type="button" class="qty-step" data-delta="-1" aria-label="${safeColor}の数量を減らす">−</button>
+                <span class="qty-value" aria-live="polite">0</span>
+                <input data-color="${safeColor}" type="hidden" value="0">
+                <button type="button" class="qty-step" data-delta="1" aria-label="${safeColor}の数量を増やす">＋</button>
+            </div>`;
+    }
+
     // サイズ1件分の入力ブロック(サイズ選択+カラー別数量。持ち込みは数量のみ)
     function createItemBlock(item) {
         const div = document.createElement('div');
@@ -768,7 +822,7 @@
             <div class="color-grid item-bring hidden">
                 <div class="color-row">
                     <label>持ち込み数量</label>
-                    <input data-color="${escapeHtml(C.BRING_OWN)}" type="number" inputmode="numeric" min="0" max="${C.MAX_QTY}" placeholder="0">
+                    ${quantityStepper(C.BRING_OWN)}
                 </div>
             </div>`;
 
@@ -796,11 +850,17 @@
         colorBox.innerHTML = C.COLORS.map((color) => `
             <div class="color-row">
                 <label>${escapeHtml(color)}</label>
-                <input data-color="${escapeHtml(color)}" type="number" inputmode="numeric" min="0" max="${C.MAX_QTY}" placeholder="0">
+                ${quantityStepper(color)}
             </div>`).join('');
-        div.querySelectorAll('.item-colors input, .item-bring input').forEach((input) => {
-            input.addEventListener('input', () => {
-                input.closest('.color-row').classList.toggle('has-qty', Number(input.value) > 0);
+        div.querySelectorAll('.qty-step').forEach((button) => {
+            button.addEventListener('click', () => {
+                const stepper = button.closest('.qty-stepper');
+                const input = stepper.querySelector('input[data-color]');
+                const current = Number(input.value) || 0;
+                const next = Math.max(0, Math.min(C.MAX_QTY, current + Number(button.dataset.delta)));
+                input.value = String(next);
+                stepper.querySelector('.qty-value').textContent = String(next);
+                input.closest('.color-row').classList.toggle('has-qty', next > 0);
                 renderDesignPreviews();
             });
         });
@@ -818,7 +878,8 @@
                 : div.querySelectorAll('.item-colors input');
             inputs.forEach((input) => {
                 const qty = item.quantities[input.dataset.color] || 0;
-                input.value = qty || '';
+                input.value = String(qty);
+                input.closest('.qty-stepper').querySelector('.qty-value').textContent = String(qty);
                 input.closest('.color-row').classList.toggle('has-qty', qty > 0);
             });
             updateMode();
