@@ -116,9 +116,10 @@
     async function enterMain() {
         $('user-name').textContent = state.user.name;
         updateAdminUi();
-        showScreen('screen-main');
-        await Promise.all([loadPricing(), loadDesigns(), refreshOrders()]);
+        await Promise.all([loadPricing(), loadDesigns(), refreshOrders({ render: false })]);
+        renderAll();
         refreshChipImages();
+        showScreen('screen-main');
         openStream();
     }
 
@@ -131,13 +132,13 @@
     // ---------- データ取得 ----------
 
     let refreshSeq = 0;
-    async function refreshOrders() {
+    async function refreshOrders({ render = true } = {}) {
         const seq = ++refreshSeq;
         try {
             const data = await api('/api/orders');
             if (seq !== refreshSeq) return; // 古いレスポンスで新しい表示を上書きしない
             state.orders = data.orders;
-            renderAll();
+            if (render) renderAll();
         } catch (err) {
             if (err.status === 401) location.reload();
         }
