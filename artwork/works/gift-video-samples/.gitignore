@@ -1,2 +1,4 @@
 # レンダリング済みPNGは rasterize.py で再生成できるため管理しない
 *.png
+__pycache__/
+*.pyc

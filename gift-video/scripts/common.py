@@ -160,6 +160,10 @@ def ff_quote(value: str | Path) -> str:
     s = str(value).replace("\\", "/")
     if "'" in s:
         raise PipelineError(f"パスに ' を含めないでください: {s}")
+    # filter_complex の値では、引用符の内側でも Windows のドライブ区切り
+    # (C:) がオプション区切りとして解釈される。C\:/... の形にする。
+    if re.match(r"^[A-Za-z]:/", s):
+        s = s[0] + r"\:" + s[2:]
     return f"'{s}'"
 
 

@@ -1,8 +1,8 @@
 order_id: "sample-mothersday"
-couple_names: "For Mom"
+couple_names: "To Mom, with all my love"
 anniversary_date: "2026.08.12"
-scene1_caption: "Happy Mother's Day"
-message: "お母さん、いつもありがとう"
+scene1_caption: "あの日から、ずっと"
+message: "お母さんの子でよかった。\n心から、ありがとう。"
 message_start_sec: 22
 output_formats: ["portrait", "landscape"]
 portrait_mode: "crop"

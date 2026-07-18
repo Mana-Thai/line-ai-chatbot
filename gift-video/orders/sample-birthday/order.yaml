@@ -1,8 +1,8 @@
 order_id: "sample-birthday"
 couple_names: "Nina"
 anniversary_date: "2026.07.20"
-scene1_caption: "A Special Day"
-message: "Happy Birthday, Nina!"
+scene1_caption: "The day you came into this world"
+message: "The world is brighter\nbecause you are in it."
 message_start_sec: 22
 output_formats: ["portrait", "landscape"]
 portrait_mode: "crop"
