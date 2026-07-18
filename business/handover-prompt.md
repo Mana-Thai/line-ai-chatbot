@@ -1,79 +1,228 @@
-# 引き継ぎプロンプト(Claude Code / Codex 共用)
+# 引き継ぎプロンプト（Claude Code / OpenAI Codex 共用）
 
-> このファイルは作業セッションの引き継ぎ用。作業が中断した場合、このファイルの内容を
-> そのままプロンプトとしてAIエージェント(Codex等)に渡せば続きを実行できる。
-> **各セッションの冒頭で必ず最新化し、作業終了時にもコミットすること。**
+> 最終更新: 2026-07-18
+>
+> 下のコードブロック全体を、そのまま次のAIエージェントへ渡す。
+> セッション開始時と終了時に内容を最新化し、必ずコミット・pushすること。
 
 ---
 
-以下のプロンプトをコピーして使う:
+```text
+あなたは Mana-Thai/line-ai-chatbot リポジトリで、副業立ち上げ作業を引き継ぎます。
 
-```
-あなたは Mana-Thai/line-ai-chatbot リポジトリで副業の立ち上げ作業を引き継ぎます。
-作業ブランチ: claude/ai-side-income-plan-039ya4(このブランチで開発しプッシュする)
+## 0. 最初に確認すること
 
-## 背景
-- オーナーは在タイ日本人。子供の養育のため副収入が必要。目標は累計で
-  2026-08-15までに1万THB / 2026-10-15までに10万THB / 2027-01-15までに20万THB。
-- 全体計画は business/income-plan.md(正本)。短期はギフト動画・アパレルデザインの
-  小口受注、中期は業務Webアプリ+店舗向けLINE AI Bot(月額)、長期は継続収入化。
-- プロジェクト規約は CLAUDE.md / AGENTS.md を必ず読む。再利用手順は .claude/skills/
-  (正本)にSkillとしてまとまっている。Skillを追加・編集したら npm run sync-skills で
-  .agents/skills/ に同期して両方コミットする。
+- リポジトリ: https://github.com/Mana-Thai/line-ai-chatbot
+- 作業ブランチ: claude/ai-side-income-plan-039ya4
+- デザイン完了チェックポイント: 2302138
+  （この引き継ぎ文書の更新コミットは、その後の最新HEADとして確認すること）
+- このPCで使った専用worktree:
+  C:\Users\ASUS\Documents\Codex\line-ai-chatbot-side-income
+- 最初に `git status --short --branch` と `git fetch origin` を実行し、同じブランチに
+  他エージェントの更新がないか確認する。強制pushは禁止。
+- `CLAUDE.md` と `AGENTS.md` を必ず読む。
+- Skill正本は `.claude/skills/`。Skillを追加・変更した場合だけ
+  `npm run sync-skills` を実行して `.agents/skills/` と両方コミットする。
 
-## これまでに完了したこと
-1. business/income-plan.md 作成(短期/中期/長期プラン・数字モデル・週次ルーティン)
-2. 運営Skillを4つ追加済み: line-ai-bot(店舗Bot商品化)/ biz-promotion(集客告知)/
-   biz-portfolio(事例掲載)/ biz-weekly-review(週次レビュー)。AGENTS.mdの一覧も更新済み
-3. 受注台帳 business/orders.csv は実受注ゼロ(SAMPLE行のみ)
+## 1. 事業の背景と目標
 
-## 現在のタスク: 短期プラン第1週「売れる状態を作る」
-income-plan.md §3 の第1週アクション。タイの母の日(8/12)商戦が目前。
-- [ ] サンプルのギフト動画を制作(gift-video/ パイプライン。実素材が無いため
-      artwork/tools でSVGイラスト→PNG→ gift-video/scripts/animate.py でシーン動画化
-      → assemble.py → qc.py。Skill: gift-video-run / illustration-animation)
-- [ ] ポートフォリオサイトを作成(素の静的HTML・日タイ併記・スマホ最優先。
-      Skill: new-website。公開は website-publish の手順で GitHub Pages を想定)
-- [ ] 母の日キャンペーンの告知画像(1080px、日タイ併記、価格入り)と
-      グループLINE/Facebook用の投稿文(Skill: biz-promotion)
+- オーナーは在タイ日本人。子供の養育のため副収入が必要。
+- 累計収入目標:
+  - 2026-08-15までに 10,000 THB
+  - 2026-10-15までに 100,000 THB
+  - 2027-01-15までに 200,000 THB
+- 全体計画の正本: `business/income-plan.md`
+- 短期: ギフト動画・アパレルデザインの小口受注
+- 中期: 業務Webアプリ + 店舗向けLINE AI Bot
+- 長期: 月額契約など継続収入化
+- 受注台帳: `business/orders.csv`（現在は実受注0、SAMPLE行のみ）
 
-## 進捗メモ(最新のセッションで更新する)
-- ✅ サンプル動画3本 完成(qc ALL PASS)。gift-video/orders/sample-{mothersday,birthday,anniversary}/
-  (input/outputはgit管理外。イラスト正本は artwork/works/gift-video-samples/ のSVG+
-  generate_scenes.py、BGMは同フォルダ gen_bgm.py で再生成可。ffmpegとfonts-noto-cjk,
-  fonts-thai-tlwg をapt installして再構築する)
-- ✅ ポートフォリオサイト v1 portfolio/(index.html/style.css/assets の軽量mp4×3)
-- ✅ 母の日告知画像+投稿文 v1 business/promo/mothersday-2026/(promo.html→promo.png, posts.md)
-- ✅ タイ人向けデザイン調査を実施し、サイト・告知画像・OGP・母の日動画ラストシーンを
-  再デザイン済み。調査結論: 母の日=水色(สีฟ้า)×白ジャスミン×金が正式モチーフ(ピンクはNG)/
-  フォントは Kanit(見出し)+Sarabun(本文)が定番(portfolio/fonts/ に自己ホスト済み)/
-  価格を大きく・締切明示・ทักไลน์(LINE)導線がタイSNS販促の型
-- ✅ オーナー指示(2回目のデザイン修正)「安っぽい。受け取った人が感動して涙を流す
-  デザインに一新せよ」に対応。ギフト動画3本を感情設計からv2へ全面刷新:
-  母の日=手紙→手の記憶→一輪のジャスミン、誕生日=静かな夜→一本の蝋燭→夜明け、
-  記念日=古い写真→手を取り合う瞬間→続く道。SVG正本・文言・テキスト比率・カメラワーク・
-  ポートフォリオ動画/ポスターを更新し、縦横6出力ともqc ALL PASS。
-  WindowsのFFmpeg filter_complex用パス引用も修正済み。
-- ✅ 上品な書体(Charm 手書き風・Kanit Light)を portfolio/fonts/ に追加済み。
-- ✅ ポートフォリオをv2へ全面刷新。絵文字・原色・丸型カード中心の販促デザインから、
-  紙の余白・白ジャスミン・真鍮色・深い青緑による「静かなギフトアトリエ」へ変更。
-  新しい動画3本の物語を前面に出し、OGPも同じ世界観で再制作。ChromeでPC 1280px・
-  スマホ375pxを目視し、タイ語のはみ出しを修正。ローカル資産・必須メタタグ確認PASS。
-- ⚠️ 未解決(次のアクション):
-  1. ポートフォリオ公開(GitHub Pages=公開リポジトリが必要。オーナーの承認を得てから
-     website-publish Skillの手順で公開)
-  2. portfolio/index.html と posts.md の <LINE URL>・ポートフォリオURLプレースホルダを
-     実URLに差し替え(index.htmlの data-line-placeholder 箇所)
-  3. 公開後に website-quality-check を実機で実施
-  4. 告知第1弾をグループLINEに投稿(business/promo/mothersday-2026/promo.png + posts.md)
+## 2. 現在の商品コンセプト
 
-## 作業ルール
-- コミットメッセージは日本語で内容を明確に。作業の区切りごとに必ずコミットして
-  origin claude/ai-side-income-plan-039ya4 へプッシュ(リモートセッションは
-  コミットしないと消える)
-- 受注・進捗が発生したら business/orders.csv を更新(Skill: biz-order-ledger)
-- 週次で biz-weekly-review を実行し、目標との差と今週のアクション3つを出す
-- 固定文言は日タイ二言語(Skill: thai-i18n の考え方に準ずる)。価格は顧客ごとに
-  THBかJPYの一方のみ
-- このファイル(business/handover-prompt.md)を作業終了時に必ず最新化してコミットする
+タイの母の日（8月12日）に向け、写真と言葉から作る30秒〜1分のギフト動画を
+主力商品として販売準備中。価格は1,500 THB〜。
+
+オーナーから「安っぽい。受け取った人が感動して涙を流し、心からありがとうと
+感じるデザインに一新してほしい」と指示があり、動画とポートフォリオをv2へ刷新済み。
+
+デザイン原則:
+- 派手なハート、原色、絵文字、丸型カードを多用しない。
+- 感情を説明するのではなく、余白・光・記憶のモチーフ・静かな言葉で伝える。
+- 母の日はタイ文化に合わせ、水色（สีฟ้า）・白ジャスミン・控えめな金を使う。
+- サイトは「静かなギフトアトリエ」の世界観。紙色、白ジャスミン、真鍮色、深い青緑。
+- タイ語ファースト、日本語併記。スマホとLINE内ブラウザを最優先する。
+
+## 3. 完了済み
+
+### 事業基盤
+
+- `business/income-plan.md` 作成済み。
+- 運営Skill 4つを追加済み:
+  - `line-ai-bot`
+  - `biz-promotion`
+  - `biz-portfolio`
+  - `biz-weekly-review`
+
+### ギフト動画v2（3本）
+
+- 母の日: 手紙 → 手を包む記憶 → 一輪のジャスミン
+- 誕生日: 静かな夜 → 一本の蝋燭 → 夜明け
+- 記念日: 古い写真 → 手を取り合う瞬間 → 続いていく道
+- SVG正本、文言、文字比率、カメラワーク、BGM、ポスターを更新済み。
+- 縦型1080x1920・横型1920x1080の計6出力で `qc.py` ALL PASS。
+- ラウドネス実測:
+  - 母の日 -14.6 LUFS
+  - 誕生日 -14.4 LUFS
+  - 記念日 -14.5 LUFS
+- Windows FFmpeg 8で `C:` がfilter_complex区切りと誤認される問題を
+  `gift-video/scripts/common.py::ff_quote` で修正済み。
+
+### ポートフォリオv2
+
+- `portfolio/index.html` と `portfolio/style.css` を全面刷新済み。
+- 新動画3本を中心に、感情の物語として見せる構成へ変更。
+- `portfolio/images/ogp.html` と `ogp.jpg` も同じ世界観で再制作済み。
+- ChromeでPC 1280x800、スマホ375x812を目視確認済み。
+- スマホでタイ語見出しが横切れする問題を修正済み。
+- 制作フローはスマホ1列表示、問い合わせCTAは44px以上を確保。
+- ローカルのhref/src、viewport、title、OGP、LINEプレースホルダの機械確認PASS。
+- 自己ホストフォント:
+  - Kanit / Sarabun
+  - Charm（手書き風）
+  - Kanit Light
+
+### 母の日告知v1
+
+- 告知画像と投稿文は存在するが、まだv1デザイン:
+  `business/promo/mothersday-2026/`
+- `promo.html` が正本、`promo.png` が投稿用画像、`posts.md` が投稿文。
+- 動画・サイトv2の世界観に合わせた再デザインは未実施。
+
+## 4. データと正本の場所
+
+### 事業
+
+- 全体計画: `business/income-plan.md`
+- 引き継ぎ正本: `business/handover-prompt.md`
+- 受注台帳: `business/orders.csv`
+- 見積テンプレート: `business/templates/quote-template.html`
+- 母の日告知: `business/promo/mothersday-2026/`
+
+### ギフト動画
+
+- SVG正本と再生成コード:
+  `artwork/works/gift-video-samples/`
+- シーン生成:
+  `artwork/works/gift-video-samples/generate_scenes.py`
+- BGM生成:
+  `artwork/works/gift-video-samples/gen_bgm.py`
+- テーマ別SVG:
+  - `artwork/works/gift-video-samples/mothersday/scene1.svg`〜`scene3.svg`
+  - `artwork/works/gift-video-samples/birthday/scene1.svg`〜`scene3.svg`
+  - `artwork/works/gift-video-samples/anniversary/scene1.svg`〜`scene3.svg`
+- SVG→PNG:
+  `artwork/tools/rasterize.py`
+- 静止画→動画:
+  `gift-video/scripts/animate.py`
+- 組み立て:
+  `gift-video/scripts/assemble.py`
+- QC:
+  `gift-video/scripts/qc.py`
+- 注文設定:
+  - `gift-video/orders/sample-mothersday/order.yaml`
+  - `gift-video/orders/sample-birthday/order.yaml`
+  - `gift-video/orders/sample-anniversary/order.yaml`
+- `gift-video/orders/*/input/` と `output/` はgit管理外。消えても正本から再生成できる。
+
+### ポートフォリオ（git管理対象の公開用成果物）
+
+- HTML: `portfolio/index.html`
+- CSS: `portfolio/style.css`
+- フォント: `portfolio/fonts/`
+- 公開用軽量動画:
+  - `portfolio/assets/sample-mothersday_portrait.mp4`
+  - `portfolio/assets/sample-birthday_portrait.mp4`
+  - `portfolio/assets/sample-anniversary_portrait.mp4`
+- ポスター:
+  - `portfolio/assets/sample-mothersday_poster.jpg`
+  - `portfolio/assets/sample-birthday_poster.jpg`
+  - `portfolio/assets/sample-anniversary_poster.jpg`
+- OGP正本: `portfolio/images/ogp.html`
+- OGP画像: `portfolio/images/ogp.jpg`
+
+## 5. 動画を再生成する手順
+
+必要環境:
+- Python 3.10+
+- PyYAML（`python -m pip install -r gift-video/requirements.txt`）
+- ffmpeg / ffprobe
+- 日本語フォント。Linuxでは `fonts-noto-cjk`、タイ語確認には `fonts-thai-tlwg`。
+- Windowsでは `winget install --id Gyan.FFmpeg` で導入済み。
+
+概略:
+
+1. SVGを再生成:
+   `python artwork/works/gift-video-samples/generate_scenes.py`
+2. 各SVGを `artwork/tools/rasterize.py` で3840x2160 PNGへ変換。
+3. `gift-video/scripts/animate.py` で各10秒、1920x1080のscene1〜3.mp4を生成。
+   推奨プリセットは scene1=zoom-in / scene2=sway / scene3=zoom-out。
+4. `gen_bgm.py <theme> <out.wav> 30` でBGMを生成し、mp3へ変換。
+5. 各 `gift-video/orders/sample-*/input/` にscene1〜3.mp4とbgm.mp3を配置。
+6. `gift-video/` で以下をテーマごとに実行:
+   - `python scripts/precheck.py <order-id>`
+   - `python scripts/assemble.py <order-id> --keep-work`
+   - `python scripts/qc.py <order-id>`
+7. ALL PASS後、portrait出力を `portfolio/assets/` の公開用ファイルへコピー。
+8. 26秒付近のフレームをJPEG化し、各poster.jpgを更新。
+
+注意:
+- `precheck.py --all` は素材未配置の古い `sample-001` / `sample-002` も拾うため、
+  今回の3本は個別IDで実行する。
+- Windows PowerShellで絵文字出力が文字化けする場合は `$env:PYTHONUTF8='1'` を設定。
+- 一時PNG/WAVやChromeプロファイルをコミットしない。
+
+## 6. 次に行う作業（優先順）
+
+### 外部公開前に安全に進められる作業
+
+1. `business/promo/mothersday-2026/promo.html` を、動画・サイトv2と同じ
+   「静かなギフトアトリエ」デザインへ刷新する。
+2. `promo.png` を再生成し、1080px表示とタイ語の切れを目視確認する。
+3. `posts.md` の文章を、煽り過ぎず感情に寄り添うトーンへ最終調整する。
+
+### オーナー確認が必要な作業
+
+4. 実際のLINE友だち追加URL（lin.ee/...等）を受け取る。
+5. GitHub Pages公開の明示承認を得る。
+6. 承認後、`website-publish` Skillで公開する。
+7. `portfolio/index.html` の `data-line-placeholder` と、`posts.md` の
+   `<LINE URL>` / `<ポートフォリオURL>` を実URLへ差し替える。
+8. 公開後、`website-quality-check` Skillで実URLを確認する。
+9. LINE内ブラウザ、スマホ実機、LINEのOGPプレビューを確認する。
+10. 投稿直前にオーナー最終確認を取り、promo.png + posts.mdをグループLINEへ投稿する。
+
+外部公開、URL差し替え、LINE投稿は勝手に実行しない。
+
+## 7. 作業ルール
+
+- 既存のユーザー変更を消さない。作業開始前にstatusとリモート差分を確認する。
+- 区切りごとに日本語コミットし、
+  `origin/claude/ai-side-income-plan-039ya4` へpushする。
+- 非fast-forward時はfetchして差分を確認し、安全にrebase/mergeする。強制push禁止。
+- 受注が発生したら `biz-order-ledger` Skillで `business/orders.csv` を更新する。
+- 週次で `biz-weekly-review` を実行し、目標との差と次のアクション3つを出す。
+- 固定文言は日タイ二言語。価格表示は顧客ごとにTHBかJPYの一方だけを使う。
+- ギフト動画は `gift-video-run` / `illustration-animation` Skillに従い、
+  必ずprecheck → assemble → qc → 目視確認まで行う。
+- Web変更後は `website-quality-check` を実行する。
+- 作業終了時にこの `business/handover-prompt.md` を最新化してコミットする。
+
+## 8. 現在の状態
+
+- ブランチはoriginと同期済み。
+- 最新の動画・ポートフォリオv2はpush済み。
+- 実受注はまだ0件。
+- LINE URL未確定。
+- ポートフォリオ未公開。
+- グループLINEへの告知未投稿。
 ```
