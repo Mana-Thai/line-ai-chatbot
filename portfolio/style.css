@@ -90,6 +90,7 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
   box-shadow: 0 32px 80px rgba(70, 110, 114, .16), inset 0 0 0 18px rgba(255,255,255,.36);
 }
 .memory-frame::before { content: ""; position: absolute; inset: 7%; border: 1px solid rgba(136,174,178,.5); border-radius: inherit; }
+.hand-note { position: absolute; z-index: 2; top: 14%; left: 13%; color: var(--blue-deep); font: 700 clamp(1.3rem, 2.3vw, 2.2rem)/1.18 "Charm", cursive; transform: rotate(-7deg); opacity: .84; }
 .stem { position: absolute; width: 4px; height: 46%; background: var(--blue-deep); left: 51%; top: 34%; transform: rotate(-9deg); transform-origin: bottom; border-radius: 99px; }
 .flower { position: absolute; width: 56px; height: 56px; border: 1px solid rgba(185,147,78,.55); background: #fffef9; border-radius: 50% 16% 50% 16%; transform: rotate(45deg); box-shadow: 0 0 22px rgba(255,255,255,.8); }
 .flower::after { content: ""; position: absolute; inset: 21px; background: var(--gold); border-radius: 50%; }
@@ -121,6 +122,9 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 .price-big small { color: var(--gold); font-size: 1rem; }
 .campaign-offer > p:not(.price-big) { color: var(--ink-soft); font-size: .88rem; }
 .campaign-offer .deadline { color: var(--ink); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.campaign-offer .story-upgrade { margin-top: 20px; padding: 16px 0 0 18px; border-left: 1px solid var(--gold); color: var(--ink); }
+.campaign-offer .story-upgrade strong { color: var(--blue-deep); font: 500 .82rem/1.4 "Kanit", sans-serif; letter-spacing: .08em; }
+.campaign-offer .story-upgrade span { color: var(--ink-soft); font-size: .78rem; }
 
 .works { background: var(--night); color: #f7f3e8; }
 .works .section-heading > div > p:last-child { color: #aebfc0; }
@@ -133,6 +137,12 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 .works figcaption > span { color: var(--gold); font: 400 .7rem/1.8 "Kanit", sans-serif; }
 .works figcaption strong { font: 400 1.08rem/1.5 "Kanit", sans-serif; }
 .works figcaption small { grid-column: 2; color: #9fb1b2; }
+
+.atelier-note { position: relative; overflow: hidden; padding: 84px max(22px, calc((100vw - 900px) / 2)); text-align: center; background: var(--mist); border-bottom: 1px solid rgba(136,174,178,.35); }
+.atelier-note::before { content: "“"; position: absolute; left: 5vw; top: -60px; color: rgba(185,147,78,.16); font: 700 18rem/1 "Charm", serif; }
+.atelier-note blockquote { margin: 18px 0 20px; color: var(--ink); font: 300 clamp(2rem, 4.2vw, 3.8rem)/1.35 "Kanit", sans-serif; }
+.atelier-note blockquote em { color: var(--blue-deep); font: 700 1.12em/1.3 "Charm", cursive; }
+.atelier-note > p:last-child { color: var(--ink-soft); font-size: .94rem; }
 
 .services { background: var(--paper); }
 .service-list { border-top: 1px solid var(--line); }
@@ -179,6 +189,8 @@ footer { display: flex; justify-content: space-between; padding: 26px 5vw; backg
   .trust-strip small { font-size: .58rem; }
   .campaign { grid-template-columns: 38px 1fr; gap: 8px 12px; }
   .campaign-offer { grid-column: 2; padding: 24px 0 0; border-left: 0; border-top: 1px solid rgba(185,147,78,.48); }
+  .atelier-note { padding: 66px 22px; }
+  .atelier-note blockquote { font-size: 1.85rem; }
   .section-heading { grid-template-columns: 38px 1fr; margin-bottom: 36px; }
   .section-heading h2, .campaign h2 { font-size: 1.62rem; }
   .section-heading h2, .campaign h2, .contact h2 { word-break: break-word; overflow-wrap: anywhere; }
