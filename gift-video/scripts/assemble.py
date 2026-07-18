@@ -88,7 +88,8 @@ def drawtext(font: Path, textfile: Path, fontsize: int, color: str,
              line_spacing: int = 0) -> str:
     return (f"drawtext=fontfile={ff_quote(font)}:textfile={ff_quote(textfile)}:"
             f"fontsize={fontsize}:fontcolor={color}:line_spacing={line_spacing}:"
-            f"shadowcolor=black@0.35:shadowx=2:shadowy=2:"
+            f"borderw=1:bordercolor=black@0.12:"
+            f"shadowcolor=black@0.22:shadowx=1:shadowy=3:"
             f"x={x}:y={y}:alpha='{alpha}':"
             f"enable='between(t,{enable_from},{enable_to})'")
 
@@ -160,16 +161,17 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         if not 0 <= msg_start < total - 1:
             raise PipelineError(
                 f"message_start_sec={msg_start} が総再生時間 {total:.1f}s の範囲外です")
-        msg_size = int(H * 0.048)
+        # 大きな広告コピーではなく、静かに読ませる手紙のような比率にする。
+        msg_size = int(H * 0.038)
         wrapped = wrap_text(order["message"], msg_size, W * 0.86)
         msg_txt = work / "message.txt"
         msg_txt.write_text(wrapped, encoding="utf-8")
         texts.append(drawtext(
             font, msg_txt, fontsize=msg_size, color=color,
-            x="(w-text_w)/2", y="(h-text_h)/2",
+            x="(w-text_w)/2", y="(h-text_h)*0.46",
             alpha=alpha_fade_in(msg_start, MESSAGE_FADE),
             enable_from=msg_start, enable_to=total,
-            line_spacing=int(msg_size * 0.5)))
+            line_spacing=int(msg_size * 0.62)))
         timing["message"] = {"text": order["message"],
                              "start": msg_start, "fade": MESSAGE_FADE}
 
@@ -179,10 +181,10 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
     date_txt = work / "date.txt"
     date_txt.write_text(order["anniversary_date"], encoding="utf-8")
     names_alpha = alpha_fade_in(names_start, NAMES_FADE)
-    texts.append(drawtext(font, names_txt, fontsize=int(H * 0.042), color=color,
+    texts.append(drawtext(font, names_txt, fontsize=int(H * 0.034), color=color,
                           x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.135)}",
                           alpha=names_alpha, enable_from=names_start, enable_to=total))
-    texts.append(drawtext(font, date_txt, fontsize=int(H * 0.028), color=color,
+    texts.append(drawtext(font, date_txt, fontsize=int(H * 0.022), color=color,
                           x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.09)}",
                           alpha=names_alpha, enable_from=names_start, enable_to=total))
     timing["names"] = {"start": names_start, "fade": NAMES_FADE,
