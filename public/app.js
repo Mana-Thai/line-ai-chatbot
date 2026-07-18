@@ -375,8 +375,14 @@
             return;
         }
 
-        const rows = C.SIZES.map((size) => `
-            <tr><th>${size}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, size))}</td></tr>`).join('');
+        const sizeGroups = new Map();
+        for (const size of C.SIZES) {
+            const unit = pm.unit(null, null, size);
+            if (!sizeGroups.has(unit)) sizeGroups.set(unit, []);
+            sizeGroups.get(unit).push(size);
+        }
+        const rows = [...sizeGroups.entries()].map(([unit, sizes]) => `
+            <tr><th>${sizes.join('・')}</th><td class="num total-col">${fmtMoney(unit)}</td></tr>`).join('');
         const bringRow = `<tr><th>${escapeHtml(C.BRING_OWN)}</th><td class="num total-col">${fmtMoney(pm.unit(null, null, C.BRING_OWN))}</td></tr>`;
         box.innerHTML = `
             <div class="summary-group">
