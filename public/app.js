@@ -429,7 +429,7 @@
                     colTotals[s] += v;
                     return `<td class="num">${v || ''}</td>`;
                 }).join('');
-                const image = color === C.BRING_OWN ? '' : previewThumbnail(color, g.chestLogo, g.backPrint);
+                const image = previewThumbnail(color, g.chestLogo, g.backPrint);
                 return `<tr><th>${escapeHtml(color)}${image}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
             }).join('');
 
@@ -491,7 +491,7 @@
                         <div class="delivery-row${check ? ' done' : ''}">
                             <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
                                 ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
-                            ${color === C.BRING_OWN ? '' : previewThumbnail(color, o.chestLogo, o.backPrint)}
+                            ${previewThumbnail(color, o.chestLogo, o.backPrint)}
                             <span class="delivery-text">
                                 <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
                                 <span class="tag size">${escapeHtml(item.size)}</span>
@@ -583,7 +583,7 @@
                     colTotals[s] += v;
                     return `<td class="num">${v || ''}</td>`;
                 }).join('');
-                const image = color === C.BRING_OWN ? '' : previewThumbnail(color, g.chestLogo, g.backPrint);
+                const image = previewThumbnail(color, g.chestLogo, g.backPrint);
                 return `<tr><th>${escapeHtml(color)}${image}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
             }).join('');
             const totalRow = `<tr class="total-row"><th>残り</th>${sizes.map((s) => `<td class="num">${colTotals[s]}</td>`).join('')}<td class="num total-col">${g.total}</td></tr>`;
@@ -653,17 +653,24 @@
 
     function previewSide(color, position, label, lazy = true) {
         const scene = C.COLORS.indexOf(color) + 1;
-        if (scene < 1) return '';
-        const sceneNumber = String(scene).padStart(2, '0');
-        const backPosition = previewBackPosition(position);
-        const background = `${PREVIEW_ASSET_BASE}/back/set-${sceneNumber}-${backPosition}.jpg`;
+        const bringOwn = color === C.BRING_OWN;
+        if (scene < 1 && !bringOwn) return '';
         const overlay = `${PREVIEW_ASSET_BASE}/front/front-${position}.${previewFrontExtension(position)}`;
         const loading = lazy ? ' loading="lazy"' : '';
+        let backgroundHtml;
+        if (bringOwn) {
+            backgroundHtml = '<div class="bring-own-preview-background" aria-hidden="true"></div>';
+        } else {
+            const sceneNumber = String(scene).padStart(2, '0');
+            const backPosition = previewBackPosition(position);
+            const background = `${PREVIEW_ASSET_BASE}/back/set-${sceneNumber}-${backPosition}.jpg`;
+            backgroundHtml = `<img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}"${loading}>`;
+        }
         return `
             <div class="design-preview-side">
                 <div class="design-preview-side-label">${label}</div>
-                <div class="design-preview-stack design-preview-stack-${position}">
-                    <img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}"${loading}>
+                <div class="design-preview-stack design-preview-stack-${position}${bringOwn ? ' bring-own-preview-stack' : ''}">
+                    ${backgroundHtml}
                     <img class="design-preview-overlay" src="${overlay}" alt=""${loading}>
                 </div>
             </div>`;
@@ -695,12 +702,15 @@
     function orderPreviewColors(order) {
         const colors = new Set();
         for (const item of order.items) {
-            if (item.size === C.BRING_OWN) continue;
+            if (item.size === C.BRING_OWN) {
+                if (item.quantities[C.BRING_OWN]) colors.add(C.BRING_OWN);
+                continue;
+            }
             for (const [color, qty] of Object.entries(item.quantities)) {
                 if (qty && C.COLORS.includes(color)) colors.add(color);
             }
         }
-        return C.COLORS.filter((color) => colors.has(color));
+        return [...C.COLORS.filter((color) => colors.has(color)), ...(colors.has(C.BRING_OWN) ? [C.BRING_OWN] : [])];
     }
 
     function orderPreviewGallery(order) {
@@ -713,12 +723,16 @@
         const selected = new Set();
         $('items-list').querySelectorAll('.item-block').forEach((block) => {
             const size = block.querySelector('.item-sizes .chip.selected')?.dataset.value;
-            if (size === C.BRING_OWN) return;
+            if (size === C.BRING_OWN) {
+                const input = block.querySelector('.item-bring input');
+                if (Number(input?.value) > 0) selected.add(C.BRING_OWN);
+                return;
+            }
             block.querySelectorAll('.item-colors input').forEach((input) => {
                 if (Number(input.value) > 0) selected.add(input.dataset.color);
             });
         });
-        return C.COLORS.filter((color) => selected.has(color));
+        return [...C.COLORS.filter((color) => selected.has(color)), ...(selected.has(C.BRING_OWN) ? [C.BRING_OWN] : [])];
     }
 
     function renderDesignPreviews() {
