@@ -1,197 +1,202 @@
-/* 幅375px基準・スマホ最優先。LINEのアプリ内ブラウザから開かれる前提。
-   タイ向けデザイン: 見出しKanit(タイで最も使われる書体)+本文Sarabun、
-   母の日=水色×白ジャスミン×金(タイの文化色)、価格を大きく、締切と特典を明示 */
 @import url("fonts/fonts.css");
 
 :root {
-  --ink: #1E2433;
-  --sub: #5E6678;
-  --bg: #FFFFFF;
-  --blue: #2E6FDB;        /* 信頼のブルー(見出しアクセント) */
-  --sky: #EAF4FF;         /* 母の日の水色(สีฟ้าวันแม่) */
-  --sky-deep: #CFE5FB;
-  --gold: #E8A03C;        /* 縁起の良い金 */
-  --price: #F0662E;       /* 価格・強調(タイECの定番の暖色) */
-  --line-green: #06C755;
-  --card: #FFFFFF;
+  --ink: #1d2b2d;
+  --ink-soft: #4f6263;
+  --paper: #f8f6ef;
+  --paper-deep: #eee9dc;
+  --mist: #edf4f3;
+  --blue: #88aeb2;
+  --blue-deep: #466e72;
+  --gold: #b9934e;
+  --gold-light: #dfc990;
+  --night: #18272b;
+  --line: rgba(29, 43, 45, .16);
+  --line-green: #06c755;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
-  font-family: "Sarabun", "Noto Sans Thai", "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
-  background: var(--bg);
+  background: var(--paper);
   color: var(--ink);
-  line-height: 1.85; /* タイ文字は上下に伸びるため広めに取る */
+  font-family: "Sarabun", "Noto Sans Thai", "Noto Sans JP", sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  text-rendering: optimizeLegibility;
 }
-h1, h2, h3 {
-  font-family: "Kanit", "Noto Sans Thai", "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
-  line-height: 1.5;
-}
-section, header, footer { padding: 34px 20px; }
-h2 { font-size: 1.35rem; margin-bottom: 4px; }
-.h2-sub { color: var(--sub); font-size: 0.9rem; margin-bottom: 18px; }
-h2::after {
+body::before {
   content: "";
-  display: block;
-  width: 44px; height: 4px; border-radius: 2px;
-  background: linear-gradient(90deg, var(--blue), var(--gold));
-  margin: 8px 0 2px;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
 }
-.center h2::after { margin-left: auto; margin-right: auto; }
+a { color: inherit; }
+h1, h2, h3 { font-family: "Kanit", "Noto Sans Thai", "Noto Sans JP", sans-serif; font-weight: 400; line-height: 1.28; }
+.eyebrow { color: var(--gold); font: 500 .68rem/1.4 "Kanit", sans-serif; letter-spacing: .22em; text-transform: uppercase; }
 
-/* ヒーロー: 水色×白ジャスミン(タイ母の日の色) */
-.hero {
-  text-align: center;
-  padding: 52px 20px 46px;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(255,255,255,0.9) 0 6px, transparent 7px),
-    radial-gradient(circle at 88% 26%, rgba(255,255,255,0.9) 0 5px, transparent 6px),
-    radial-gradient(circle at 78% 82%, rgba(255,255,255,0.8) 0 6px, transparent 7px),
-    linear-gradient(165deg, #F2F9FF 0%, var(--sky) 45%, var(--sky-deep) 100%);
-}
-.hero-mark { font-size: 2.4rem; }
-.hero h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: 0.02em; margin: 4px 0 8px; color: #17307E; }
-.hero-lead { color: #33528F; margin-bottom: 10px; font-size: 1.02rem; font-weight: 700; }
-.hero-lead-jp { color: var(--sub); font-size: 0.92rem; margin-bottom: 20px; }
-.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 22px; }
-.chip {
-  background: #FFFFFF;
-  border: 1px solid var(--sky-deep);
-  color: #33528F;
-  border-radius: 999px;
-  padding: 5px 14px;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.btn {
-  display: inline-block;
-  padding: 15px 30px;
-  border-radius: 999px;
-  text-decoration: none;
-  font-family: "Kanit", "Noto Sans Thai", sans-serif;
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-.btn-line {
-  background: var(--line-green);
-  color: #fff;
-  box-shadow: 0 5px 16px rgba(6, 199, 85, 0.35);
-}
-.btn-line:active { transform: translateY(1px); }
-
-/* 母の日キャンペーン: 水色×白×金 */
-.campaign {
-  background: linear-gradient(170deg, var(--sky) 0%, #DDEEFF 100%);
-  border-top: 3px solid var(--gold);
-  border-bottom: 3px solid var(--gold);
-  text-align: center;
-}
-.campaign-flowers { font-size: 1.5rem; letter-spacing: 0.35em; margin-bottom: 4px; }
-.campaign h2 { color: #17307E; }
-.campaign h2::after { background: var(--gold); margin-left: auto; margin-right: auto; }
-.campaign-th { font-family: "Kanit", sans-serif; font-weight: 700; font-size: 1.1rem; color: #17307E; margin-top: 10px; }
-.campaign p { margin-top: 6px; }
-.price-big {
-  font-family: "Kanit", sans-serif;
-  font-weight: 800;
-  font-size: 2.2rem;
-  color: var(--price);
-  line-height: 1.2;
-}
-.price-big small { font-size: 1.1rem; font-weight: 700; }
-.deadline-box {
-  background: #FFFFFF;
-  border-radius: 14px;
-  display: inline-block;
-  padding: 10px 22px;
-  margin-top: 12px;
-  font-weight: 700;
-  box-shadow: 0 4px 14px rgba(46, 111, 219, 0.12);
-}
-.deadline-box .th { color: #33528F; font-weight: 400; font-size: 0.88rem; }
-
-/* 作品(動画ファースト: タイはSNS動画で商品を選ぶ) */
-.works { text-align: center; }
-.works-grid { display: grid; gap: 22px; margin-top: 16px; }
-.works-grid video {
-  width: 100%;
-  max-width: 320px;
-  aspect-ratio: 9 / 16;
-  border-radius: 18px;
-  background: #000;
-  box-shadow: 0 8px 24px rgba(23, 48, 126, 0.16);
-}
-.works-grid figcaption {
-  margin-top: 8px;
-  font-family: "Kanit", sans-serif;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: var(--ink);
-}
-
-/* サービス: 白カード+価格を大きく */
-.services { background: #F4F8FD; }
-.service-card {
-  background: var(--card);
-  border-radius: 18px;
-  padding: 20px;
-  margin-bottom: 14px;
-  box-shadow: 0 4px 14px rgba(30, 36, 51, 0.07);
-  border-top: 4px solid var(--sky-deep);
-}
-.service-card h3 { font-size: 1.1rem; margin-bottom: 6px; color: #17307E; }
-.service-card p { font-size: 0.94rem; margin-bottom: 6px; }
-.service-card .th { color: #33528F; }
-.price {
-  font-family: "Kanit", sans-serif;
-  font-weight: 800;
-  color: var(--price);
-  font-size: 1.25rem;
-}
-.price small { font-size: 0.85rem; color: var(--sub); font-weight: 400; }
-
-/* 流れ: 番号を丸バッジに */
-.flow ol { list-style: none; counter-reset: step; }
-.flow li {
-  counter-increment: step;
+.site-header {
+  min-height: 74px;
+  padding: 16px 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(248, 246, 239, .91);
+  border-bottom: 1px solid var(--line);
   position: relative;
-  padding-left: 46px;
-  margin-bottom: 14px;
+  z-index: 5;
 }
-.flow li::before {
-  content: counter(step);
-  position: absolute; left: 0; top: 2px;
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(150deg, var(--blue), #6FA5EE);
-  color: #fff;
-  font-family: "Kanit", sans-serif;
-  font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; font: 500 .92rem/1.2 "Kanit", sans-serif; letter-spacing: .04em; }
+.brand-flower, .contact-flower { display: inline-block; width: 26px; height: 26px; position: relative; }
+.brand-flower::before, .contact-flower::before {
+  content: "✣";
+  color: var(--gold);
+  font-size: 28px;
+  line-height: 26px;
 }
-.flow .th { color: #33528F; font-size: 0.9rem; }
+.header-contact { min-height: 44px; display: flex; align-items: center; text-decoration: none; font: 500 .82rem/1 "Kanit", sans-serif; border-bottom: 1px solid var(--gold); }
+.header-contact span { color: var(--ink-soft); margin-left: 5px; font-size: .7rem; }
 
-/* 連絡先 */
-.contact {
-  text-align: center;
-  background: linear-gradient(170deg, var(--sky) 0%, var(--sky-deep) 100%);
+section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
+.hero {
+  min-height: calc(100svh - 74px);
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  align-items: center;
+  gap: 7vw;
+  background: linear-gradient(112deg, #f8f6ef 0 52%, #edf4f3 52% 100%);
+  overflow: hidden;
 }
-.contact h2 { color: #17307E; }
-.contact p { margin-bottom: 16px; }
-.contact-note { font-size: 0.9rem; color: #33528F; margin-top: 12px; }
+.hero-copy { padding: 46px 0; }
+.hero h1 { margin: 20px 0 24px; font-size: clamp(3rem, 5.8vw, 5.5rem); letter-spacing: -.035em; }
+.hero h1 em { color: var(--blue-deep); font-style: normal; position: relative; }
+.mobile-break { display: inline; }
+.hero h1 em::after { content: ""; position: absolute; height: 1px; background: var(--gold); left: 2%; right: 2%; bottom: -4px; }
+.hero-jp { color: var(--ink-soft); font-size: 1.02rem; }
+.hero-note { margin: 26px 0 30px; padding-left: 16px; border-left: 1px solid var(--gold); color: var(--ink); }
+.hero-note span { color: var(--ink-soft); font-size: .9rem; }
+.hero-art { position: relative; min-height: 620px; display: grid; place-items: center; }
+.hero-art > p { position: absolute; right: 0; bottom: 18px; color: var(--ink-soft); font: 400 .68rem/1.5 "Kanit", sans-serif; letter-spacing: .15em; text-transform: uppercase; }
+.memory-frame {
+  width: min(440px, 38vw);
+  aspect-ratio: 4 / 5;
+  position: relative;
+  border-radius: 50% 50% 48% 48%;
+  background: radial-gradient(circle at 50% 38%, #fffef8 0 40%, #e4efee 78%, #c7dcde 100%);
+  border: 1px solid rgba(185, 147, 78, .74);
+  box-shadow: 0 32px 80px rgba(70, 110, 114, .16), inset 0 0 0 18px rgba(255,255,255,.36);
+}
+.memory-frame::before { content: ""; position: absolute; inset: 7%; border: 1px solid rgba(136,174,178,.5); border-radius: inherit; }
+.stem { position: absolute; width: 4px; height: 46%; background: var(--blue-deep); left: 51%; top: 34%; transform: rotate(-9deg); transform-origin: bottom; border-radius: 99px; }
+.flower { position: absolute; width: 56px; height: 56px; border: 1px solid rgba(185,147,78,.55); background: #fffef9; border-radius: 50% 16% 50% 16%; transform: rotate(45deg); box-shadow: 0 0 22px rgba(255,255,255,.8); }
+.flower::after { content: ""; position: absolute; inset: 21px; background: var(--gold); border-radius: 50%; }
+.flower-one { top: 24%; left: 47%; }
+.flower-two { top: 42%; left: 58%; width: 43px; height: 43px; }
+.flower-three { top: 48%; left: 34%; width: 47px; height: 47px; }
+.memory-line { position: absolute; width: 52%; height: 14%; left: 24%; bottom: 11%; border-bottom: 1px solid var(--gold); border-radius: 50%; }
 
-footer {
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--sub);
-  padding-bottom: 44px;
+.btn { min-height: 52px; display: inline-flex; align-items: center; justify-content: center; padding: 13px 24px; text-decoration: none; font: 500 .9rem/1.3 "Kanit", sans-serif; letter-spacing: .01em; transition: transform .2s, box-shadow .2s; }
+.btn:hover { transform: translateY(-2px); }
+.btn-line { color: #fff; background: var(--line-green); box-shadow: 0 12px 30px rgba(6,199,85,.2); }
+.btn-line span { opacity: .78; margin-left: 7px; font-size: .75rem; }
+
+.trust-strip { min-height: 86px; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--night); color: #fff; padding: 0 max(22px, calc((100vw - 1120px) / 2)); }
+.trust-strip > span { min-height: 86px; display: flex; flex-direction: column; justify-content: center; text-align: center; border-right: 1px solid rgba(255,255,255,.14); font: 400 .94rem/1.4 "Kanit", sans-serif; }
+.trust-strip > span:first-child { border-left: 1px solid rgba(255,255,255,.14); }
+.trust-strip small { color: #aebfc0; font-size: .68rem; letter-spacing: .05em; }
+
+.section-number { color: var(--gold); font: 400 .78rem/1 "Kanit", sans-serif; letter-spacing: .14em; padding-top: 9px; }
+.section-heading { display: grid; grid-template-columns: 54px 1fr; margin-bottom: 48px; }
+.section-heading > div { min-width: 0; }
+.section-heading h2, .campaign h2 { font-size: clamp(1.8rem, 3.4vw, 3rem); margin: 10px 0 8px; }
+.section-heading h2, .campaign h2, .contact h2 { overflow-wrap: anywhere; }
+.section-heading > div > p:last-child, .campaign > div > p:last-child { color: var(--ink-soft); }
+
+.campaign { display: grid; grid-template-columns: 54px 1.2fr .8fr; gap: 42px; align-items: center; background: var(--mist); border-top: 1px solid rgba(136,174,178,.35); border-bottom: 1px solid rgba(136,174,178,.35); }
+.campaign-offer { padding: 30px 0 30px 42px; border-left: 1px solid rgba(185,147,78,.48); }
+.price-big { color: var(--blue-deep); font: 400 3.4rem/1 "Kanit", sans-serif; }
+.price-big small { color: var(--gold); font-size: 1rem; }
+.campaign-offer > p:not(.price-big) { color: var(--ink-soft); font-size: .88rem; }
+.campaign-offer .deadline { color: var(--ink); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+.works { background: var(--night); color: #f7f3e8; }
+.works .section-heading > div > p:last-child { color: #aebfc0; }
+.works-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(22px, 4vw, 58px); }
+.works figure:nth-child(2) { margin-top: 72px; }
+.video-shell { position: relative; padding: 10px; border: 1px solid rgba(223,201,144,.35); background: rgba(255,255,255,.025); }
+.video-shell::before { content: ""; position: absolute; width: 28px; height: 1px; background: var(--gold); top: -1px; left: -1px; }
+.works video { display: block; width: 100%; aspect-ratio: 9/16; object-fit: cover; background: #0b1214; }
+.works figcaption { display: grid; grid-template-columns: 34px 1fr; margin-top: 16px; }
+.works figcaption > span { color: var(--gold); font: 400 .7rem/1.8 "Kanit", sans-serif; }
+.works figcaption strong { font: 400 1.08rem/1.5 "Kanit", sans-serif; }
+.works figcaption small { grid-column: 2; color: #9fb1b2; }
+
+.services { background: var(--paper); }
+.service-list { border-top: 1px solid var(--line); }
+.service-list article { display: grid; grid-template-columns: 54px 1fr auto; gap: 22px; align-items: center; padding: 27px 0; border-bottom: 1px solid var(--line); }
+.service-no { color: var(--gold); font: 400 .72rem/1 "Kanit", sans-serif; }
+.service-list h3 { font-size: 1.2rem; }
+.service-list h3 small { color: var(--ink-soft); font-size: .76rem; }
+.service-list article > div p { color: var(--ink-soft); font-size: .86rem; }
+.price { color: var(--blue-deep); font: 500 1.1rem/1.4 "Kanit", sans-serif; text-align: right; }
+.price small { display: block; color: var(--ink-soft); font-size: .68rem; }
+
+.flow { background: var(--paper-deep); }
+.flow ol { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+.flow li { padding: 28px 24px 0 0; border-right: 1px solid var(--line); min-height: 210px; }
+.flow li + li { padding-left: 24px; }
+.flow li:last-child { border-right: 0; }
+.flow li > span { color: var(--gold); font: 400 .72rem/1 "Kanit", sans-serif; }
+.flow strong { display: block; margin: 22px 0 12px; font: 400 1rem/1.4 "Kanit", sans-serif; }
+.flow li p { color: var(--ink-soft); font-size: .86rem; }
+
+.contact { text-align: center; padding-top: 104px; padding-bottom: 104px; background: var(--mist); }
+.contact-flower { margin-bottom: 20px; transform: scale(1.5); }
+.contact h2 { font-size: clamp(2.2rem, 4.8vw, 4.2rem); margin: 15px 0 22px; }
+.contact > p:not(.eyebrow) { color: var(--ink-soft); }
+.contact .btn { margin: 30px 0 10px; }
+.contact > small { display: block; color: var(--ink-soft); }
+
+footer { display: flex; justify-content: space-between; padding: 26px 5vw; background: var(--night); color: #9fb1b2; font: 400 .68rem/1.5 "Kanit", sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+
+@media (max-width: 800px) {
+  .site-header { padding-inline: 20px; }
+  .brand { font-size: .8rem; }
+  .header-contact span { display: none; }
+  section { padding: 62px 22px; }
+  .hero { min-height: auto; display: block; background: linear-gradient(180deg, var(--paper) 0 58%, var(--mist) 58% 100%); }
+  .hero-copy { padding: 18px 0 44px; }
+  .hero h1 { font-size: clamp(2.2rem, 9.6vw, 3rem); margin-top: 16px; }
+  .mobile-break { display: block; }
+  .hero-art { min-height: 480px; }
+  .memory-frame { width: min(88vw, 390px); }
+  .hero-art > p { right: 6px; bottom: 2px; }
+  .trust-strip { padding: 0; }
+  .trust-strip > span { padding: 12px 6px; font-size: .76rem; }
+  .trust-strip small { font-size: .58rem; }
+  .campaign { grid-template-columns: 38px 1fr; gap: 8px 12px; }
+  .campaign-offer { grid-column: 2; padding: 24px 0 0; border-left: 0; border-top: 1px solid rgba(185,147,78,.48); }
+  .section-heading { grid-template-columns: 38px 1fr; margin-bottom: 36px; }
+  .section-heading h2, .campaign h2 { font-size: 1.62rem; }
+  .section-heading h2, .campaign h2, .contact h2 { word-break: break-word; overflow-wrap: anywhere; }
+  .works-grid { display: block; }
+  .works figure { max-width: 340px; margin: 0 auto 54px; }
+  .works figure:nth-child(2) { margin-top: 0; }
+  .service-list article { grid-template-columns: 34px 1fr; gap: 14px; }
+  .service-list .price { grid-column: 2; text-align: left; margin-top: 5px; }
+  .flow ol { grid-template-columns: 1fr; }
+  .flow li { padding: 24px 0; min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .flow li + li { padding-left: 0; }
+  .contact { padding-top: 82px; padding-bottom: 82px; }
+  .contact h2 { font-size: 1.9rem; }
+  .contact .btn { width: 100%; }
+  footer { display: block; text-align: center; }
 }
 
-/* PC */
-@media (min-width: 768px) {
-  section, header, footer { padding-left: max(20px, calc(50vw - 430px)); padding-right: max(20px, calc(50vw - 430px)); }
-  .works-grid { grid-template-columns: repeat(3, 1fr); }
-  .service-card { padding: 26px; }
-  .hero h1 { font-size: 2.3rem; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn { transition: none; }
 }
