@@ -286,7 +286,7 @@ table.summary .total-row th, table.summary .total-col {
     height: 26px;
     object-fit: cover;
     border-radius: 5px;
-    pointer-events: none;
+    cursor: zoom-in;
 }
 
 /* デザインのサンプル画像(管理者設定) */
@@ -306,6 +306,7 @@ table.summary .total-row th, table.summary .total-col {
     object-fit: cover;
     border-radius: 6px;
     flex-shrink: 0;
+    cursor: zoom-in;
 }
 .design-thumb.empty {
     display: flex;
@@ -420,6 +421,94 @@ table.summary .total-row th, table.summary .total-col {
     font-size: 13px;
     padding: 20px;
     text-align: center;
+}
+
+/* 一覧の完成イメージと拡大ボタン */
+.image-thumb-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 7px 0;
+}
+.image-thumb-button,
+.design-preview-zoom {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    cursor: zoom-in;
+}
+.image-thumb-button {
+    display: inline-block;
+    width: 76px;
+    min-width: 76px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    vertical-align: middle;
+}
+.image-thumb-button .design-preview-sides { gap: 2px; }
+.image-thumb-button .design-preview-side-label { display: none; }
+.image-thumb-button .design-preview-stack { width: 100%; }
+.design-preview-zoom { display: block; width: 100%; }
+table.summary th .image-thumb-button {
+    display: block;
+    margin: 4px auto 0;
+}
+.delivery-row .image-thumb-button {
+    width: 64px;
+    min-width: 64px;
+}
+
+/* 全画面の画像拡大ビューア */
+body.image-viewer-open { overflow: hidden; }
+.image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 58px 12px 18px;
+    background: rgba(0, 0, 0, 0.9);
+    overflow: auto;
+}
+.image-viewer-close {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: 12px;
+    z-index: 302;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    padding: 7px 14px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.image-viewer-panel { width: min(94vw, 900px); }
+.image-viewer-title {
+    color: #fff;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.image-viewer-content .design-preview-sides { gap: 10px; }
+.image-viewer-content .design-preview-side-label { color: #fff; font-size: 13px; }
+.image-viewer-content .design-preview-stack {
+    width: 100%;
+    max-width: 430px;
+}
+.image-viewer-raw {
+    display: block;
+    max-width: 100%;
+    max-height: 78vh;
+    margin: 0 auto;
+    object-fit: contain;
+    border-radius: 8px;
 }
 
 /* 受け渡しチェック */
