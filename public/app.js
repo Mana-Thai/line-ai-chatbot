@@ -170,7 +170,7 @@
         document.querySelectorAll('.chip[data-group]').forEach((chip) => {
             const key = designImageKey(chip.dataset.group, chip.dataset.value);
             const img = key ? state.designImages[key] : null;
-            chip.innerHTML = (img ? `<img class="chip-img" src="${img}" alt="">` : '')
+            chip.innerHTML = (img ? `<img class="chip-img" src="${img}" alt="${escapeHtml(chip.dataset.value)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '')
                 + escapeHtml(chip.dataset.value);
         });
     }
@@ -268,6 +268,7 @@
                     <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
                     <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
                 </div>
+                ${orderPreviewGallery(o)}
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
                 <div class="order-total">合計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
                 <label class="pay-row${o.paid ? ' paid' : ''}">
@@ -307,11 +308,15 @@
     function renderPersonTotals() {
         const totals = new Map();
         for (const o of state.orders) {
-            const t = totals.get(o.orderName) || { qty: 0, amount: 0, paidAmount: 0 };
+            const t = totals.get(o.orderName) || { qty: 0, amount: 0, paidAmount: 0, previews: new Map() };
             const amount = orderAmount(o);
             t.qty += orderQty(o);
             t.amount += amount;
             if (o.paid) t.paidAmount += amount;
+            for (const color of orderPreviewColors(o)) {
+                const key = `${color}|${o.chestLogo}|${o.backPrint}`;
+                t.previews.set(key, previewThumbnail(color, o.chestLogo, o.backPrint));
+            }
             totals.set(o.orderName, t);
         }
         if (totals.size === 0) {
@@ -332,7 +337,7 @@
             allQty += t.qty;
             allAmount += t.amount;
             allPaid += t.paidAmount;
-            return `<tr><th>${escapeHtml(name)}</th><td class="num">${t.qty}</td><td class="num">${fmtMoney(t.amount)}</td><td>${payStatus(t)}</td></tr>`;
+            return `<tr><th>${escapeHtml(name)}${previewGallery([...t.previews.values()])}</th><td class="num">${t.qty}</td><td class="num">${fmtMoney(t.amount)}</td><td>${payStatus(t)}</td></tr>`;
         }).join('');
         const unpaid = allAmount - allPaid;
         $('person-totals').innerHTML = `
@@ -409,7 +414,8 @@
                     colTotals[s] += v;
                     return `<td class="num">${v || ''}</td>`;
                 }).join('');
-                return `<tr><th>${escapeHtml(color)}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
+                const image = color === C.BRING_OWN ? '' : previewThumbnail(color, g.chestLogo, g.backPrint);
+                return `<tr><th>${escapeHtml(color)}${image}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
             }).join('');
 
             const totalRow = `<tr class="total-row"><th>合計</th>${sizes.map((s) => `<td class="num">${colTotals[s]}</td>`).join('')}<td class="num total-col">${g.total}</td></tr>`;
@@ -461,16 +467,17 @@
                     ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
                     : '';
                 rows.push(`
-                    <label class="delivery-row${check ? ' done' : ''}">
+                    <div class="delivery-row${check ? ' done' : ''}">
                         <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
                             ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
+                        ${color === C.BRING_OWN ? '' : previewThumbnail(color, o.chestLogo, o.backPrint)}
                         <span class="delivery-text">
                             <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
                             <span class="tag size">${escapeHtml(item.size)}</span>
                             ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
                         </span>
                         <span class="delivery-meta">${meta}</span>
-                    </label>`);
+                    </div>`);
             });
             return `
             <div class="delivery-group${mine ? ' mine' : ''}">
@@ -483,6 +490,13 @@
 
         box.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
             cb.addEventListener('change', () => toggleDelivery(cb));
+        });
+        box.querySelectorAll('.delivery-row').forEach((row) => {
+            row.addEventListener('click', (event) => {
+                if (event.target.closest('input, button')) return;
+                const cb = row.querySelector('input[type="checkbox"]');
+                if (!cb.disabled) cb.click();
+            });
         });
     }
 
@@ -547,7 +561,8 @@
                     colTotals[s] += v;
                     return `<td class="num">${v || ''}</td>`;
                 }).join('');
-                return `<tr><th>${escapeHtml(color)}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
+                const image = color === C.BRING_OWN ? '' : previewThumbnail(color, g.chestLogo, g.backPrint);
+                return `<tr><th>${escapeHtml(color)}${image}</th>${cells}<td class="num total-col">${rowTotal}</td></tr>`;
             }).join('');
             const totalRow = `<tr class="total-row"><th>残り</th>${sizes.map((s) => `<td class="num">${colTotals[s]}</td>`).join('')}<td class="num total-col">${g.total}</td></tr>`;
             return `
@@ -613,20 +628,62 @@
         return position === 1 || position === 3 ? 'jpg' : 'png';
     }
 
-    function previewSide(color, position, label) {
+    function previewSide(color, position, label, lazy = true) {
         const scene = C.COLORS.indexOf(color) + 1;
+        if (scene < 1) return '';
         const sceneNumber = String(scene).padStart(2, '0');
         const backPosition = previewBackPosition(position);
         const background = `${PREVIEW_ASSET_BASE}/back/set-${sceneNumber}-${backPosition}.jpg`;
         const overlay = `${PREVIEW_ASSET_BASE}/front/front-${position}.${previewFrontExtension(position)}`;
+        const loading = lazy ? ' loading="lazy"' : '';
         return `
             <div class="design-preview-side">
                 <div class="design-preview-side-label">${label}</div>
                 <div class="design-preview-stack design-preview-stack-${position}">
-                    <img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}">
-                    <img class="design-preview-overlay" src="${overlay}" alt="">
+                    <img class="design-preview-background" src="${background}" alt="${escapeHtml(color)} ${label}"${loading}>
+                    <img class="design-preview-overlay" src="${overlay}" alt=""${loading}>
                 </div>
             </div>`;
+    }
+
+    function previewSides(color, chestLogo, backPrint, lazy = true) {
+        const sides = [];
+        const chestPosition = CHEST_PREVIEW_POSITIONS[chestLogo] || null;
+        if (chestPosition) sides.push(previewSide(color, chestPosition, '前面', lazy));
+        if (backPrint === '有') sides.push(previewSide(color, 6, '背面', lazy));
+        return sides;
+    }
+
+    function previewDataAttributes(color, chestLogo, backPrint) {
+        return `data-preview-color="${escapeHtml(color)}" data-preview-chest="${escapeHtml(chestLogo)}" data-preview-back="${escapeHtml(backPrint)}"`;
+    }
+
+    function previewThumbnail(color, chestLogo, backPrint) {
+        const sides = previewSides(color, chestLogo, backPrint);
+        if (sides.length === 0) return '';
+        return `<button type="button" class="image-thumb-button" ${previewDataAttributes(color, chestLogo, backPrint)} aria-label="${escapeHtml(color)}の画像を拡大" title="画像を拡大"><span class="design-preview-sides">${sides.join('')}</span></button>`;
+    }
+
+    function previewGallery(images) {
+        const available = images.filter(Boolean);
+        return available.length ? `<div class="image-thumb-list">${available.join('')}</div>` : '';
+    }
+
+    function orderPreviewColors(order) {
+        const colors = new Set();
+        for (const item of order.items) {
+            if (item.size === C.BRING_OWN) continue;
+            for (const [color, qty] of Object.entries(item.quantities)) {
+                if (qty && C.COLORS.includes(color)) colors.add(color);
+            }
+        }
+        return C.COLORS.filter((color) => colors.has(color));
+    }
+
+    function orderPreviewGallery(order) {
+        return previewGallery(orderPreviewColors(order).map((color) => (
+            previewThumbnail(color, order.chestLogo, order.backPrint)
+        )));
     }
 
     function selectedPreviewColors() {
@@ -656,17 +713,13 @@
             return;
         }
 
-        const chestPosition = CHEST_PREVIEW_POSITIONS[chestLogo] || null;
-        const showBack = backPrint === '有';
         box.innerHTML = colors.map((color) => {
-            const sides = [];
-            if (chestPosition) sides.push(previewSide(color, chestPosition, '前面'));
-            if (showBack) sides.push(previewSide(color, 6, '背面'));
+            const sides = previewSides(color, chestLogo, backPrint, false);
             return `
                 <section class="design-preview-card">
                     <div class="design-preview-color">${escapeHtml(color)}</div>
                     ${sides.length
-                        ? `<div class="design-preview-sides">${sides.join('')}</div>`
+                        ? `<button type="button" class="design-preview-zoom" ${previewDataAttributes(color, chestLogo, backPrint)} aria-label="${escapeHtml(color)}の画像を拡大" title="画像を拡大"><span class="design-preview-sides">${sides.join('')}</span></button>`
                         : '<div class="design-preview-none">プリントなし</div>'}
                 </section>`;
         }).join('');
@@ -676,7 +729,13 @@
         const box = $(containerId);
         box.innerHTML = values.map((v) => `<button type="button" class="chip" data-group="${name}" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
         box.querySelectorAll('.chip').forEach((chip) => {
-            chip.addEventListener('click', () => {
+            chip.addEventListener('click', (event) => {
+                const zoomImage = event.target.closest('[data-zoom-design]');
+                if (zoomImage) {
+                    event.stopPropagation();
+                    openDesignViewer(zoomImage.dataset.zoomDesign);
+                    return;
+                }
                 box.querySelectorAll('.chip').forEach((c) => c.classList.remove('selected'));
                 chip.classList.add('selected');
                 renderDesignPreviews();
@@ -932,7 +991,7 @@
             const img = state.designImages[key];
             return `
             <div class="design-row" data-key="${escapeHtml(key)}">
-                ${img ? `<img class="design-thumb" src="${img}" alt="">` : '<span class="design-thumb empty">なし</span>'}
+                ${img ? `<img class="design-thumb" src="${img}" alt="${escapeHtml(key)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '<span class="design-thumb empty">なし</span>'}
                 <span class="design-label">${escapeHtml(key)}</span>
                 <button type="button" class="btn btn-small design-pick">画像を選択</button>
                 ${img ? '<button type="button" class="btn btn-small btn-danger design-clear">削除</button>' : ''}
@@ -1090,6 +1149,45 @@
         }
     }
 
+    // ---------- 画像拡大ビューア ----------
+
+    let imageViewerReturnFocus = null;
+
+    function openImageViewer(title, content) {
+        imageViewerReturnFocus = document.activeElement;
+        $('image-viewer-title').textContent = title;
+        $('image-viewer-content').innerHTML = content;
+        $('image-viewer').classList.remove('hidden');
+        document.body.classList.add('image-viewer-open');
+        $('image-viewer-close').focus();
+    }
+
+    function openPreviewViewer(color, chestLogo, backPrint) {
+        const sides = previewSides(color, chestLogo, backPrint, false);
+        if (sides.length === 0) return;
+        openImageViewer(
+            `${color} / 胸ロゴ:${chestLogo} / バックプリント:${backPrint}`,
+            `<div class="design-preview-sides">${sides.join('')}</div>`,
+        );
+    }
+
+    function openDesignViewer(key) {
+        const image = state.designImages[key];
+        if (!image) return;
+        openImageViewer(key, `<img class="image-viewer-raw" src="${image}" alt="${escapeHtml(key)}">`);
+    }
+
+    function closeImageViewer() {
+        if ($('image-viewer').classList.contains('hidden')) return;
+        $('image-viewer').classList.add('hidden');
+        $('image-viewer-content').innerHTML = '';
+        document.body.classList.remove('image-viewer-open');
+        if (imageViewerReturnFocus && typeof imageViewerReturnFocus.focus === 'function') {
+            imageViewerReturnFocus.focus();
+        }
+        imageViewerReturnFocus = null;
+    }
+
     // ---------- イベント登録 ----------
 
     buildChips('chest-logo-options', C.CHEST_LOGOS, 'chestLogo');
@@ -1122,6 +1220,29 @@
     });
     $('admin-cancel').addEventListener('click', () => $('admin-modal').classList.add('hidden'));
     $('admin-ok').addEventListener('click', adminUnlock);
+
+    document.addEventListener('click', (event) => {
+        const preview = event.target.closest('[data-preview-color]');
+        if (preview) {
+            event.preventDefault();
+            event.stopPropagation();
+            openPreviewViewer(preview.dataset.previewColor, preview.dataset.previewChest, preview.dataset.previewBack);
+            return;
+        }
+        const design = event.target.closest('[data-zoom-design]');
+        if (design) {
+            event.preventDefault();
+            event.stopPropagation();
+            openDesignViewer(design.dataset.zoomDesign);
+        }
+    });
+    $('image-viewer-close').addEventListener('click', closeImageViewer);
+    $('image-viewer').addEventListener('click', (event) => {
+        if (event.target === $('image-viewer')) closeImageViewer();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeImageViewer();
+    });
 
     // ページを閉じる時にロックを解放
     window.addEventListener('pagehide', () => {
