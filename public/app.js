@@ -255,6 +255,18 @@
 
         list.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
             const hasMine = personOrders.some((o) => o.userId === state.user.userId);
+            const personQty = personOrders.reduce((sum, o) => sum + orderQty(o), 0);
+            const personAmount = personOrders.reduce((sum, o) => sum + orderAmount(o), 0);
+            const allPaid = personOrders.every((o) => Boolean(o.paid));
+            const somePaid = personOrders.some((o) => Boolean(o.paid));
+            const paymentEditable = state.user.admin || personOrders.every((o) => o.userId === state.user.userId);
+            const latestPayment = personOrders
+                .filter((o) => o.paid)
+                .map((o) => o.paid)
+                .sort((a, b) => new Date(b.at) - new Date(a.at))[0];
+            const paymentMeta = allPaid && latestPayment
+                ? `✓ ${escapeHtml(latestPayment.by)} ${new Date(latestPayment.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                : (somePaid ? `一部済み (${personOrders.filter((o) => o.paid).length}/${personOrders.length}件)` : '');
             const entries = personOrders.map((o) => {
             const mine = o.userId === state.user.userId;
             const editable = mine || state.user.admin;
@@ -277,12 +289,7 @@
                 </div>
                 ${orderPreviewGallery(o)}
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
-                <div class="order-total">合計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
-                <label class="pay-row${o.paid ? ' paid' : ''}">
-                    <input type="checkbox" data-pay="${o.id}" ${o.paid ? 'checked' : ''} ${editable ? '' : 'disabled'}>
-                    <span class="pay-label">支払い済み</span>
-                    <span class="pay-meta">${o.paid ? `✓ ${escapeHtml(o.paid.by)} ${new Date(o.paid.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
-                </label>
+                <div class="order-total">小計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
                 <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
             </div>`;
@@ -293,6 +300,14 @@
                     <span class="order-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</span>
                 </div>
                 ${entries}
+                <div class="person-order-summary">
+                    <div class="order-total person-order-total">合計 ${personQty}枚 <b>${fmtMoney(personAmount)}</b></div>
+                    <label class="pay-row${allPaid ? ' paid' : ''}">
+                        <input type="checkbox" data-pay-person="${escapeHtml(orderName)}" data-partial="${somePaid && !allPaid}" ${allPaid ? 'checked' : ''} ${paymentEditable ? '' : 'disabled'}>
+                        <span class="pay-label">支払い済み</span>
+                        <span class="pay-meta">${paymentMeta}</span>
+                    </label>
+                </div>
             </div>`;
         }).join('');
 
@@ -302,18 +317,28 @@
         list.querySelectorAll('[data-delete]').forEach((btn) => {
             btn.addEventListener('click', () => deleteOrder(Number(btn.dataset.delete)));
         });
-        list.querySelectorAll('[data-pay]').forEach((cb) => {
-            cb.addEventListener('change', () => togglePayment(cb));
+        list.querySelectorAll('[data-pay-person]').forEach((cb) => {
+            cb.indeterminate = cb.dataset.partial === 'true';
+            cb.addEventListener('change', () => togglePersonPayment(cb));
         });
     }
 
-    async function togglePayment(cb) {
+    async function togglePersonPayment(cb) {
         cb.disabled = true;
+        const personOrders = state.orders.filter((o) => o.orderName === cb.dataset.payPerson);
+        const canEditAll = state.user.admin || personOrders.every((o) => o.userId === state.user.userId);
+        if (!canEditAll) {
+            showPopup('この名前の支払い状況をまとめて変更できるのは管理者のみです。');
+            refreshOrders();
+            return;
+        }
         try {
-            await api(`/api/orders/${cb.dataset.pay}/payment`, {
-                method: 'POST',
-                body: JSON.stringify({ paid: cb.checked }),
-            });
+            await Promise.all(personOrders
+                .filter((o) => Boolean(o.paid) !== cb.checked)
+                .map((o) => api(`/api/orders/${o.id}/payment`, {
+                    method: 'POST',
+                    body: JSON.stringify({ paid: cb.checked }),
+                })));
         } catch (err) {
             showPopup(err.message);
         }
