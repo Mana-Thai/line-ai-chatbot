@@ -483,6 +483,14 @@ table.summary th .image-thumb-button {
     width: 64px;
     min-width: 64px;
 }
+.image-thumb-button.single-side {
+    width: 40px;
+    min-width: 40px;
+}
+.delivery-row .image-thumb-button.single-side {
+    width: 34px;
+    min-width: 34px;
+}
 
 /* 全画面の画像拡大ビューア */
 body.image-viewer-open { overflow: hidden; }

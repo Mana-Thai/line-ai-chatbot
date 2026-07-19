@@ -697,7 +697,8 @@
     function previewThumbnail(color, chestLogo, backPrint) {
         const sides = previewSides(color, chestLogo, backPrint);
         if (sides.length === 0) return '';
-        return `<button type="button" class="image-thumb-button" ${previewDataAttributes(color, chestLogo, backPrint)} aria-label="${escapeHtml(color)}の画像を拡大" title="画像を拡大"><span class="design-preview-sides">${sides.join('')}</span></button>`;
+        const sideClass = sides.length === 1 ? ' single-side' : '';
+        return `<button type="button" class="image-thumb-button${sideClass}" ${previewDataAttributes(color, chestLogo, backPrint)} aria-label="${escapeHtml(color)}の画像を拡大" title="画像を拡大"><span class="design-preview-sides">${sides.join('')}</span></button>`;
     }
 
     function previewGallery(images) {
