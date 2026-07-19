@@ -162,6 +162,17 @@ body {
     padding-top: 6px;
 }
 .order-total b { color: var(--line-green-dark); font-size: 16px; }
+.person-order-summary {
+    border-top: 2px solid var(--border);
+    margin-top: 8px;
+    padding-top: 2px;
+}
+.person-order-total {
+    border-top: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+.person-order-total b { font-size: 18px; }
 
 /* 支払い済みチェック */
 .pay-row {
