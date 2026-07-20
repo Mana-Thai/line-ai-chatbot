@@ -426,23 +426,25 @@ table.summary .total-row th, table.summary .total-col {
     background-size: 24px 24px;
 }
 .design-preview-stack-1 .design-preview-overlay,
-.design-preview-stack-2 .design-preview-overlay {
+.design-preview-stack-2 .design-preview-overlay,
+.design-preview-stack-3 .design-preview-overlay {
     inset: 24.8% auto auto 58%;
     width: 9.3%;
     height: auto;
     aspect-ratio: 1;
 }
 .design-preview-stack-1 .design-preview-overlay,
-.design-preview-stack-3 .design-preview-overlay { mix-blend-mode: screen; }
-.design-preview-stack-3 .design-preview-overlay,
+.design-preview-stack-4 .design-preview-overlay { mix-blend-mode: screen; }
 .design-preview-stack-4 .design-preview-overlay,
-.design-preview-stack-5 .design-preview-overlay {
+.design-preview-stack-5 .design-preview-overlay,
+.design-preview-stack-6 .design-preview-overlay,
+.design-preview-stack-7 .design-preview-overlay {
     inset: 11.6% auto auto 33.5%;
     width: 35.6%;
     height: auto;
     aspect-ratio: 1;
 }
-.design-preview-stack-6 .design-preview-overlay {
+.design-preview-stack-8 .design-preview-overlay {
     inset: 13.2% auto auto 35.5%;
     width: 30%;
     height: auto;
