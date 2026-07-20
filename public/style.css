@@ -142,8 +142,9 @@ body {
     justify-content: space-between;
     gap: 8px;
 }
-.order-entry-head .order-tags { flex: 1; }
+.order-entry-head .order-entry-info { flex: 1; }
 .order-entry-head .order-actions { flex-shrink: 0; }
+.order-entry-name { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
 .tag {
     background: #eef4ef;
     border-radius: 6px;
