@@ -3,6 +3,11 @@
     'use strict';
 
     const C = window.APP_CONSTANTS;
+    const PREVIEW_ASSET_BASE = 'https://layer-photo-switcher.vercel.app/images';
+    const DEFAULT_DESIGN_IMAGES = {
+        '有(ロゴ小 カラー2)': `${PREVIEW_ASSET_BASE}/front/front-3.png`,
+        '有(ロゴ大 カラー3)': `${PREVIEW_ASSET_BASE}/front/front-7.png`,
+    };
 
     const state = {
         config: null,
@@ -165,11 +170,15 @@
         return null;
     }
 
+    function designImageFor(key) {
+        return state.designImages[key] || DEFAULT_DESIGN_IMAGES[key] || null;
+    }
+
     // チップ(選択肢ボタン)にサンプル画像を反映
     function refreshChipImages() {
         document.querySelectorAll('.chip[data-group]').forEach((chip) => {
             const key = designImageKey(chip.dataset.group, chip.dataset.value);
-            const img = key ? state.designImages[key] : null;
+            const img = key ? designImageFor(key) : null;
             chip.innerHTML = (img ? `<img class="chip-img" src="${img}" alt="${escapeHtml(chip.dataset.value)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '')
                 + escapeHtml(chip.dataset.value);
         });
@@ -665,7 +674,6 @@
 
     // ---------- 注文フォーム ----------
 
-    const PREVIEW_ASSET_BASE = 'https://layer-photo-switcher.vercel.app/images';
     const CHEST_PREVIEW_POSITIONS = {
         '有(ロゴ小 白)': 1,
         '有(ロゴ小 カラー)': 2,
@@ -1077,13 +1085,14 @@
     function renderDesignImageRows() {
         const box = $('design-images');
         box.innerHTML = C.DESIGN_IMAGE_KEYS.map((key) => {
-            const img = state.designImages[key];
+            const customImg = state.designImages[key];
+            const img = designImageFor(key);
             return `
             <div class="design-row" data-key="${escapeHtml(key)}">
                 ${img ? `<img class="design-thumb" src="${img}" alt="${escapeHtml(key)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '<span class="design-thumb empty">なし</span>'}
                 <span class="design-label">${escapeHtml(key)}</span>
                 <button type="button" class="btn btn-small design-pick">画像を選択</button>
-                ${img ? '<button type="button" class="btn btn-small btn-danger design-clear">削除</button>' : ''}
+                ${customImg ? '<button type="button" class="btn btn-small btn-danger design-clear">削除</button>' : ''}
                 <input type="file" accept="image/*" class="design-file hidden">
             </div>`;
         }).join('');
@@ -1261,7 +1270,7 @@
     }
 
     function openDesignViewer(key) {
-        const image = state.designImages[key];
+        const image = designImageFor(key);
         if (!image) return;
         openImageViewer(key, `<img class="image-viewer-raw" src="${image}" alt="${escapeHtml(key)}">`);
     }
