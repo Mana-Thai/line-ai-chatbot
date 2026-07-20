@@ -232,6 +232,15 @@
         return total;
     }
 
+    function groupOrdersByName(orders) {
+        const groups = new Map();
+        for (const order of orders) {
+            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
+            groups.get(order.orderName).push(order);
+        }
+        return [...groups.entries()];
+    }
+
     // ---------- 描画 ----------
 
     function renderAll() {
@@ -289,34 +298,43 @@
             const paymentMeta = allPaid && latestPayment
                 ? `✓ ${escapeHtml(latestPayment.by)} ${new Date(latestPayment.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
                 : (somePaid ? `一部済み (${accountOrders.filter((o) => o.paid).length}/${accountOrders.length}件)` : '');
-            const entries = accountOrders.map((o) => {
-            const mine = o.userId === state.user.userId;
-            const editable = mine || state.user.admin;
-            const updated = new Date(o.updatedAt).toLocaleString('ja-JP', {
-                month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
-            });
-            return `
-            <div class="order-entry${mine ? ' mine' : ''}">
-                <div class="order-entry-head">
-                    <div class="order-entry-info">
-                        <div class="order-entry-name">注文名: ${escapeHtml(o.orderName)}</div>
-                        <div class="order-tags">
-                            <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
-                            <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
+            const entries = groupOrdersByName(accountOrders).map(([orderName, nameOrders]) => {
+                const nameQty = nameOrders.reduce((sum, o) => sum + orderQty(o), 0);
+                const nameAmount = nameOrders.reduce((sum, o) => sum + orderAmount(o), 0);
+                const orderEntries = nameOrders.map((o) => {
+                const mine = o.userId === state.user.userId;
+                const editable = mine || state.user.admin;
+                const updated = new Date(o.updatedAt).toLocaleString('ja-JP', {
+                    month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                });
+                return `
+                <div class="order-entry${mine ? ' mine' : ''}">
+                    <div class="order-entry-head">
+                        <div class="order-entry-info">
+                            <div class="order-tags">
+                                <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
+                                <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
+                            </div>
                         </div>
+                        ${editable ? `
+                        <span class="order-actions">
+                            <button class="btn btn-small" data-edit="${o.id}">編集</button>
+                            <button class="btn btn-small btn-danger" data-delete="${o.id}">削除</button>
+                        </span>` : ''}
                     </div>
-                    ${editable ? `
-                    <span class="order-actions">
-                        <button class="btn btn-small" data-edit="${o.id}">編集</button>
-                        <button class="btn btn-small btn-danger" data-delete="${o.id}">削除</button>
-                    </span>` : ''}
-                </div>
-                ${orderPreviewGallery(o)}
-                ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
-                <div class="order-total">小計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
-                ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
-                <div class="order-meta">更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
-            </div>`;
+                    ${orderPreviewGallery(o)}
+                    ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
+                    <div class="order-total">明細計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
+                    ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
+                    <div class="order-meta">更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
+                </div>`;
+                }).join('');
+                return `
+                <section class="order-name-group">
+                    <div class="order-name-group-title">注文名: ${escapeHtml(orderName)}</div>
+                    ${orderEntries}
+                    ${nameOrders.length > 1 ? `<div class="order-name-group-total">名前小計 ${nameQty}枚 <b>${fmtMoney(nameAmount)}</b></div>` : ''}
+                </section>`;
             }).join('');
             return `
             <div class="order-card${hasMine ? ' mine' : ''}">
@@ -535,34 +553,40 @@
 
         box.innerHTML = [...groups.entries()].map(([userId, account]) => {
             const hasMine = userId === state.user.userId;
-            const rows = [];
-            for (const o of account.orders) {
-                const canCheck = o.userId === state.user.userId || state.user.admin;
-                eachLine(o, (idx, item, color, qty, check) => {
-                    totalQty += qty;
-                    if (check) doneQty += qty;
-                    const meta = check
-                        ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                        : '';
-                    rows.push(`
+            const orderNameGroups = groupOrdersByName(account.orders).map(([orderName, nameOrders]) => {
+                const rows = [];
+                for (const o of nameOrders) {
+                    const canCheck = o.userId === state.user.userId || state.user.admin;
+                    eachLine(o, (idx, item, color, qty, check) => {
+                        totalQty += qty;
+                        if (check) doneQty += qty;
+                        const meta = check
+                            ? `✓ ${escapeHtml(check.by)} ${new Date(check.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                            : '';
+                        rows.push(`
                         <div class="delivery-row${check ? ' done' : ''}">
                             <input type="checkbox" data-order="${o.id}" data-item="${idx}" data-color="${escapeHtml(color)}"
                                 ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
                             ${previewThumbnail(color, o.chestLogo, o.backPrint)}
                             <span class="delivery-text">
-                                <span class="tag">${escapeHtml(o.orderName)}</span>
                                 <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
                                 <span class="tag size">${escapeHtml(item.size)}</span>
                                 ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
                             </span>
                             <span class="delivery-meta">${meta}</span>
                         </div>`);
-                });
-            }
+                    });
+                }
+                return `
+                <div class="delivery-order-group">
+                    <div class="delivery-order-name">注文名: ${escapeHtml(orderName)}</div>
+                    ${rows.join('')}
+                </div>`;
+            }).join('');
             return `
             <div class="delivery-group${hasMine ? ' mine' : ''}">
                 <div class="delivery-name">${escapeHtml(account.displayName)}${hasMine ? '<span class="you">(自分のアカウント)</span>' : ''}</div>
-                ${rows.join('')}
+                ${orderNameGroups}
             </div>`;
         }).join('');
 
