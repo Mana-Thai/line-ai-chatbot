@@ -144,7 +144,15 @@ body {
 }
 .order-entry-head .order-entry-info { flex: 1; }
 .order-entry-head .order-actions { flex-shrink: 0; }
-.order-entry-name { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.order-name-group + .order-name-group { border-top: 2px solid var(--border); margin-top: 10px; }
+.order-name-group-title { font-size: 15px; font-weight: 700; padding-top: 8px; }
+.order-name-group-total {
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 7px 0 2px;
+}
+.order-name-group-total b { color: var(--line-green-dark); font-size: 16px; }
 .tag {
     background: #eef4ef;
     border-radius: 6px;
@@ -581,6 +589,8 @@ body.image-viewer-open { overflow: hidden; }
     font-size: 12px;
     margin-left: 4px;
 }
+.delivery-order-group + .delivery-order-group { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; }
+.delivery-order-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
 .delivery-row {
     display: flex;
     align-items: center;
