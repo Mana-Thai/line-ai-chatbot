@@ -6,7 +6,10 @@
     const PREVIEW_ASSET_BASE = 'https://layer-photo-switcher.vercel.app/images';
     const DEFAULT_DESIGN_IMAGES = {
         '有(ロゴ小 カラー2)': `${PREVIEW_ASSET_BASE}/front/front-3.png`,
+        '有(ロゴ小 黒)': `${PREVIEW_ASSET_BASE}/front/front-2.png`,
         '有(ロゴ大 カラー3)': `${PREVIEW_ASSET_BASE}/front/front-7.png`,
+        '有(ロゴ大 黒)': `${PREVIEW_ASSET_BASE}/front/front-5.png`,
+        'バックプリント有(黒)': `${PREVIEW_ASSET_BASE}/front/front-8.png`,
     };
 
     const state = {
@@ -166,7 +169,7 @@
     // 選択肢に対応するサンプル画像のキー(胸ロゴは項目名そのまま、バックプリントは「有」のみ)
     function designImageKey(group, value) {
         if (group === 'chestLogo' && value !== '無') return value;
-        if (group === 'backPrint' && value === '有') return C.BACK_PRINT_IMAGE_KEY;
+        if (group === 'backPrint') return C.BACK_PRINT_IMAGE_KEYS[value] || null;
         return null;
     }
 
@@ -174,12 +177,17 @@
         return state.designImages[key] || DEFAULT_DESIGN_IMAGES[key] || null;
     }
 
+    function defaultDesignImageClass(key) {
+        const blackDefaults = ['有(ロゴ小 黒)', '有(ロゴ大 黒)', 'バックプリント有(黒)'];
+        return !state.designImages[key] && blackDefaults.includes(key) ? ' default-black-design' : '';
+    }
+
     // チップ(選択肢ボタン)にサンプル画像を反映
     function refreshChipImages() {
         document.querySelectorAll('.chip[data-group]').forEach((chip) => {
             const key = designImageKey(chip.dataset.group, chip.dataset.value);
             const img = key ? designImageFor(key) : null;
-            chip.innerHTML = (img ? `<img class="chip-img" src="${img}" alt="${escapeHtml(chip.dataset.value)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '')
+            chip.innerHTML = (img ? `<img class="chip-img${defaultDesignImageClass(key)}" src="${img}" alt="${escapeHtml(chip.dataset.value)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '')
                 + escapeHtml(chip.dataset.value);
         });
     }
@@ -678,25 +686,35 @@
         '有(ロゴ小 白)': 1,
         '有(ロゴ小 カラー1)': 2,
         '有(ロゴ小 カラー2)': 3,
-        '有(ロゴ大 白)': 4,
-        '有(ロゴ大 カラー1)': 5,
-        '有(ロゴ大 カラー2)': 6,
-        '有(ロゴ大 カラー3)': 7,
+        '有(ロゴ小 黒)': 4,
+        '有(ロゴ大 白)': 5,
+        '有(ロゴ大 カラー1)': 6,
+        '有(ロゴ大 カラー2)': 7,
+        '有(ロゴ大 カラー3)': 8,
+        '有(ロゴ大 黒)': 9,
     };
 
-    function previewBackPosition(position) {
-        return [1, 2, 2, 3, 4, 1, 1, 5][position - 1];
-    }
+    const BACK_PREVIEW_POSITIONS = {
+        '有(白)': 10,
+        '有(黒)': 11,
+    };
 
-    function previewFrontExtension(position) {
-        return position === 1 || position === 4 ? 'jpg' : 'png';
+    const PREVIEW_BACK_POSITIONS = [1, 2, 2, 2, 3, 4, 1, 1, 1, 5, 5];
+    const PREVIEW_FRONT_FILES = [
+        'front-1.jpg', 'front-2.png', 'front-3.png', 'front-2.png',
+        'front-4.jpg', 'front-5.png', 'front-6.png', 'front-7.png',
+        'front-5.png', 'front-8.png', 'front-8.png',
+    ];
+
+    function previewBackPosition(position) {
+        return PREVIEW_BACK_POSITIONS[position - 1];
     }
 
     function previewSide(color, position, label, lazy = true) {
         const scene = C.COLORS.indexOf(color) + 1;
         const bringOwn = color === C.BRING_OWN;
         if (scene < 1 && !bringOwn) return '';
-        const overlay = `${PREVIEW_ASSET_BASE}/front/front-${position}.${previewFrontExtension(position)}`;
+        const overlay = `${PREVIEW_ASSET_BASE}/front/${PREVIEW_FRONT_FILES[position - 1]}`;
         const loading = lazy ? ' loading="lazy"' : '';
         let backgroundHtml;
         if (bringOwn) {
@@ -721,7 +739,8 @@
         const sides = [];
         const chestPosition = CHEST_PREVIEW_POSITIONS[chestLogo] || null;
         if (chestPosition) sides.push(previewSide(color, chestPosition, '前面', lazy));
-        if (backPrint === '有') sides.push(previewSide(color, 8, '背面', lazy));
+        const backPosition = BACK_PREVIEW_POSITIONS[backPrint] || null;
+        if (backPosition) sides.push(previewSide(color, backPosition, '背面', lazy));
         return sides;
     }
 
@@ -1089,7 +1108,7 @@
             const img = designImageFor(key);
             return `
             <div class="design-row" data-key="${escapeHtml(key)}">
-                ${img ? `<img class="design-thumb" src="${img}" alt="${escapeHtml(key)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '<span class="design-thumb empty">なし</span>'}
+                ${img ? `<img class="design-thumb${defaultDesignImageClass(key)}" src="${img}" alt="${escapeHtml(key)}" data-zoom-design="${escapeHtml(key)}" title="画像を拡大">` : '<span class="design-thumb empty">なし</span>'}
                 <span class="design-label">${escapeHtml(key)}</span>
                 <button type="button" class="btn btn-small design-pick">画像を選択</button>
                 ${customImg ? '<button type="button" class="btn btn-small btn-danger design-clear">削除</button>' : ''}
@@ -1272,7 +1291,7 @@
     function openDesignViewer(key) {
         const image = designImageFor(key);
         if (!image) return;
-        openImageViewer(key, `<img class="image-viewer-raw" src="${image}" alt="${escapeHtml(key)}">`);
+        openImageViewer(key, `<img class="image-viewer-raw${defaultDesignImageClass(key)}" src="${image}" alt="${escapeHtml(key)}">`);
     }
 
     function closeImageViewer() {
