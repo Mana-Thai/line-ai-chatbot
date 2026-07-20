@@ -262,7 +262,8 @@
         const list = $('order-list');
         const orders = state.orders.slice().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         const totalQty = orders.reduce((sum, order) => sum + orderQty(order), 0);
-        $('order-count').textContent = `${orders.length}件・合計${totalQty}枚`;
+        const accountCount = new Set(orders.map((order) => order.userId)).size;
+        $('order-count').textContent = `${accountCount}人・合計${totalQty}枚`;
         $('order-empty').classList.toggle('hidden', orders.length > 0);
 
         const groups = new Map();
