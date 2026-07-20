@@ -669,17 +669,19 @@
     const CHEST_PREVIEW_POSITIONS = {
         '有(ロゴ小 白)': 1,
         '有(ロゴ小 カラー)': 2,
-        '有(ロゴ大 白)': 3,
-        '有(ロゴ大 カラー1)': 4,
-        '有(ロゴ大 カラー2)': 5,
+        '有(ロゴ小 カラー2)': 3,
+        '有(ロゴ大 白)': 4,
+        '有(ロゴ大 カラー1)': 5,
+        '有(ロゴ大 カラー2)': 6,
+        '有(ロゴ大 カラー3)': 7,
     };
 
     function previewBackPosition(position) {
-        return position === 5 ? 1 : position === 6 ? 5 : position;
+        return [1, 2, 2, 3, 4, 1, 1, 5][position - 1];
     }
 
     function previewFrontExtension(position) {
-        return position === 1 || position === 3 ? 'jpg' : 'png';
+        return position === 1 || position === 4 ? 'jpg' : 'png';
     }
 
     function previewSide(color, position, label, lazy = true) {
@@ -711,7 +713,7 @@
         const sides = [];
         const chestPosition = CHEST_PREVIEW_POSITIONS[chestLogo] || null;
         if (chestPosition) sides.push(previewSide(color, chestPosition, '前面', lazy));
-        if (backPrint === '有') sides.push(previewSide(color, 6, '背面', lazy));
+        if (backPrint === '有') sides.push(previewSide(color, 8, '背面', lazy));
         return sides;
     }
 
