@@ -268,37 +268,42 @@
 
         const groups = new Map();
         for (const order of orders) {
-            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
-            groups.get(order.orderName).push(order);
+            if (!groups.has(order.userId)) {
+                groups.set(order.userId, { displayName: order.displayName, orders: [] });
+            }
+            groups.get(order.userId).orders.push(order);
         }
 
-        list.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
-            const hasMine = personOrders.some((o) => o.userId === state.user.userId);
-            const personQty = personOrders.reduce((sum, o) => sum + orderQty(o), 0);
-            const personAmount = personOrders.reduce((sum, o) => sum + orderAmount(o), 0);
-            const allPaid = personOrders.every((o) => Boolean(o.paid));
-            const somePaid = personOrders.some((o) => Boolean(o.paid));
-            const paymentEditable = state.user.admin || personOrders.every((o) => o.userId === state.user.userId);
-            const latestPayment = personOrders
+        list.innerHTML = [...groups.entries()].map(([userId, account]) => {
+            const accountOrders = account.orders;
+            const hasMine = userId === state.user.userId;
+            const accountQty = accountOrders.reduce((sum, o) => sum + orderQty(o), 0);
+            const accountAmount = accountOrders.reduce((sum, o) => sum + orderAmount(o), 0);
+            const allPaid = accountOrders.every((o) => Boolean(o.paid));
+            const somePaid = accountOrders.some((o) => Boolean(o.paid));
+            const paymentEditable = state.user.admin || hasMine;
+            const latestPayment = accountOrders
                 .filter((o) => o.paid)
                 .map((o) => o.paid)
                 .sort((a, b) => new Date(b.at) - new Date(a.at))[0];
             const paymentMeta = allPaid && latestPayment
                 ? `✓ ${escapeHtml(latestPayment.by)} ${new Date(latestPayment.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                : (somePaid ? `一部済み (${personOrders.filter((o) => o.paid).length}/${personOrders.length}件)` : '');
-            const entries = personOrders.map((o) => {
+                : (somePaid ? `一部済み (${accountOrders.filter((o) => o.paid).length}/${accountOrders.length}件)` : '');
+            const entries = accountOrders.map((o) => {
             const mine = o.userId === state.user.userId;
             const editable = mine || state.user.admin;
-            const proxy = o.orderName !== o.displayName;
             const updated = new Date(o.updatedAt).toLocaleString('ja-JP', {
                 month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
             });
             return `
             <div class="order-entry${mine ? ' mine' : ''}">
                 <div class="order-entry-head">
-                    <div class="order-tags">
-                        <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
-                        <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
+                    <div class="order-entry-info">
+                        <div class="order-entry-name">注文名: ${escapeHtml(o.orderName)}</div>
+                        <div class="order-tags">
+                            <span class="tag">胸ロゴ:${escapeHtml(o.chestLogo)}</span>
+                            <span class="tag">バックプリント:${escapeHtml(o.backPrint)}</span>
+                        </div>
                     </div>
                     ${editable ? `
                     <span class="order-actions">
@@ -310,19 +315,19 @@
                 ${o.items.map((item) => itemQtyHtml(o, item)).join('')}
                 <div class="order-total">小計 ${orderQty(o)}枚 <b>${fmtMoney(orderAmount(o))}</b></div>
                 ${o.note ? `<div class="order-note">📝 ${escapeHtml(o.note)}</div>` : ''}
-                <div class="order-meta">${proxy ? `入力: ${escapeHtml(o.displayName)} / ` : ''}更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
+                <div class="order-meta">更新: ${updated}(${escapeHtml(o.updatedBy)})</div>
             </div>`;
             }).join('');
             return `
             <div class="order-card${hasMine ? ' mine' : ''}">
                 <div class="order-top">
-                    <span class="order-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</span>
+                    <span class="order-name">${escapeHtml(account.displayName)}${hasMine ? '<span class="you">(自分のアカウント)</span>' : ''}</span>
                 </div>
                 ${entries}
                 <div class="person-order-summary">
-                    <div class="order-total person-order-total">合計 ${personQty}枚 <b>${fmtMoney(personAmount)}</b></div>
+                    <div class="order-total person-order-total">合計 ${accountQty}枚 <b>${fmtMoney(accountAmount)}</b></div>
                     <label class="pay-row${allPaid ? ' paid' : ''}">
-                        <input type="checkbox" data-pay-person="${escapeHtml(orderName)}" data-partial="${somePaid && !allPaid}" ${allPaid ? 'checked' : ''} ${paymentEditable ? '' : 'disabled'}>
+                        <input type="checkbox" data-pay-account="${escapeHtml(userId)}" data-partial="${somePaid && !allPaid}" ${allPaid ? 'checked' : ''} ${paymentEditable ? '' : 'disabled'}>
                         <span class="pay-label">支払い済み</span>
                         <span class="pay-meta">${paymentMeta}</span>
                     </label>
@@ -336,23 +341,23 @@
         list.querySelectorAll('[data-delete]').forEach((btn) => {
             btn.addEventListener('click', () => deleteOrder(Number(btn.dataset.delete)));
         });
-        list.querySelectorAll('[data-pay-person]').forEach((cb) => {
+        list.querySelectorAll('[data-pay-account]').forEach((cb) => {
             cb.indeterminate = cb.dataset.partial === 'true';
-            cb.addEventListener('change', () => togglePersonPayment(cb));
+            cb.addEventListener('change', () => toggleAccountPayment(cb));
         });
     }
 
-    async function togglePersonPayment(cb) {
+    async function toggleAccountPayment(cb) {
         cb.disabled = true;
-        const personOrders = state.orders.filter((o) => o.orderName === cb.dataset.payPerson);
-        const canEditAll = state.user.admin || personOrders.every((o) => o.userId === state.user.userId);
+        const accountOrders = state.orders.filter((o) => o.userId === cb.dataset.payAccount);
+        const canEditAll = state.user.admin || cb.dataset.payAccount === state.user.userId;
         if (!canEditAll) {
-            showPopup('この名前の支払い状況をまとめて変更できるのは管理者のみです。');
+            showPopup('このアカウントの支払い状況をまとめて変更できるのは本人または管理者のみです。');
             refreshOrders();
             return;
         }
         try {
-            await Promise.all(personOrders
+            await Promise.all(accountOrders
                 .filter((o) => Boolean(o.paid) !== cb.checked)
                 .map((o) => api(`/api/orders/${o.id}/payment`, {
                     method: 'POST',
@@ -522,14 +527,16 @@
         const orders = state.orders.slice().sort((a, b) => a.orderName.localeCompare(b.orderName, 'ja'));
         const groups = new Map();
         for (const order of orders) {
-            if (!groups.has(order.orderName)) groups.set(order.orderName, []);
-            groups.get(order.orderName).push(order);
+            if (!groups.has(order.userId)) {
+                groups.set(order.userId, { displayName: order.displayName, orders: [] });
+            }
+            groups.get(order.userId).orders.push(order);
         }
 
-        box.innerHTML = [...groups.entries()].map(([orderName, personOrders]) => {
-            const hasMine = personOrders.some((o) => o.userId === state.user.userId);
+        box.innerHTML = [...groups.entries()].map(([userId, account]) => {
+            const hasMine = userId === state.user.userId;
             const rows = [];
-            for (const o of personOrders) {
+            for (const o of account.orders) {
                 const canCheck = o.userId === state.user.userId || state.user.admin;
                 eachLine(o, (idx, item, color, qty, check) => {
                     totalQty += qty;
@@ -543,6 +550,7 @@
                                 ${check ? 'checked' : ''} ${canCheck ? '' : 'disabled'}>
                             ${previewThumbnail(color, o.chestLogo, o.backPrint)}
                             <span class="delivery-text">
+                                <span class="tag">${escapeHtml(o.orderName)}</span>
                                 <span class="tag">${escapeHtml(o.chestLogo)}/${escapeHtml(o.backPrint)}</span>
                                 <span class="tag size">${escapeHtml(item.size)}</span>
                                 ${color === C.BRING_OWN ? '' : escapeHtml(color)}×${qty}
@@ -553,7 +561,7 @@
             }
             return `
             <div class="delivery-group${hasMine ? ' mine' : ''}">
-                <div class="delivery-name">${escapeHtml(orderName)}${hasMine ? '<span class="you">(自分の入力)</span>' : ''}</div>
+                <div class="delivery-name">${escapeHtml(account.displayName)}${hasMine ? '<span class="you">(自分のアカウント)</span>' : ''}</div>
                 ${rows.join('')}
             </div>`;
         }).join('');
