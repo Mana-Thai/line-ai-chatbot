@@ -1,6 +1,6 @@
 # 引き継ぎプロンプト（Claude Code / OpenAI Codex 共用）
 
-> 最終更新: 2026-07-19
+> 最終更新: 2026-07-21
 >
 > 下のコードブロック全体を、そのまま次のAIエージェントへ渡す。
 > セッション開始時と終了時に内容を最新化し、必ずコミット・pushすること。
@@ -126,7 +126,22 @@
 - 紙、手紙、金の糸、白ジャスミン、作品本編のジャスミン場面で記憶の層を表現。
 - ハート主体の既存イラストは告知から除去。
 - `promo.png` は1080x1350、目視確認済み。価格・期限・CTAの文字切れなし。
-- 投稿文は日タイとも煽りを抑え、MiniとStoryの違いが伝わる文章へ更新。
+- 投稿文は日タイとも煽りを抑え、母の日はMini 1商品だけが伝わる文章へ更新。
+
+### 母の日営業ローンチ（7/21追加）
+
+- 「商品不足ではなく未露出が原因」と判断し、受注3件までは新規制作を止める方針へ変更。
+- 母の日の公開オファーをMini Gift Film 1商品へ集約。
+- 創業5枠1,500 THB（匿名の5〜10秒抜粋+一言感想の掲載許可）、掲載なしは通常2,500 THB。
+- 申込締切8/5、納品8/11、写真10枚、30秒、縦横どちらか、修正2回。
+- 営業運用の正本: `business/sales/mothersday-2026/`
+  - `launch-plan.md` — 7/21からの日程、KPI、売上10,000 THBモデル
+  - `messages.md` — 日タイ個別文、紹介依頼、48時間追客、グループ投稿
+  - `warm-leads.csv` — RYUSEI/STC/近隣店主/紹介者の15枠管理表
+  - `intake.md` — 問い合わせ後のヒアリングと固定条件
+  - `line-setup.md` — LINE公式アカウントの15分設定内容
+- 週次レビュー: `business/reviews/2026-07-21.md`
+- 告知画像とサイト母の日欄も単一オファー・創業5枠へ統一。
 
 ## 4. データと正本の場所
 
@@ -137,6 +152,8 @@
 - 受注台帳: `business/orders.csv`
 - 見積テンプレート: `business/templates/quote-template.html`
 - 母の日告知: `business/promo/mothersday-2026/`
+- 母の日営業運用: `business/sales/mothersday-2026/`
+- 週次レビュー: `business/reviews/`
 
 ### ギフト動画
 
@@ -215,13 +232,13 @@
 
 ### 外部公開前に安全に進められる作業
 
-1. `business/income-plan.md` の90日スプリントに従い、候補顧客リストを作る。
-2. Story / Heirloom / Shop Storyのヒアリング項目と3段階見積を準備する。
-3. 実受注後、感想・掲載許可を得てポートフォリオへ事例を追加する。
+1. `warm-leads.csv` の候補01〜15を実際の表示名へローカルで置き換える（個人情報は最小限）。
+2. 7/22までに `messages.md` を使って15人へ個別送信する。
+3. 返信者を `intake.md` → `biz-quote` → `orders.csv` の順で見積へ進める。
 
 ### オーナー確認が必要な作業
 
-4. 実際のLINE友だち追加URL（lin.ee/...等）を受け取る。
+4. `line-setup.md` に従いLINE公式アカウントを本人ログインで作り、lin.ee URLを取得する。
 5. GitHub Pages公開の明示承認を得る。
 6. 承認後、`website-publish` Skillで公開する。
 7. `portfolio/index.html` の `data-line-placeholder` と、`posts.md` の
@@ -253,6 +270,8 @@
   母の日告知v2は更新済み。
 - 実受注はまだ0件。
 - LINE URL未確定。
+- Chrome接続ランタイムの初期化エラー（`Cannot redefine property: process`）により、
+  AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオ未公開。
 - グループLINEへの告知未投稿。
 ```
