@@ -23,7 +23,8 @@ var SHEETS = {
   METRICS: 'METRICS',
   DECISIONS: 'DECISIONS',
   ALERTS: 'ALERT_LOG',
-  DASHBOARD: 'DASHBOARD'
+  DASHBOARD: 'DASHBOARD',
+  LINE_IDS: 'LINE_IDS'
 };
 
 var HEADERS = {
@@ -32,7 +33,8 @@ var HEADERS = {
   METRICS: ['timestamp', 'session_id', 'ad_cost', 'orders', 'gmv', 'cpa', 'roi'],
   DECISIONS: ['timestamp', 'session_id', 'cpa', 'breakeven_cpa', 'status', 'title', 'reason'],
   ALERTS: ['timestamp', 'session_id', 'channel', 'status', 'message', 'sent_ok'],
-  DASHBOARD: ['key', 'value']
+  DASHBOARD: ['key', 'value'],
+  LINE_IDS: ['captured_at', 'type', 'id', 'raw']
 };
 
 /* ============================================================
@@ -47,6 +49,7 @@ function setupSystem() {
   ensureSheet_(ss, SHEETS.DECISIONS, HEADERS.DECISIONS);
   ensureSheet_(ss, SHEETS.ALERTS, HEADERS.ALERTS);
   ensureSheet_(ss, SHEETS.DASHBOARD, HEADERS.DASHBOARD);
+  ensureSheet_(ss, SHEETS.LINE_IDS, HEADERS.LINE_IDS);
 
   seedSettings_(ss);
   installMonitorTrigger_();

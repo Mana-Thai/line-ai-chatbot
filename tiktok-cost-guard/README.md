@@ -26,7 +26,7 @@ TikTokライブ販売中の広告コストを見張り、**CPA(注文1件あた�
 |---|---|
 | `Code.gs` | メイン。`setupSystem` / Webアプリ / 画面から呼ぶ関数 / 5分監視トリガー |
 | `Rules.gs` | 判定エンジン。CPA・損益分岐CPA・ROI を計算し 緑/黄/赤 を返す(**中核**) |
-| `Notifications.gs` | 通知。ALERT_LOG に記録+(設定時)LINE push |
+| `Notifications.gs` | 通知。ALERT_LOG記録+(設定時)LINE push。LINE webhook(`doPost`)で通知先IDを自動取得 |
 | `TikTok.gs` | TikTok連携のプレースホルダ(未設定なら何もしない) |
 | `Index.html` | スマホ用の入力画面(タイ語+日本語) |
 | `appsscript.json` | マニフェスト(タイムゾーン・権限・Webアプリ設定) |
@@ -64,7 +64,7 @@ TikTokライブ販売中の広告コストを見張り、**CPA(注文1件あた�
 5. 歯車「プロジェクトの設定」→「`appsscript.json` マニフェストをエディタで表示」をオン。
    エディタに出た `appsscript.json` を全消しして、このフォルダの `appsscript.json` を貼り付け → 保存。
 6. 上部の関数選択で **`setupSystem`** を選び「実行」→ 承認を許可。
-   成功すると Google Sheets(SETTINGS/LIVE_SESSIONS/METRICS/DECISIONS/ALERT_LOG/DASHBOARD)と
+   成功すると Google Sheets(SETTINGS/LIVE_SESSIONS/METRICS/DECISIONS/ALERT_LOG/DASHBOARD/LINE_IDS)と
    5分ごとの監視トリガーが自動作成される。
 7. 「デプロイ」→「デプロイをテスト」→「ウェブアプリ」でテストURL(`/dev`)を開く。
 8. 動作テスト(下記)。
@@ -85,15 +85,35 @@ TikTokライブ販売中の広告コストを見張り、**CPA(注文1件あた�
 | 広告費100 / 注文5 / GMV550 | CPA **20**(目標15超過) → 🟡 黄 |
 | 別LIVEで 広告費100 / 注文0 / GMV0 | 🔴 **「無注文のまま上限到達」** |
 
-## LINE通知を後から足す(Phase 1)
+## LINE通知(Phase 1)
 
-「プロジェクトの設定 → スクリプト プロパティ」に追加:
+赤判定のときにLINEへ自動通知する。**構築はすべて自分(製作者)側で完結**でき、
+知り合い(アカウント主)は「Botを友だち追加 or グループに招待」する1回だけ。
+旧「LINE Notify」は2025年に終了 → Messaging API の push を使う(無料通数の範囲内)。
+LINE未設定の間も、赤判定は必ず ALERT_LOG シートに残る。
 
-- `LINE_CHANNEL_TOKEN` … LINE Messaging API のチャネルアクセストークン(長期)
-- `LINE_TO` … 送信先の userId / groupId
+### 手順
 
-> 旧「LINE Notify」は2025年に終了。Messaging API の push を使う(無料通数の範囲内)。
-> 設定しない間も、赤判定は必ず ALERT_LOG シートに残る。
+1. **LINE公式アカウント(Bot)を作る**
+   [LINE Developers](https://developers.line.biz/) でプロバイダー作成 →
+   「Messaging API」チャネルを新規作成。
+2. **チャネルアクセストークン(長期)を発行**して控える。
+   同チャネルの設定で **応答メッセージ=オフ / Webhook=オン** にする。
+3. **`LINE_CHANNEL_TOKEN` をスクリプトプロパティに設定**
+   「プロジェクトの設定 → スクリプト プロパティ」に `LINE_CHANNEL_TOKEN` = 発行トークン。
+4. **Webアプリを「アクセス=全員」で再デプロイ**(LINEのサーバーから受信するため必須)。
+   「デプロイ → デプロイを管理 → 編集(鉛筆) → アクセスできるユーザー=**全員**」→ 更新。
+   > 注意:URLを知っている人は入力画面も開ける。URLは共有範囲を絞って扱う。
+5. **その `/exec` URL を LINE の Webhook URL に設定**(Messaging APIチャネルの設定)。
+6. **通知先を登録(自動)**
+   通知を受けたいLINE(主本人 or 主と自分のグループ)で、**Botを友だち追加 or グループに招待**。
+   Botに一言送ると、`LINE_TO` が**自動で設定**され、`LINE_IDS` シートにIDが記録される。
+   Botが「✅ 通知先として登録しました」と返信すれば成功。
+7. **テスト送信**:Apps Scriptエディタで関数 **`testLineAlert`** を実行 → LINEにテスト通知が届けばOK。
+   状態確認は **`showLineConfig`** を実行(トークン/通知先の設定有無をログ表示)。
+
+> グループに送りたい場合は、主と自分が入ったLINEグループにBotを招待するのが簡単。
+> 通知先を変えたいときは、`LINE_TO` を手で書き換えるか、`LINE_IDS` シートのIDをコピーして設定。
 
 ## TikTok自動化を後から足す(Phase 2)
 
