@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<!-- 単体テスト版:Googleアカウント不要。判定ロジックは Rules.gs と同一、保存は localStorage。
+     スマホにこのファイルを置いてブラウザで開くか、公開Artifactのurlを開いて試せる。 -->
+</head>
+<body>
+<title>TikTok LIVE Cost Guard</title>
+<style>
+  :root{
+    --bg:#12151c; --card:#1a1f29; --card2:#141922; --line:#2b3140;
+    --text:#eef1f6; --muted:#93a0b2; --accent:#22b8cf; --accent-ink:#04222a;
+    --green:#1f9d55; --amber:#e8930c; --red:#e3342f;
+    --radius:16px; --shadow:0 8px 30px rgba(0,0,0,.35);
+    --fs-num:clamp(30px,11vw,44px);
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#eef1f5; --card:#ffffff; --card2:#f5f7fa; --line:#dde3ec;
+           --text:#151a22; --muted:#5c6675; --shadow:0 8px 24px rgba(20,30,50,.10); }
+  }
+  :root[data-theme="dark"]{ --bg:#12151c; --card:#1a1f29; --card2:#141922; --line:#2b3140;
+    --text:#eef1f6; --muted:#93a0b2; --shadow:0 8px 30px rgba(0,0,0,.35); }
+  :root[data-theme="light"]{ --bg:#eef1f5; --card:#ffffff; --card2:#f5f7fa; --line:#dde3ec;
+    --text:#151a22; --muted:#5c6675; --shadow:0 8px 24px rgba(20,30,50,.10); }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans JP",sans-serif;
+    line-height:1.5; }
+  .wrap{ max-width:480px; margin:0 auto; padding:14px 14px 40px; }
+  .top{ display:flex; align-items:center; justify-content:space-between; margin:2px 0 12px; }
+  .brand{ font-size:15px; font-weight:700; letter-spacing:.02em; display:flex; gap:7px; align-items:center; }
+  .brand .sh{ font-size:18px; }
+  .theme{ background:var(--card); border:1px solid var(--line); color:var(--muted);
+    border-radius:20px; padding:6px 11px; font-size:12px; cursor:pointer; }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px; margin-bottom:12px; }
+  .lead{ font-size:12.5px; color:var(--muted); background:var(--card2); border:1px solid var(--line);
+    border-radius:12px; padding:9px 11px; margin-bottom:12px; }
+  .lead b{ color:var(--text); }
+
+  /* 判定カード(主役) */
+  .verdict{ border-radius:var(--radius); padding:18px 16px; color:#fff; box-shadow:var(--shadow);
+    margin-bottom:12px; position:relative; overflow:hidden; transition:background .25s; }
+  .verdict[data-empty="1"]{ background:var(--card); color:var(--muted); border:1px dashed var(--line); box-shadow:none; }
+  .verdict .row1{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .verdict .badge{ font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+    opacity:.9; }
+  .verdict .th{ font-size:15px; font-weight:700; opacity:.95; }
+  .verdict .jp{ font-size:20px; font-weight:800; margin-top:2px; text-wrap:balance; }
+  .nums{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+  .nums .n{ background:rgba(255,255,255,.14); border-radius:12px; padding:8px 6px; text-align:center; }
+  .verdict[data-empty="1"] .nums .n{ background:var(--card2); }
+  .nums .k{ font-size:10.5px; letter-spacing:.04em; opacity:.85; }
+  .nums .v{ font-size:var(--fs-num); font-weight:800; font-variant-numeric:tabular-nums; line-height:1.05; }
+  .why{ margin-top:12px; font-size:12.5px; background:rgba(0,0,0,.16); border-radius:10px; padding:9px 11px; }
+  .verdict[data-empty="1"] .why{ background:var(--card2); }
+  .why div{ margin:2px 0; }
+
+  label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 5px; }
+  .hint{ font-size:11px; color:var(--muted); }
+  input{ width:100%; background:var(--card2); color:var(--text); border:1px solid var(--line);
+    border-radius:11px; padding:12px; font-size:18px; font-variant-numeric:tabular-nums; }
+  input[type=text]{ font-size:16px; }
+  input:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+  button.act{ width:100%; border:0; border-radius:13px; padding:14px; font-size:16px; font-weight:800;
+    margin-top:12px; cursor:pointer; color:#fff; }
+  .b-primary{ background:var(--accent); color:var(--accent-ink); }
+  .b-rec{ background:var(--green); }
+  .b-stop{ background:transparent; color:var(--muted); border:1px solid var(--line); }
+  button.act:active{ transform:translateY(1px); }
+  button:disabled{ opacity:.45; }
+
+  .pill{ display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--muted); }
+  .live-dot{ width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(227,52,47,.6);
+    animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(227,52,47,.55)} 70%{box-shadow:0 0 0 8px rgba(227,52,47,0)} 100%{box-shadow:0 0 0 0 rgba(227,52,47,0)} }
+  @media (prefers-reduced-motion: reduce){ .live-dot{ animation:none; } .verdict{ transition:none; } }
+
+  .hist .h{ display:flex; align-items:center; justify-content:space-between; padding:7px 0;
+    border-bottom:1px solid var(--line); font-size:12.5px; font-variant-numeric:tabular-nums; }
+  .hist .h:last-child{ border-bottom:0; }
+  .sw{ width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:7px; }
+  .muted{ color:var(--muted); font-size:12.5px; }
+  summary{ cursor:pointer; font-size:13.5px; color:var(--muted); list-style:none; }
+  summary::-webkit-details-marker{ display:none; }
+  summary::before{ content:"⚙︎ "; }
+  .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px);
+    background:var(--text); color:var(--bg); padding:10px 16px; border-radius:24px; font-size:13px;
+    font-weight:700; opacity:0; pointer-events:none; transition:.25s; }
+  .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="sh">🛡️</span>LIVE Cost Guard</div>
+    <button class="theme" id="themeBtn" type="button">☀︎ / ☾</button>
+  </div>
+
+  <div class="lead">ライブ中に<b>累計</b>の広告費・注文数・GMVを入れて記録。
+    <b>緑=継続 / 黄=注意 / 赤=新キャンペーン</b><br>
+    <span class="hint">ยิงแอดอยู่ กรอกยอดสะสม แล้วกดบันทึก — เขียว=ยิงต่อ / เหลือง=ระวัง / แดง=สร้างแคมเปญใหม่</span>
+  </div>
+
+  <!-- 判定(主役) -->
+  <div class="verdict" id="verdict" data-empty="1">
+    <div class="row1">
+      <div>
+        <div class="th" id="vTh">พร้อมเริ่ม</div>
+        <div class="jp" id="vJp">開始待ち</div>
+      </div>
+      <div class="badge" id="vBadge">READY</div>
+    </div>
+    <div class="nums">
+      <div class="n"><div class="k">CPA</div><div class="v" id="vCpa">—</div></div>
+      <div class="n"><div class="k">損益分岐 / คุ้มทุน</div><div class="v" id="vBe">—</div></div>
+      <div class="n"><div class="k">ROI</div><div class="v" id="vRoi">—</div></div>
+    </div>
+    <div class="why" id="vWhy"><div>広告費・注文数・GMV を入れて「記録」を押してください。</div></div>
+  </div>
+
+  <!-- 入力 -->
+  <div class="card" id="recCard">
+    <div class="pill" id="liveState"><span class="muted">LIVE未開始 / ยังไม่เริ่มไลฟ์</span></div>
+    <div id="startBox" style="margin-top:8px">
+      <label>LIVE名 / ชื่อไลฟ์</label>
+      <input type="text" id="liveName" placeholder="เช่น ไลฟ์เย็น">
+      <button class="act b-primary" id="btnStart" type="button">▶ LIVEを開始 / เริ่มไลฟ์</button>
+    </div>
+    <div id="inputBox" style="display:none">
+      <div class="hint" style="margin-top:6px">※ 累計値 / ยอดสะสม (ทั้งไลฟ์ ไม่ใช่เฉพาะรอบนี้)</div>
+      <div class="grid3">
+        <div><label>広告費<br>ค่าแอด</label><input type="number" inputmode="decimal" id="adCost" placeholder="0"></div>
+        <div><label>注文数<br>ออเดอร์</label><input type="number" inputmode="numeric" id="orders" placeholder="0"></div>
+        <div><label>GMV<br>ยอดขาย</label><input type="number" inputmode="decimal" id="gmv" placeholder="0"></div>
+      </div>
+      <button class="act b-rec" id="btnRec" type="button">✔ 記録してコストを確認 / บันทึก</button>
+      <button class="act b-stop" id="btnEnd" type="button">■ LIVE終了 / จบไลฟ์</button>
+    </div>
+  </div>
+
+  <!-- 履歴 -->
+  <div class="card">
+    <div class="muted" style="margin-bottom:4px">履歴 / ประวัติ</div>
+    <div class="hist" id="hist"><div class="muted">まだ記録なし / ยังไม่มีบันทึก</div></div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="card">
+    <details id="setBox">
+      <summary>設定 / ตั้งค่า — CPA目標・粗利率・手数料・クーポン・無注文上限</summary>
+      <div class="grid2">
+        <div><label>CPA目標 / เป้า CPA</label><input type="number" id="s_cpa"></div>
+        <div><label>無注文上限 / ลิมิตไม่มีออเดอร์</label><input type="number" id="s_nolimit"></div>
+      </div>
+      <label>粗利率 / กำไรขั้นต้น <span class="hint">(0.40 = 40%)</span></label>
+      <input type="number" step="0.01" id="s_margin">
+      <div class="grid2">
+        <div><label>手数料率 / ค่าธรรมเนียม</label><input type="number" step="0.01" id="s_fee"></div>
+        <div><label>クーポン率 / ส่วนลด</label><input type="number" step="0.01" id="s_coupon"></div>
+      </div>
+      <button class="act b-primary" id="btnSave" type="button">保存 / บันทึกการตั้งค่า</button>
+      <div class="hint" style="margin-top:8px">この単体版はスマホ内(ブラウザ)に保存されます。本番はGoogle Sheets版。<br>
+        เวอร์ชันนี้เก็บในเครื่อง ใช้ทดลองก่อน</div>
+    </details>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var LS='costguard.v1';
+  var DEF={ CPA_TARGET:15, GROSS_MARGIN_RATE:0.40, TIKTOK_FEE_RATE:0.05, COUPON_RATE:0.03,
+            NO_ORDER_COST_LIMIT:80, YELLOW_BUFFER_RATE:0.15, CURRENCY:'THB' };
+  var db=load();
+  function load(){ try{ var d=JSON.parse(localStorage.getItem(LS)); if(d&&d.settings) return d; }catch(e){}
+    return { settings:Object.assign({},DEF), active:null, history:[] }; }
+  function save(){ localStorage.setItem(LS, JSON.stringify(db)); }
+  var $=function(id){ return document.getElementById(id); };
+  var COL={ green:getVar('--green'), yellow:getVar('--amber'), red:getVar('--red') };
+  function getVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#888'; }
+
+  // ---- 判定ロジック(Rules.gs と同一) ----
+  function toNum(v){ if(v===''||v==null) return 0; var n=parseFloat(String(v).replace(/[, ]/g,'')); return isNaN(n)?0:n; }
+  function c01(n){ return Math.max(0,Math.min(1,n)); }
+  function r2(n){ return Math.round(n*100)/100; }
+  function money(n,s){ return r2(n)+' '+(s.CURRENCY||'THB'); }
+  function evaluate(m,s){
+    var adCost=toNum(m.adCost), orders=Math.round(toNum(m.orders)), gmv=toNum(m.gmv);
+    var marginRate=c01(toNum(s.GROSS_MARGIN_RATE))-c01(toNum(s.TIKTOK_FEE_RATE))-c01(toNum(s.COUPON_RATE));
+    var aov=orders>0?gmv/orders:0, cpa=orders>0?adCost/orders:null, roi=adCost>0?gmv/adCost:null;
+    var be=aov*marginRate, tgt=toNum(s.CPA_TARGET), noLim=toNum(s.NO_ORDER_COST_LIMIT), yb=c01(toNum(s.YELLOW_BUFFER_RATE));
+    var R={ adCost:adCost, orders:orders, gmv:gmv, aov:r2(aov), cpa:cpa===null?null:r2(cpa),
+            roi:roi===null?null:r2(roi), breakevenCpa:r2(be) };
+    function set(st,badge,jp,th,reason,act){ R.status=st; R.badge=badge; R.title=jp; R.titleTh=th;
+      R.reason=reason; R.actionTh=act; R.color=COL[st]; return R; }
+    if(orders<=0){
+      if(adCost>=noLim && noLim>0) return set('red','STOP','無注文のまま上限到達','ยิงแอดถึงลิมิตแล้วแต่ยังไม่มีออเดอร์',
+        '広告費 '+money(adCost,s)+' を使って注文0件。一度止めて新しいキャンペーンを作る。','หยุดแล้วสร้างแคมเปญใหม่ทันที');
+      if(adCost>0) return set('yellow','WATCH','まだ注文なし(監視中)','ยังไม่มีออเดอร์ (เฝ้าดู)',
+        '広告費 '+money(adCost,s)+'。上限 '+money(noLim,s)+' までに注文が来るか様子見。','รอดูก่อนถึงลิมิต');
+      return set('green','READY','開始待ち','พร้อมเริ่ม','まだデータがありません。','ยังไม่มีข้อมูล');
+    }
+    var yLine=be>0?be*(1-yb):tgt;
+    if(be>0 && cpa>be) return set('red','STOP','CPAが赤字ライン超え','ต้นทุนต่อออเดอร์เกินจุดคุ้มทุน',
+      'CPA '+money(cpa,s)+' > 損益分岐 '+money(be,s)+'。売るほど損。今すぐ作り直す。','ขาดทุน! สร้างแคมเปญใหม่เดี๋ยวนี้');
+    if(cpa>tgt || cpa>yLine) return set('yellow','WATCH','CPAが目標を超過','ต้นทุนต่อออเดอร์เกินเป้า',
+      'CPA '+money(cpa,s)+' が目標 '+money(tgt,s)+' を超過(赤字ライン '+money(be,s)+')。作り直しを検討。','ต้นทุนเริ่มสูง พิจารณาสร้างใหม่');
+    return set('green','GOOD','コスト良好','ต้นทุนดี กำไรงาม',
+      'CPA '+money(cpa,s)+'(目標 '+money(tgt,s)+'・赤字ライン '+money(be,s)+')。ROI '+(roi===null?'-':r2(roi))+'。継続。','ยิงแอดต่อได้เลย');
+  }
+
+  // ---- 描画 ----
+  function fmt(n){ return (n===null||n===undefined||n==='')?'—':(Math.round(Number(n)*100)/100); }
+  function paint(ev){
+    var v=$('verdict');
+    if(!ev){ v.dataset.empty='1'; v.style.background='';
+      $('vBadge').textContent='READY'; $('vTh').textContent='พร้อมเริ่ม'; $('vJp').textContent='開始待ち';
+      $('vCpa').textContent='—'; $('vBe').textContent='—'; $('vRoi').textContent='—';
+      $('vWhy').innerHTML='<div>広告費・注文数・GMV を入れて「記録」を押してください。</div>'; return; }
+    v.dataset.empty='0'; v.style.background=ev.color;
+    $('vBadge').textContent=ev.badge; $('vTh').textContent=ev.titleTh; $('vJp').textContent=ev.title;
+    $('vCpa').textContent=ev.cpa===null?'—':fmt(ev.cpa);
+    $('vBe').textContent=fmt(ev.breakevenCpa);
+    $('vRoi').textContent=ev.roi===null?'—':fmt(ev.roi);
+    $('vWhy').innerHTML='<div>👉 '+ev.reason+'</div><div>👉 '+ev.actionTh+'</div>';
+    if(ev.status==='red' && navigator.vibrate) navigator.vibrate([180,70,180]);
+  }
+  function renderHist(){
+    var h=$('hist');
+    if(!db.history.length){ h.innerHTML='<div class="muted">まだ記録なし / ยังไม่มีบันทึก</div>'; return; }
+    h.innerHTML=db.history.slice(0,10).map(function(d){
+      return '<div class="h"><span><span class="sw" style="background:'+COL[d.status]+'"></span>'+d.time+
+             '</span><span>CPA '+fmt(d.cpa)+' · คุ้มทุน '+fmt(d.breakeven)+'</span></div>'; }).join('');
+  }
+  function renderLive(){
+    var on=!!db.active;
+    $('startBox').style.display=on?'none':'block';
+    $('inputBox').style.display=on?'block':'none';
+    $('liveState').innerHTML = on
+      ? '<span class="live-dot"></span><b style="color:var(--text)">'+esc(db.active.name)+'</b>'
+      : '<span class="muted">LIVE未開始 / ยังไม่เริ่มไลฟ์</span>';
+  }
+  function esc(s){ return String(s).replace(/[<>&]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}); }
+
+  // ---- 操作 ----
+  $('btnStart').onclick=function(){
+    db.active={ name:($('liveName').value||'LIVE'), started:Date.now() }; db.history=[]; save();
+    renderLive(); renderHist(); paint(null);
+  };
+  $('btnEnd').onclick=function(){ if(!confirm('LIVEを終了しますか? / จบไลฟ์ใช่ไหม?'))return;
+    db.active=null; save(); renderLive(); };
+  $('btnRec').onclick=function(){
+    var ev=evaluate({adCost:$('adCost').value, orders:$('orders').value, gmv:$('gmv').value}, db.settings);
+    paint(ev);
+    db.history.unshift({ time:new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      cpa:ev.cpa, breakeven:ev.breakevenCpa, status:ev.status });
+    db.history=db.history.slice(0,50); save(); renderHist();
+  };
+  $('btnSave').onclick=function(){
+    var s=db.settings;
+    s.CPA_TARGET=num($('s_cpa').value); s.NO_ORDER_COST_LIMIT=num($('s_nolimit').value);
+    s.GROSS_MARGIN_RATE=num($('s_margin').value); s.TIKTOK_FEE_RATE=num($('s_fee').value); s.COUPON_RATE=num($('s_coupon').value);
+    save(); $('setBox').open=false; toast('保存しました / บันทึกแล้ว');
+  };
+  function num(v){ return v===''?0:Number(v); }
+  function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('on'); setTimeout(function(){el.classList.remove('on');},1500); }
+
+  // テーマ切替
+  $('themeBtn').onclick=function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next = cur==='dark'?'light':(cur==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark'));
+    document.documentElement.setAttribute('data-theme',next);
+    COL={ green:getVar('--green'), yellow:getVar('--amber'), red:getVar('--red') };
+  };
+
+  // 初期化
+  var s=db.settings;
+  $('s_cpa').value=s.CPA_TARGET; $('s_nolimit').value=s.NO_ORDER_COST_LIMIT;
+  $('s_margin').value=s.GROSS_MARGIN_RATE; $('s_fee').value=s.TIKTOK_FEE_RATE; $('s_coupon').value=s.COUPON_RATE;
+  renderLive(); renderHist(); paint(null);
+})();
+</script>
+</body>
+</html>
