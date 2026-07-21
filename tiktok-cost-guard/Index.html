@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root { --bg:#0f1115; --card:#1b1f27; --line:#2a2f3a; --text:#eef1f6; --muted:#9aa4b2;
+            --green:#1f9d55; --yellow:#f2a900; --red:#e3342f; --accent:#3b82f6; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans JP",sans-serif;
+           background:var(--bg); color:var(--text); padding:12px; max-width:520px; margin:0 auto; }
+    h1 { font-size:17px; margin:4px 0 12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+    label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+    .sub { font-size:11px; color:var(--muted); }
+    input { width:100%; font-size:20px; padding:12px; border-radius:10px; border:1px solid var(--line);
+            background:#12151c; color:var(--text); }
+    input[type=text] { font-size:16px; }
+    button { width:100%; font-size:17px; font-weight:700; padding:14px; border:0; border-radius:12px;
+             color:#fff; margin-top:12px; cursor:pointer; }
+    .primary { background:var(--accent); } .ok { background:var(--green); } .stop { background:#555; }
+    button:active { transform:scale(.99); } button:disabled { opacity:.5; }
+    .row { display:flex; gap:8px; } .row > * { flex:1; }
+    .status { border-radius:14px; padding:18px; text-align:center; margin-bottom:12px; display:none; }
+    .status .big { font-size:22px; font-weight:800; }
+    .status .th { font-size:16px; opacity:.95; margin-top:2px; }
+    .metrics { display:flex; justify-content:space-around; margin-top:12px; font-size:13px; }
+    .metrics b { display:block; font-size:20px; }
+    .reason { font-size:13px; margin-top:10px; line-height:1.5; text-align:left; background:rgba(0,0,0,.2);
+              padding:10px; border-radius:8px; }
+    .hist { font-size:12px; color:var(--muted); }
+    .hist div { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line); }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+    details summary { cursor:pointer; font-size:14px; color:var(--muted); }
+    .pill { font-size:12px; color:var(--muted); }
+    .banner { background:#12233a; border:1px solid #24405f; color:#cfe0f5; font-size:12px;
+              padding:8px 10px; border-radius:8px; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ TikTok LIVE Cost Guard</h1>
+  <div class="banner">ライブ中に累計の「広告費・注文数・GMV」を入れて記録するだけ。<br>
+    ยิงแอดอยู่ ให้กรอกยอดสะสม แล้วกดบันทึก ระบบจะบอกว่าเขียว/เหลือง/แดง</div>
+
+  <!-- 判定結果 -->
+  <div id="status" class="status">
+    <div class="big" id="stTitle"></div>
+    <div class="th" id="stTitleTh"></div>
+    <div class="metrics">
+      <div>CPA<b id="stCpa">-</b></div>
+      <div>損益分岐<span class="sub">/คุ้มทุน</span><b id="stBe">-</b></div>
+      <div>ROI<b id="stRoi">-</b></div>
+    </div>
+    <div class="reason" id="stReason"></div>
+  </div>
+
+  <!-- LIVE 制御 -->
+  <div class="card" id="liveCard">
+    <div id="noLive">
+      <label>LIVE名 / ชื่อไลฟ์</label>
+      <input type="text" id="liveName" placeholder="เช่น ไลฟ์เย็น 20/7">
+      <button class="primary" id="btnStart">▶ LIVEを開始 / เริ่มไลฟ์</button>
+    </div>
+    <div id="hasLive" style="display:none">
+      <div class="pill">🔴 進行中 / กำลังไลฟ์: <b id="curName"></b></div>
+      <button class="stop" id="btnEnd" style="margin-top:8px">■ LIVE終了 / จบไลฟ์</button>
+    </div>
+  </div>
+
+  <!-- 記録 -->
+  <div class="card" id="recCard" style="display:none">
+    <div class="sub">※ 累計値を入れる / กรอกยอดสะสม (ไม่ใช่เฉพาะรอบนี้)</div>
+    <div class="row">
+      <div><label>広告費 / ค่าแอด</label><input type="number" inputmode="decimal" id="adCost" placeholder="0"></div>
+      <div><label>注文数 / ออเดอร์</label><input type="number" inputmode="numeric" id="orders" placeholder="0"></div>
+    </div>
+    <label>GMV / ยอดขาย</label>
+    <input type="number" inputmode="decimal" id="gmv" placeholder="0">
+    <button class="ok" id="btnRec">✔ 記録してコストを確認 / บันทึกและเช็คต้นทุน</button>
+  </div>
+
+  <!-- 履歴 -->
+  <div class="card">
+    <div class="hist" id="hist"></div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="card">
+    <details id="setDetails">
+      <summary>⚙️ 設定 / ตั้งค่า (CPA目標・粗利率・手数料・クーポン・無注文上限)</summary>
+      <div class="row">
+        <div><label>CPA目標 / เป้า CPA</label><input type="number" id="s_cpa"></div>
+        <div><label>無注文上限 / ลิมิตไม่มีออเดอร์</label><input type="number" id="s_nolimit"></div>
+      </div>
+      <label>粗利率 / กำไรขั้นต้น (0.40 = 40%)</label><input type="number" step="0.01" id="s_margin">
+      <div class="row">
+        <div><label>手数料率 / ค่าธรรมเนียม</label><input type="number" step="0.01" id="s_fee"></div>
+        <div><label>クーポン率 / ส่วนลด</label><input type="number" step="0.01" id="s_coupon"></div>
+      </div>
+      <button class="primary" id="btnSave">💾 設定を保存 / บันทึกการตั้งค่า</button>
+    </details>
+  </div>
+
+  <script>
+    var CUR = 'THB';
+    var active = null;
+
+    function run(fn){ return function(){
+      var a = Array.prototype.slice.call(arguments);
+      return new Promise(function(res, rej){
+        google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn].apply(null, a);
+      });
+    };}
+    var api = {
+      getConfig: run('getConfig'), saveSettings: run('saveSettings'),
+      startLive: run('startLive'), recordMetrics: run('recordMetrics'),
+      endLive: run('endLive'), getRecentDecisions: run('getRecentDecisions')
+    };
+    var $ = function(id){ return document.getElementById(id); };
+    function busy(b){ Array.prototype.forEach.call(document.querySelectorAll('button'), function(x){ x.disabled=b; }); }
+
+    function fmt(n){ if(n===null||n===undefined||n==='') return '-'; var x=Math.round(Number(n)*100)/100; return isNaN(x)?'-':x; }
+
+    function paintStatus(ev){
+      var s=$('status');
+      s.style.display='block'; s.style.background=ev.color;
+      $('stTitle').textContent=ev.title;
+      $('stTitleTh').textContent=ev.titleTh;
+      $('stCpa').textContent=ev.cpa===null?'—':fmt(ev.cpa);
+      $('stBe').textContent=fmt(ev.breakevenCpa);
+      $('stRoi').textContent=ev.roi===null?'—':fmt(ev.roi);
+      $('stReason').innerHTML='👉 '+(ev.reason||'')+'<br>👉 '+(ev.actionTh||'');
+      if(navigator.vibrate && ev.status==='red') navigator.vibrate([200,80,200]);
+    }
+
+    function setLiveUI(){
+      $('noLive').style.display = active ? 'none':'block';
+      $('hasLive').style.display = active ? 'block':'none';
+      $('recCard').style.display = active ? 'block':'none';
+      if(active) $('curName').textContent = active.name;
+    }
+
+    function loadHist(){
+      if(!active){ $('hist').innerHTML='<div class="sub">履歴なし / ยังไม่มีประวัติ</div>'; return; }
+      api.getRecentDecisions(active.session_id, 8).then(function(list){
+        if(!list.length){ $('hist').innerHTML='<div class="sub">まだ記録なし / ยังไม่มีบันทึก</div>'; return; }
+        var c={green:'#1f9d55',yellow:'#f2a900',red:'#e3342f'};
+        $('hist').innerHTML = list.map(function(d){
+          return '<div><span><span class="dot" style="background:'+(c[d.status]||'#888')+'"></span>'+d.time+
+                 '</span><span>CPA '+fmt(d.cpa)+' / คุ้มทุน '+fmt(d.breakeven)+'</span></div>';
+        }).join('');
+      });
+    }
+
+    // --- events ---
+    $('btnStart').onclick=function(){
+      busy(true);
+      api.startLive($('liveName').value || 'LIVE').then(function(r){
+        active=r; setLiveUI(); loadHist(); $('status').style.display='none';
+      }).catch(alertErr).then(function(){busy(false);});
+    };
+    $('btnEnd').onclick=function(){
+      if(!confirm('LIVEを終了しますか? / จบไลฟ์ใช่ไหม?')) return;
+      busy(true);
+      api.endLive(active.session_id).then(function(){ active=null; setLiveUI(); loadHist(); })
+        .catch(alertErr).then(function(){busy(false);});
+    };
+    $('btnRec').onclick=function(){
+      if(!active) return;
+      busy(true);
+      api.recordMetrics(active.session_id, $('adCost').value, $('orders').value, $('gmv').value)
+        .then(function(ev){ paintStatus(ev); loadHist(); })
+        .catch(alertErr).then(function(){busy(false);});
+    };
+    $('btnSave').onclick=function(){
+      busy(true);
+      api.saveSettings({
+        CPA_TARGET: num($('s_cpa').value), NO_ORDER_COST_LIMIT: num($('s_nolimit').value),
+        GROSS_MARGIN_RATE: num($('s_margin').value), TIKTOK_FEE_RATE: num($('s_fee').value),
+        COUPON_RATE: num($('s_coupon').value)
+      }).then(function(){ $('setDetails').open=false; toast('保存しました / บันทึกแล้ว'); })
+        .catch(alertErr).then(function(){busy(false);});
+    };
+    function num(v){ return v===''? 0 : Number(v); }
+    function alertErr(e){ alert('エラー / ผิดพลาด: '+(e && e.message ? e.message : e)); }
+    function toast(t){ var b=$('btnSave'); var o=b.textContent; b.textContent=t; setTimeout(function(){b.textContent=o;},1500); }
+
+    // --- init ---
+    busy(true);
+    api.getConfig().then(function(c){
+      CUR = c.currency || 'THB'; active = c.active;
+      var s=c.settings;
+      $('s_cpa').value=s.CPA_TARGET; $('s_nolimit').value=s.NO_ORDER_COST_LIMIT;
+      $('s_margin').value=s.GROSS_MARGIN_RATE; $('s_fee').value=s.TIKTOK_FEE_RATE; $('s_coupon').value=s.COUPON_RATE;
+      setLiveUI(); loadHist();
+    }).catch(function(e){ alert('初期化エラー: 先に setupSystem を実行しましたか?\n'+e); })
+      .then(function(){ busy(false); });
+  </script>
+</body>
+</html>
