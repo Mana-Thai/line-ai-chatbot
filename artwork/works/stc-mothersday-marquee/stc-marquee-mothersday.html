@@ -239,6 +239,14 @@ function drawTripCue(t,b){
     ctx.fillRect(b.x+48,b.y-85,7,22); ctx.fillRect(b.x+48,b.y-55,7,7);
     ctx.restore();
   }
+  if(t>=1100&&t<1420){
+    const a=1-clamp((t-1100)/320,0,1);
+    ctx.save(); ctx.globalAlpha=a; ctx.fillStyle="#d89843";
+    ctx.fillRect(b.x-104,b.y+37,28,5); ctx.fillRect(b.x-90,b.y+50,18,4);
+    ctx.fillStyle="#fffdf5";
+    ctx.fillRect(b.x-76,b.y+42,8,8); ctx.fillRect(b.x-114,b.y+51,6,6);
+    ctx.restore();
+  }
 }
 
 /* ---------- timeline ---------- */
@@ -289,10 +297,12 @@ function girlPose(t){
     return {x:lerp(245,285,p),y:940-12*Math.sin(Math.PI*p),f:1,back:false,xs:1,pose:"stumble"}; }
   if(t<1100){ const p=stepped((t-950)/150,4);                          // 前へ倒れ込む（一回転しない）
     return {x:lerp(285,315,p),y:lerp(940,960,p),f:0,back:false,xs:1,pose:"falling"}; }
-  if(t<1500) return {x:335,y:963,f:0,back:false,xs:1,pose:"fallen"};  // 完全に横になり両手を上げる
+  if(t<1500){
+    const p=clamp((t-1100)/300,0,1), ease=1-Math.pow(1-p,3);          // 着地後、減速しながら右へ滑る
+    return {x:lerp(335,377,stepped(ease,8)),y:963,f:0,back:false,xs:1,pose:"fallen"}; }
   if(t<1650){ const p=stepped((t-1500)/150,4);                         // 笑顔で起き上がる
-    return {x:lerp(335,342,p),y:lerp(963,940,p),f:0,back:false,xs:1,pose:p<0.35?"fallen":(p<0.7?"stumble":"stand")}; }
-  if(t<1900) return {x:lerp(342,398,stepped((t-1650)/250,3)),y:940,f:wf,back:false,xs:1,pose:"walk"};
+    return {x:lerp(377,382,p),y:lerp(963,940,p),f:0,back:false,xs:1,pose:p<0.35?"fallen":(p<0.7?"stumble":"stand")}; }
+  if(t<1900) return {x:lerp(382,398,stepped((t-1650)/250,3)),y:940,f:wf,back:false,xs:1,pose:"walk"};
   if(t<2080) return {x:398,y:940,f:0,back:false,xs:1};
   if(t<2280){ const q=(t-2080)/200;
     return {x:398,y:940,f:0,back:q>0.5,xs:Math.abs(Math.cos(Math.PI*q))}; }

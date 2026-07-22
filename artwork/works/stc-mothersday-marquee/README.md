@@ -8,7 +8,7 @@
 - メッセージ: `LOVE MOM` / `THANK YOU MOM` / `สุขสันต์วันแม่`
 - 色: ジャスミンのアイボリー、母の日の淡いブルー、コーラル、控えめな金
 - キャラクター: ジャスミンの髪飾りと母の日ブルーの服を着たピクセルアートの女の子
-- 導入: 歩いて登場 → つまずく → 完全に横になり、頭上方向（動画では右）へ両手を伸ばす → 笑顔で立ち上がる。回転動作は使わない
+- 導入: 歩いて登場 → つまずく → 完全に横になり、頭上方向（動画では右）へ両手を伸ばす → 約42px右へ減速スライド → 笑顔で立ち上がる。回転動作は使わない
 - 装飾: 白ジャスミンを抽象化したピクセルの花びら
 - 音楽: F majorのベル、フェルトピアノ、柔らかなパッド。文字配置と点灯に同期
 
@@ -40,4 +40,4 @@ MP4を作る。最終成果物は `portfolio/assets/stc-mothersday-marquee_1080x
 - Video: H.264, 1080 × 1080, 30 fps, yuv420p
 - Audio: AAC, 48 kHz, stereo, 192 kbps
 - Loudness: -13.4 LUFS integrated / -1.5 dBTP
-- Visual checks: 0.4 / 0.8 / 1.02 / 1.15 / 1.35 / 1.55 / 5.3 / 8.8 / 12.3 seconds checked at full resolution
+- Visual checks: 0.4 / 0.8 / 1.02 / 1.10 / 1.18 / 1.28 / 1.40 / 1.55 / 5.3 / 8.8 / 12.3 seconds checked at full resolution

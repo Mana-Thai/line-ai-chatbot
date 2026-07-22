@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
   if (process.argv.includes('--qc')) {
     const qcDir = path.resolve(here, '../../../output/playwright');
     fs.mkdirSync(qcDir, { recursive: true });
-    for (const time of [400, 800, 1020, 1150, 1350, 1550, 5300, 8800, 12300]) {
+    for (const time of [400, 800, 1020, 1100, 1180, 1280, 1400, 1550, 5300, 8800, 12300]) {
       await page.goto(`${pathToFileURL(source).href}?t=${time}`);
       await page.locator('#cv').screenshot({
         path: path.join(qcDir, `stc-mothersday-girl-${time}.png`),
