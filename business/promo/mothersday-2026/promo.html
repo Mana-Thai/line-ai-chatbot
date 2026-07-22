@@ -7,53 +7,53 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     width: 1080px; height: 1350px; overflow: hidden; position: relative;
-    background: #0c0c0b; color: #f3f0e9;
+    background: #eaf3f5; color: #183338;
     font-family: "Sarabun", "Noto Sans Thai", sans-serif;
   }
-  .art { position: absolute; inset: 0 0 0 auto; width: 760px; height: 1350px; object-fit: cover; }
-  .veil {
+  .art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 48%; }
+  .light {
     position: absolute; inset: 0;
-    background: linear-gradient(90deg, #0c0c0b 0 28%, rgba(12,12,11,.94) 39%, rgba(12,12,11,.14) 70%, rgba(12,12,11,.02));
+    background: linear-gradient(90deg, rgba(244,247,242,.98) 0 27%, rgba(244,247,242,.86) 44%, rgba(244,247,242,.16) 68%, transparent 100%),
+                linear-gradient(0deg, rgba(245,242,230,.92) 0 20%, transparent 47%);
   }
-  .grain { position: absolute; inset: 0; opacity: .14; mix-blend-mode: screen;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+  .grain { position: absolute; inset: 0; opacity: .08; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E");
   }
-  .thread { position: absolute; top: 647px; left: 74px; width: 900px; height: 1px;
-    background: linear-gradient(90deg, transparent, #b99855 8%, #e3c983 54%, rgba(227,201,131,.1)); }
-  .thread::before { content: ""; position: absolute; left: 0; top: -4px; width: 9px; height: 9px; border: 1px solid #c4a667; border-radius: 50%; }
-  .index { position: absolute; top: 68px; left: 76px; color: #c4a667; font: 400 16px/1 "Kanit"; letter-spacing: 5px; }
-  .date { position: absolute; top: 65px; right: 62px; text-align: right; color: rgba(255,255,255,.76); font: 300 18px/1.35 "Kanit"; letter-spacing: 3px; }
-  .date strong { display: block; color: #fff; font-size: 26px; font-weight: 400; }
-  .copy { position: absolute; z-index: 2; left: 76px; top: 178px; width: 490px; }
-  .copy .pre { margin-bottom: 24px; color: rgba(255,255,255,.55); font: 300 18px/1.5 "Kanit"; letter-spacing: 2px; }
-  h1 { font: 300 54px/1.34 "Kanit"; letter-spacing: -.6px; }
-  h1 em { display: block; color: #e0c27c; font-style: normal; font-weight: 500; }
-  .jp { margin-top: 28px; color: rgba(255,255,255,.65); font-size: 20px; line-height: 1.65; letter-spacing: .8px; }
-  .poem { position: absolute; z-index: 2; left: 76px; top: 715px; width: 430px; }
-  .poem blockquote { font: 300 31px/1.62 "Kanit"; color: rgba(255,255,255,.9); }
-  .poem p { margin-top: 18px; color: #c4a667; font: 300 16px/1.5 "Kanit"; letter-spacing: 2px; }
-  .offer { position: absolute; z-index: 2; left: 76px; bottom: 86px; width: 480px; border-top: 1px solid rgba(196,166,103,.65); padding-top: 25px; }
-  .offer .label { color: rgba(255,255,255,.55); font: 400 15px/1 "Kanit"; letter-spacing: 3px; }
-  .offer .price { margin-top: 10px; font: 300 51px/1 "Kanit"; }
-  .offer .price small { font-size: 23px; letter-spacing: 2px; }
-  .offer .detail { margin-top: 17px; color: rgba(255,255,255,.7); font-size: 18px; line-height: 1.55; }
-  .offer .cta { margin-top: 20px; color: #e0c27c; font: 500 22px/1.4 "Kanit"; }
-  .studio { position: absolute; right: 62px; bottom: 56px; color: rgba(255,255,255,.5); font: 300 13px/1 "Kanit"; letter-spacing: 3px; }
+  .thread { position: absolute; top: 650px; left: 72px; width: 880px; height: 1px; background: linear-gradient(90deg, #b08b45, rgba(224,194,120,.72), transparent); }
+  .thread::before { content: ""; position: absolute; left: 0; top: -4px; width: 9px; height: 9px; border: 1px solid #b08b45; border-radius: 50%; background: #f2f4ed; }
+  .index { position: absolute; top: 66px; left: 74px; color: #9a742f; font: 500 16px/1 "Kanit"; letter-spacing: 5px; }
+  .date { position: absolute; top: 62px; right: 58px; text-align: right; color: #49666a; font: 300 18px/1.35 "Kanit"; letter-spacing: 3px; }
+  .date strong { display: block; color: #183338; font-size: 27px; font-weight: 500; }
+  .copy { position: absolute; z-index: 2; left: 74px; top: 175px; width: 515px; }
+  .copy .pre { margin-bottom: 24px; color: #6f8587; font: 400 17px/1.5 "Kanit"; letter-spacing: 2px; }
+  h1 { font: 300 53px/1.36 "Kanit"; letter-spacing: -.5px; }
+  h1 em { display: block; color: #3f7e86; font-style: normal; font-weight: 500; }
+  .jp { margin-top: 28px; color: #526d70; font-size: 20px; line-height: 1.7; letter-spacing: .7px; }
+  .poem { position: absolute; z-index: 2; left: 74px; top: 718px; width: 470px; }
+  .poem blockquote { font: 300 30px/1.62 "Kanit"; color: #21474d; }
+  .poem p { margin-top: 17px; color: #9a742f; font: 400 15px/1.5 "Kanit"; letter-spacing: 2px; }
+  .offer { position: absolute; z-index: 2; left: 74px; right: 62px; bottom: 62px; min-height: 260px; padding: 27px 32px; background: rgba(251,249,241,.93); border-top: 2px solid #c3a159; box-shadow: 0 18px 50px rgba(33,71,77,.12); }
+  .offer .label { color: #718486; font: 500 14px/1 "Kanit"; letter-spacing: 3px; }
+  .offer .price { margin-top: 11px; font: 300 50px/1 "Kanit"; color: #183338; }
+  .offer .price small { font-size: 22px; letter-spacing: 2px; }
+  .offer .detail { margin-top: 16px; color: #50696c; font-size: 18px; line-height: 1.55; }
+  .offer .cta { position: absolute; right: 32px; bottom: 32px; color: #326f77; font: 500 21px/1.4 "Kanit"; border-bottom: 1px solid #b08b45; }
+  .studio { position: absolute; right: 67px; bottom: 27px; color: rgba(24,51,56,.55); font: 400 12px/1 "Kanit"; letter-spacing: 3px; }
 </style>
 </head>
 <body>
-  <img class="art" src="../../../portfolio/assets/sample-mothersday_poster.jpg" alt="มือสองคู่ที่เชื่อมกันด้วยด้ายสีทอง">
-  <div class="veil"></div><div class="grain"></div><div class="thread"></div>
+  <img class="art" src="../../../portfolio/assets/mothersday-study-walking.jpg" alt="แม่และลูกสาวเดินจับมือกันริมทะเล">
+  <div class="light"></div><div class="grain"></div><div class="thread"></div>
   <p class="index">GIFT FILM · 01</p>
   <p class="date">วันแม่แห่งชาติ<strong>12 AUGUST 2026</strong></p>
   <section class="copy">
-    <p class="pre">A SMALL FILM FOR A BIG FEELING</p>
-    <h1>ก่อนที่ฉันจะจำได้<em>มือคู่นี้อยู่ตรงนั้น</em></h1>
-    <p class="jp">記憶より先に、そこにあった手。<br>写真と言葉からつくる、30秒の贈り物。</p>
+    <p class="pre">THE LIGHT WE MAKE TOGETHER</p>
+    <h1>สิ่งที่แม่มอบให้<em>ยังเดินไปกับเรา</em></h1>
+    <p class="jp">母から受け取った光は、<br>これからの道にも続いていく。</p>
   </section>
   <section class="poem">
-    <blockquote>มือคู่นี้<br>เคยประคองโลกของฉัน</blockquote>
-    <p>THE SPACE BETWEEN TWO HANDS</p>
+    <blockquote>ขอบคุณที่จับมือฉันไว้<br>และยังเดินข้างกันเสมอ</blockquote>
+    <p>TO MAKE · TO MEND · TO WALK TOGETHER</p>
   </section>
   <section class="offer">
     <p class="label">FOUNDING EDITION · 5 FILMS ONLY</p>
