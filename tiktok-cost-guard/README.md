@@ -31,6 +31,7 @@ TikTokライブ販売中の広告コストを見張り、**CPA(注文1件あた�
 | `Index.html` | スマホ用の入力画面(タイ語+日本語) |
 | `appsscript.json` | マニフェスト(タイムゾーン・権限・Webアプリ設定) |
 | `standalone-test.html` | Apps Script不要のお試し単体版(localStorage・判定は Rules.gs と同一) |
+| `USAGE-th.md` | 売り手(タイ語)に渡すライブ中の使い方ワンページ。スクショして共有可 |
 
 ## 判定ロジック(Rules.gs)
 
