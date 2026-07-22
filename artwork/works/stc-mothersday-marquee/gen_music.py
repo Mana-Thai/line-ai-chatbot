@@ -81,8 +81,8 @@ def add_chord(start: float, duration: float, notes: tuple[int, ...], gain: float
         add_tone(start, duration, note, gain, kind="pad", pan=pans[idx % len(pans)])
 
 
-def add_soft_bounce(start: float, pan: float) -> None:
-    """A tiny tonal tennis bounce, kept musical rather than cartoony."""
+def add_soft_step(start: float, pan: float, pitch: float = 145.0, gain: float = 0.055) -> None:
+    """A felted wooden step used for the girl's entrance and gentle fall."""
     begin = int(start * SAMPLE_RATE)
     end = min(FRAMES, begin + int(0.12 * SAMPLE_RATE))
     lg = math.sqrt((1.0 - pan) * 0.5)
@@ -90,8 +90,10 @@ def add_soft_bounce(start: float, pan: float) -> None:
     for i in range(begin, end):
         t = (i - begin) / SAMPLE_RATE
         env = math.exp(-38.0 * t)
-        freq = 180.0 - 70.0 * min(1.0, t / 0.12)
-        value = 0.10 * env * math.sin(TAU * freq * t)
+        freq = pitch - 35.0 * min(1.0, t / 0.12)
+        value = gain * env * (
+            math.sin(TAU * freq * t) + 0.24 * math.sin(TAU * freq * 2.0 * t)
+        )
         left[i] += value * lg
         right[i] += value * rg
 
@@ -131,8 +133,13 @@ for start, note, pan in (
 ):
     add_tone(start, 0.82, note, 0.115, pan=pan)
 
-for start, pan in ((0.15, -0.5), (0.64, -0.25), (1.15, 0.0), (1.68, 0.25), (2.20, 0.45)):
-    add_soft_bounce(start, pan)
+# Footsteps, a soft stumble and an upward recovery tone replace the old rolling cue.
+add_soft_step(0.16, -0.46)
+add_soft_step(0.48, -0.30)
+add_soft_step(0.73, -0.14, pitch=172.0, gain=0.042)
+add_soft_step(1.03, 0.02, pitch=92.0, gain=0.090)
+add_tone(1.50, 0.72, 72, 0.095, pan=-0.08)
+add_tone(1.64, 0.76, 76, 0.090, pan=0.12)
 
 # Near-silent air texture keeps the pauses alive without audible hiss.
 rng = random.Random(20260812)

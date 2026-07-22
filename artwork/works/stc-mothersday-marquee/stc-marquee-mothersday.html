@@ -18,7 +18,7 @@
 </style>
 </head>
 <body>
-<canvas id="cv" width="1080" height="1080" aria-label="リボンを付けたテニスボールのキャラクターが LOVE MOM の看板を完成させ、母の日を祝うアニメーション"></canvas>
+<canvas id="cv" width="1080" height="1080" aria-label="ジャスミンの髪飾りを付けた女の子が転んでも立ち上がり、LOVE MOM の看板を完成させる母の日アニメーション"></canvas>
 <div class="bar">
   <button id="rec">&#11015; WebMを書き出す</button>
   <small>1ループ(13秒)を録画して保存します</small>
@@ -57,7 +57,8 @@ const BG="#f7f0ea", DIM="#a8bfbd", DIMTXT="#6e8e90",
       TILE="#fffaf1", RED="#e77883",
       LIT="#fffaf0", AMBER="#d89843", HALO="#f1d3a7",
       YEL="#b98739",
-      BALL="#d8e96c", BALLD="#a9bb3d", SEAM="#fffef2", EYE="#314447";
+      HAIR="#563f3b", HAIRL="#765550", SKIN="#f4c7aa", SKIND="#dc9d83",
+      DRESS="#79aeb4", DRESSD="#527f86", APRON="#fffaf1", SHOE="#b85c69", EYE="#314447";
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp=(a,b,p)=>a+(b-a)*p;
@@ -158,55 +159,60 @@ function drawPetals(t){
   ctx.globalAlpha=1;
 }
 
-/* ---------- tennis ball sprite ---------- */
-const SPR=[
-".....YYYYY.....",
-"...WYYYYYYYW...",
-"..YYWYYYYYWYY..",
-".YYYWYYYYYWYYY.",
-".YYYYWKYKWYYYY.",
-"YYYYYWKYKWYYYYY",
-"YYYYYWYYYWYYYYY",
-"YYYYYWYYYWYYYYY",
-"YYYYYWYYYWYYYYD",
-".YYYYWYYYWYYYD.",
-".YYYWYYYYYWYDD.",
-"..YYWYYYYYWDD..",
-"...WYYYYYYYW...",
-".....YYYDD....."
-];
-const SPR_BACK=SPR.map(r=>r.replace(/K/g,"Y"));      // 後ろ姿 = 目なし
-const CELL=10,COLMAP={Y:BALL,W:SEAM,K:EYE,D:BALLD};
-function drawBall(cx0,cy0,frame,back,xs,roll,rot){
-  xs=Math.max(0.18, xs===undefined?1:xs);
-  const w=CELL*xs, spr=back?SPR_BACK:SPR;
-  if(roll){ ctx.save(); ctx.translate(cx0,cy0); ctx.rotate(rot||0); cx0=0; cy0=0; }
-  const x0=cx0-7.5*w, y0=cy0-7*CELL;
-  for(let r=0;r<spr.length;r++)
-    for(let c=0;c<15;c++){
-      const k=spr[r][c];
-      if(k!=="."){ctx.fillStyle=COLMAP[k];ctx.fillRect(x0+c*w,y0+r*CELL,w+0.5,CELL);}
-    }
-  if(!roll){
-    if(!back){
-      ctx.fillStyle="#f39aa2";
-      ctx.fillRect(x0+2.5*w,y0+7.2*CELL,1.6*w,0.7*CELL);
-      ctx.fillRect(x0+10.9*w,y0+7.2*CELL,1.6*w,0.7*CELL);
-    }
-    ctx.fillStyle="#e77883";
-    ctx.fillRect(x0+10.4*w,y0-0.8*CELL,2.0*w,0.8*CELL);
-    ctx.fillRect(x0+13.0*w,y0-0.8*CELL,2.0*w,0.8*CELL);
-    ctx.fillRect(x0+12.1*w,y0-0.2*CELL,1.2*w,1.1*CELL);
-    ctx.fillStyle="#bf5865";
-    ctx.fillRect(x0+12.2*w,y0-0.6*CELL,0.9*w,0.9*CELL);
-    ctx.fillStyle=BALLD;
-    const fy=y0+14*CELL;
-    const feet=frame?[[3,4],[10,11]]:[[4,5],[9,10]];
-    for(const [a,b] of feet){
-      ctx.fillRect(x0+a*w,fy,w+0.5,CELL);
-      ctx.fillRect(x0+b*w,fy,w+0.5,CELL);
-    }
-  }else ctx.restore();
+/* ---------- pixel girl character ---------- */
+const PX=8;
+function block(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x*PX,y*PX,w*PX,h*PX);}
+function drawGirl(cx,cy,frame,back,xs,pose="stand"){
+  xs=Math.max(0.18,xs===undefined?1:xs);
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(xs,1);
+  if(pose==="stumble") ctx.rotate(0.34);
+  if(pose==="fall") ctx.rotate(0.92);
+
+  // Legs and Mary Jane shoes; the lifted toe makes the trip readable.
+  block(-5,5,3,5,SKIN); block(2,5,3,5,SKIN);
+  if(frame){ block(-7,9,5,2,SHOE); block(2,10,5,2,SHOE); }
+  else { block(-6,10,5,2,SHOE); block(1,10,5,2,SHOE); }
+  if(pose==="stumble"){ block(1,7,7,2,SKIN); block(6,9,4,2,SHOE); }
+
+  // Blue dress and ivory apron reference Thai Mother's Day without costume cliché.
+  block(-7,-2,14,8,DRESS); block(-9,4,18,3,DRESSD);
+  block(-4,-1,8,6,APRON); block(-2,-2,4,2,APRON);
+  block(-9,-1,3,6,DRESS); block(6,-1,3,6,DRESS);
+  block(-9,4,3,2,SKIN); block(6,4,3,2,SKIN);
+  block(-1,3,2,1,"#e77883");
+
+  // Bob haircut, soft face and a jasmine hair clip.
+  block(-7,-11,14,8,HAIR); block(-9,-9,3,7,HAIR); block(6,-9,3,7,HAIR);
+  block(-5,-9,10,7,SKIN); block(-7,-10,5,3,HAIRL); block(1,-10,6,3,HAIR);
+  block(-8,-4,3,3,HAIR); block(5,-4,3,3,HAIR);
+  if(!back){
+    block(-3,-7,1,2,EYE); block(2,-7,1,2,EYE);
+    block(-6,-5,2,1,"#ef9ca3"); block(4,-5,2,1,"#ef9ca3");
+    if(pose==="stumble"||pose==="fall") block(-1,-4,2,2,"#9b5c5f");
+    else { block(-1,-4,1,1,"#9b5c5f"); block(0,-3,2,1,"#9b5c5f"); }
+  }else{
+    block(-5,-8,10,6,HAIR); block(-2,-2,4,2,HAIRL);
+  }
+  block(5,-12,2,2,"#fffdf5"); block(7,-12,2,2,"#fffdf5");
+  block(6,-13,2,2,"#fffdf5"); block(6,-11,2,2,"#e7ad58");
+  ctx.restore();
+}
+function drawTripCue(t,b){
+  if(t>=650&&t<980){
+    const a=Math.sin(Math.PI*(t-650)/330);
+    ctx.save(); ctx.globalAlpha=a; ctx.fillStyle="#e77883";
+    ctx.fillRect(b.x+42,b.y+67,9,9); ctx.fillRect(b.x+55,b.y+56,7,7);
+    ctx.fillStyle="#d89843";
+    ctx.fillRect(b.x-55,b.y-64,28,5); ctx.fillRect(b.x-67,b.y-48,23,5);
+    ctx.restore();
+  }
+  if(t>=980&&t<1450){
+    const a=1-clamp((t-1180)/270,0,1);
+    ctx.save(); ctx.globalAlpha=a; ctx.fillStyle="#e7ad58";
+    ctx.fillRect(b.x-52,b.y+69,8,8); ctx.fillRect(b.x-66,b.y+57,6,6);
+    ctx.fillRect(b.x+48,b.y-85,7,22); ctx.fillRect(b.x+48,b.y-55,7,7);
+    ctx.restore();
+  }
 }
 
 /* ---------- timeline ---------- */
@@ -247,14 +253,20 @@ function placePhase(t,s0,slots,topx,sTX){
   }
   return st;
 }
-function ballPose(t){
+function girlPose(t){
   const L=ladderOffset(t);
   const wob=(Math.floor(t/120)%2)?3:-3, wf=Math.floor(t/120)%2;
   const sTX=i=>clamp(tileCX(i),483+L.lx,593+L.lx);   // 両足が最上段の枠内に収まる範囲
-  if(t<900)  return {x:140,y:940,f:0,back:false,xs:1};
-  if(t<1650){ const p=stepped((t-900)/750,12);                        // ゴロンと一回転して移動
-    return {x:lerp(140,330,p),y:950,f:0,back:false,xs:1,roll:true,rot:Math.PI*2*p}; }
-  if(t<1900) return {x:lerp(330,398,stepped((t-1650)/250,3)),y:940,f:wf,back:false,xs:1};  // ズレは歩いて調整
+  if(t<650){ const p=stepped(t/650,8);
+    return {x:lerp(140,245,p),y:940,f:wf,back:false,xs:1,pose:"walk"}; }
+  if(t<950){ const p=stepped((t-650)/300,5);                           // 靴先が引っかかり前のめり
+    return {x:lerp(245,285,p),y:940-12*Math.sin(Math.PI*p),f:1,back:false,xs:1,pose:"stumble"}; }
+  if(t<1250){ const p=stepped((t-950)/300,6);                          // 手をついて転ぶ（一回転しない）
+    return {x:lerp(285,325,p),y:lerp(940,963,p),f:0,back:false,xs:1,pose:"fall"}; }
+  if(t<1500) return {x:325,y:963,f:0,back:false,xs:1,pose:"fall"};     // 驚いて一拍
+  if(t<1650){ const p=stepped((t-1500)/150,4);                         // 笑顔で起き上がる
+    return {x:lerp(325,342,p),y:lerp(963,940,p),f:0,back:false,xs:1,pose:p<0.55?"stumble":"stand"}; }
+  if(t<1900) return {x:lerp(342,398,stepped((t-1650)/250,3)),y:940,f:wf,back:false,xs:1,pose:"walk"};
   if(t<2080) return {x:398,y:940,f:0,back:false,xs:1};
   if(t<2280){ const q=(t-2080)/200;
     return {x:398,y:940,f:0,back:q>0.5,xs:Math.abs(Math.cos(Math.PI*q))}; }
@@ -291,7 +303,7 @@ function drawTiles(t,lit){
   }
 }
 function drawArm(a){
-  ctx.fillStyle=BALL;
+  ctx.fillStyle=SKIN;
   const dx=a.hx-a.sx, dy=a.hy-a.sy, n=Math.max(1,Math.round(Math.hypot(dx,dy)/7));
   for(let i=0;i<=n;i++) ctx.fillRect(a.sx+dx*i/n-4.5, a.sy+dy*i/n-4.5, 9, 9);
   ctx.fillRect(a.hx-7,a.hy-7,14,14);
@@ -318,11 +330,13 @@ function drawCaption(t){
 
 /* ---------- main loop ---------- */
 const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const previewValue=new URLSearchParams(location.search).get("t");
+const previewTime=previewValue===null?null:clamp(Number(previewValue)||0,0,DUR-1);
 const t0=performance.now();
 function frame(now){
-  if(!reduced) requestAnimationFrame(frame);      // 先に予約: 1フレーム失敗しても止まらない
+  if(!reduced&&previewTime===null) requestAnimationFrame(frame); // 先に予約: 1フレーム失敗しても止まらない
   try{
-    const t=reduced?12500:(((now-t0)%DUR)+DUR)%DUR;
+    const t=previewTime!==null?previewTime:(reduced?12500:(((now-t0)%DUR)+DUR)%DUR);
     const lit=isLit(t);
     ctx.fillStyle=BG; ctx.fillRect(0,0,1080,1080);
     drawPetals(t);
@@ -349,11 +363,12 @@ function frame(now){
     }
 
     drawTiles(t,lit); drawCaption(t);
-    const b=ballPose(t);
+    const b=girlPose(t);
     if(b.arm) drawArm(b.arm);
-    drawBall(b.x,b.y,b.f,b.back,b.xs,b.roll,b.rot);
-    if(b.up){ ctx.fillStyle=BALL;
-      ctx.fillRect(b.x-46,b.y-92,10,48); ctx.fillRect(b.x+36,b.y-92,10,48); }
+    drawTripCue(t,b);
+    drawGirl(b.x,b.y,b.f,b.back,b.xs,b.pose);
+    if(b.up){ ctx.fillStyle=SKIN;
+      ctx.fillRect(b.x-38,b.y-84,9,44); ctx.fillRect(b.x+29,b.y-84,9,44); }
     if(b.arm&&b.carry!==undefined) drawCarriedTile(b.carry,b.arm.hx,b.arm.hy);
   }catch(e){ /* keep the loop alive */ }
 }
