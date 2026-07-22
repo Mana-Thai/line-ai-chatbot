@@ -45,7 +45,8 @@
    - `portfolio/index.html` の `data-line-placeholder`
    - `business/promo/mothersday-2026/posts.md`
    - `business/sales/mothersday-2026/messages.md`
-5. 反映後にポートフォリオを公開するか、当面はサンプル動画3本をLINEへ直接添付する。
+5. 反映後にpushし、公開済みポートフォリオへLINEボタンが反映されたことを確認する。
+   公開URL: https://mana-thai.github.io/line-ai-chatbot/
 
 ## 今週やらない設定
 

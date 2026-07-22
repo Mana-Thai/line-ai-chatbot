@@ -119,6 +119,9 @@
 - 商品表示をMini / Story / Heirloom / Shop Story / Web / LINE AI Careの6段階へ変更。
 - 375px幅・1280px幅をChromeで再確認し、横切れなし。
 - LINE URLは未確定のため `data-line-placeholder` を維持。
+- GitHub Pages公開URL: https://mana-thai.github.io/line-ai-chatbot/
+- 配信正本: `.github/workflows/portfolio-pages.yml`。作業ブランチの`portfolio/**`更新で自動配信。
+- 公開前検査で自己ホストフォントが`fonts/fonts/`を参照する不具合を修正済み。
 
 ### 母の日告知v2
 
@@ -237,24 +240,20 @@
 
 ## 6. 次に行う作業（優先順）
 
-### 外部公開前に安全に進められる作業
+### オーナー本人の情報・操作が必要
 
-1. `warm-leads.csv` の候補01〜15を実際の表示名へローカルで置き換える（個人情報は最小限）。
+1. `warm-leads.csv` の候補01〜15を実際の表示名へ置き換える（個人情報は最小限）。
 2. `messages.md` の接触1だけを15人へ個別送信する。価格や条件は最初から詰め込まない。
-3. 返信者を `intake.md` → `biz-quote` → `orders.csv` の順で見積へ進める。
+3. `line-setup.md` に従いLINE公式アカウントを本人ログインで作り、lin.ee URLを取得する。
+4. LINE URL取得後、`portfolio/index.html` の `data-line-placeholder` と、`posts.md` の
+   `<LINE URL>`を実URLへ差し替え、pushしてPagesの再配信を確認する。
+5. LINE内ブラウザ、スマホ実機、LINEのOGPプレビューを確認し、
+   `promo.png` + `posts.md`を対象グループへ週1回の範囲で投稿する。
 
-### オーナー確認が必要な作業
+### 返信・受注後にAIが実行できる作業
 
-4. `line-setup.md` に従いLINE公式アカウントを本人ログインで作り、lin.ee URLを取得する。
-5. GitHub Pages公開の明示承認を得る。
-6. 承認後、`website-publish` Skillで公開する。
-7. `portfolio/index.html` の `data-line-placeholder` と、`posts.md` の
-   `<LINE URL>` / `<ポートフォリオURL>` を実URLへ差し替える。
-8. 公開後、`website-quality-check` Skillで実URLを確認する。
-9. LINE内ブラウザ、スマホ実機、LINEのOGPプレビューを確認する。
-10. 投稿直前にオーナー最終確認を取り、promo.png + posts.mdをグループLINEへ投稿する。
-
-外部公開、URL差し替え、LINE投稿は勝手に実行しない。
+6. 返信者を `intake.md` → `biz-quote` → `orders.csv` の順で見積へ進める。
+7. 受注後は `biz-delivery` に従い、透かしプレビュー → 入金 → 本納品を実施する。
 
 ## 7. 作業ルール
 
@@ -285,10 +284,11 @@
 - LINE URL未確定。
 - Chrome接続ランタイムの初期化エラー（`Cannot redefine property: process`）により、
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
-- ポートフォリオ未公開。
+- ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
+- PagesはActions方式。`github-pages`環境には`main`と作業ブランチを許可済み。
+- 375px / 1280pxで横スクロールなし、動画3本readyState=4、フォントとOGP画像はHTTP 200、
+  公開後コンソールエラー0を確認済み。
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
-- 1,290 THBへの変更後、告知PNG（1080x1350）は目視確認済み。ポートフォリオは
-  HTML差分と文字列を確認済みだが、Playwright CLIと一時ローカルサーバーの接続が
-  このWindows環境で維持できず、375pxの新規スクリーンショットだけ未取得。
+- 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
 ```
