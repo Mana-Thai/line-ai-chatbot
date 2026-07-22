@@ -187,7 +187,7 @@ function drawGirlFallen(cx,cy,xs){
   block(13,-9,2,2,"#fffdf5"); block(13,-7,2,2,"#e7ad58");
   ctx.restore();
 }
-function drawGirl(cx,cy,frame,back,xs,pose="stand",hideSideArms=false){
+function drawGirl(cx,cy,frame,back,xs,pose="stand",hideSideArms=false,headDown=false){
   if(pose==="fallen"){ drawGirlFallen(cx,cy,xs); return; }
   xs=Math.max(0.18,xs===undefined?1:xs);
   ctx.save(); ctx.translate(cx,cy); ctx.scale(xs,1);
@@ -216,6 +216,8 @@ function drawGirl(cx,cy,frame,back,xs,pose="stand",hideSideArms=false){
   }
 
   // Bob haircut, soft face and a jasmine hair clip.
+  ctx.save();
+  if(headDown) ctx.translate(0,12);
   block(-7,-11,14,8,HAIR); block(-9,-9,3,7,HAIR); block(6,-9,3,7,HAIR);
   block(-5,-9,10,7,SKIN); block(-7,-10,5,3,HAIRL); block(1,-10,6,3,HAIR);
   block(-8,-4,3,3,HAIR); block(5,-4,3,3,HAIR);
@@ -230,6 +232,7 @@ function drawGirl(cx,cy,frame,back,xs,pose="stand",hideSideArms=false){
   }
   block(5,-12,2,2,"#fffdf5"); block(7,-12,2,2,"#fffdf5");
   block(6,-13,2,2,"#fffdf5"); block(6,-11,2,2,"#e7ad58");
+  ctx.restore();
   ctx.restore();
 }
 function drawTripCue(t,b){
@@ -430,7 +433,7 @@ function frame(now){
       drawCarriedTile(b.hold);
     }
     drawTripCue(t,b);
-    drawGirl(b.x,b.y,b.f,b.back,b.xs,b.pose,!!(b.hold||b.ladderHold));
+    drawGirl(b.x,b.y,b.f,b.back,b.xs,b.pose,!!(b.hold||b.ladderHold),!!b.ladderHold);
     if(b.ladderHold) drawLadderHold(b);
   }catch(e){ /* keep the loop alive */ }
 }
