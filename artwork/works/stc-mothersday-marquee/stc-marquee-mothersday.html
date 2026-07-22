@@ -171,10 +171,11 @@ function drawGirlFallen(cx,cy,xs){
   block(-6,-4,12,9,DRESS); block(-6,3,12,2,DRESSD);
   block(-3,-2,7,5,APRON); block(-1,1,2,1,"#e77883");
 
-  // Both hands reach straight upward after the fall.
-  block(-3,-10,3,7,DRESS); block(3,-10,3,7,DRESS);
-  block(-3,-13,3,3,SKIN); block(3,-13,3,3,SKIN);
-  block(-4,-14,2,2,"#ef9ca3"); block(5,-14,2,2,"#ef9ca3");
+  // Both arms reach above her head: character-up is screen-right in this pose.
+  block(0,-8,6,3,DRESS); block(0,5,6,3,DRESS);
+  block(5,-8,11,3,SKIN); block(5,5,11,3,SKIN);
+  block(15,-9,3,4,SKIN); block(15,4,3,4,SKIN);
+  block(17,-8,2,1,"#ef9ca3"); block(17,7,2,1,"#ef9ca3");
 
   // Sideways head with a clearly surprised face and jasmine clip.
   block(5,-7,9,14,HAIR); block(12,-5,3,10,HAIR);
