@@ -1,0 +1,9 @@
+order_id: "sample-mothersday-v4"
+couple_names: "แด่แม่"
+anniversary_date: "12 AUGUST 2026"
+scene1_caption: "แสงเช้านี้เป็นของเรา"
+message: "ขอบคุณที่จับมือฉันไว้\nและยังเดินข้างกันเสมอ"
+message_start_sec: 21
+target_duration: 30
+output_formats: ["portrait"]
+portrait_mode: "crop"
