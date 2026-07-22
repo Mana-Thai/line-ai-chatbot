@@ -140,9 +140,25 @@ _SYSTEM_FONT_CANDIDATES = [
     "/Library/Fonts/NotoSansJP-Regular.ttf",
 ]
 
+_THAI_FONT_CANDIDATES = [
+    # Windows: Leelawadee UI is designed for Thai UI text and ships with Windows.
+    "C:/Windows/Fonts/LeelawUI.ttf",
+    "C:/Windows/Fonts/leelawad.ttf",
+    "C:/Windows/Fonts/tahoma.ttf",
+    # Linux / locally installed Noto fonts.
+    "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansThai-Regular.otf",
+]
 
-def find_font() -> Path:
+
+def find_font(text: str = "") -> Path:
     """assets/fonts を優先し、なければOSのシステムフォントから日本語フォントを探す。"""
+    contains_thai = any("\u0e00" <= char <= "\u0e7f" for char in text)
+    if contains_thai:
+        for cand in _THAI_FONT_CANDIDATES:
+            p = Path(cand)
+            if p.is_file():
+                return p
     if FONTS_DIR.is_dir():
         for ext in ("*.ttf", "*.otf", "*.ttc"):
             hits = sorted(FONTS_DIR.glob(ext))

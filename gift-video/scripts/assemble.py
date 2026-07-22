@@ -46,6 +46,15 @@ def alpha_fade_in_out(start: float, end: float, fade: float) -> str:
             f"if(lt(t,{end}),({end}-t)/{fade},0))))")
 
 
+def alpha_fade_in_then_out(start: float, end: float,
+                           fade_in: float, fade_out: float) -> str:
+    """Hold a title after a slow arrival, then clear it before the end card."""
+    return (f"if(lt(t,{start}),0,"
+            f"if(lt(t,{start + fade_in}),(t-{start})/{fade_in},"
+            f"if(lt(t,{end - fade_out}),1,"
+            f"if(lt(t,{end}),({end}-t)/{fade_out},0))))")
+
+
 # ---------------------------------------------------------------------------
 # メッセージの自動折り返し (drawtext は折り返さないため事前に改行を入れる)
 # ---------------------------------------------------------------------------
@@ -140,6 +149,7 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
     total = round(cur_dur, 3)
     color = order["text_color"]
     timing: dict = {"total_duration": total}
+    names_start = round(total - NAMES_LEAD, 3)
 
     # --- テキストオーバーレイ ---
     texts: list[str] = []
@@ -169,13 +179,13 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         texts.append(drawtext(
             font, msg_txt, fontsize=msg_size, color=color,
             x="(w-text_w)/2", y="(h-text_h)*0.46",
-            alpha=alpha_fade_in(msg_start, MESSAGE_FADE),
-            enable_from=msg_start, enable_to=total,
+            alpha=alpha_fade_in_then_out(msg_start, names_start,
+                                         MESSAGE_FADE, 1.0),
+            enable_from=msg_start, enable_to=names_start,
             line_spacing=int(msg_size * 0.62)))
         timing["message"] = {"text": order["message"],
                              "start": msg_start, "fade": MESSAGE_FADE}
 
-    names_start = round(total - NAMES_LEAD, 3)
     names_txt = work / "names.txt"
     names_txt.write_text(order["couple_names"], encoding="utf-8")
     date_txt = work / "date.txt"
@@ -213,7 +223,10 @@ def assemble(order_id: str, keep_work: bool) -> None:
     ffmpeg = common.find_tool("ffmpeg")
     order = common.load_order(order_id)
     scenes = common.discover_scenes(order_id)
-    font = common.find_font()
+    overlay_text = "\n".join(str(order.get(key, "")) for key in (
+        "scene1_caption", "message", "couple_names", "anniversary_date"
+    ))
+    font = common.find_font(overlay_text)
     paper = common.ensure_transition_png()
 
     odir = common.order_dir(order_id)

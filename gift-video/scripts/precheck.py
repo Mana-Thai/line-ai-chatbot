@@ -170,7 +170,16 @@ def main() -> None:
     try:
         common.find_tool("ffmpeg")
         common.find_tool("ffprobe")
-        font = common.find_font()
+        overlay_text = ""
+        for oid in ids:
+            try:
+                order = common.load_order(oid)
+                overlay_text += "\n".join(str(order.get(key, "")) for key in (
+                    "scene1_caption", "message", "couple_names", "anniversary_date"
+                ))
+            except PipelineError:
+                pass
+        font = common.find_font(overlay_text)
         report.ok("環境", f"ffmpeg OK / font: {font.name}")
     except PipelineError as e:
         report.fail("環境", str(e).splitlines()[0])
