@@ -137,7 +137,7 @@ for start, note, pan in (
 add_soft_step(0.16, -0.46)
 add_soft_step(0.48, -0.30)
 add_soft_step(0.73, -0.14, pitch=172.0, gain=0.042)
-add_soft_step(1.03, 0.02, pitch=92.0, gain=0.090)
+add_soft_step(1.10, 0.02, pitch=92.0, gain=0.090)
 add_tone(1.50, 0.72, 72, 0.095, pan=-0.08)
 add_tone(1.64, 0.76, 76, 0.090, pan=0.12)
 

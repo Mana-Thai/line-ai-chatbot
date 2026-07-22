@@ -162,11 +162,36 @@ function drawPetals(t){
 /* ---------- pixel girl character ---------- */
 const PX=8;
 function block(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x*PX,y*PX,w*PX,h*PX);}
+function drawGirlFallen(cx,cy,xs){
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(Math.max(0.18,xs||1),1);
+
+  // Fully horizontal silhouette: shoes and legs to the left, head to the right.
+  block(-13,-3,4,3,SHOE); block(-13,2,4,3,SHOE);
+  block(-10,-3,5,3,SKIN); block(-10,2,5,3,SKIN);
+  block(-6,-4,12,9,DRESS); block(-6,3,12,2,DRESSD);
+  block(-3,-2,7,5,APRON); block(-1,1,2,1,"#e77883");
+
+  // Both hands reach straight upward after the fall.
+  block(-3,-10,3,7,DRESS); block(3,-10,3,7,DRESS);
+  block(-3,-13,3,3,SKIN); block(3,-13,3,3,SKIN);
+  block(-4,-14,2,2,"#ef9ca3"); block(5,-14,2,2,"#ef9ca3");
+
+  // Sideways head with a clearly surprised face and jasmine clip.
+  block(5,-7,9,14,HAIR); block(12,-5,3,10,HAIR);
+  block(6,-5,7,10,SKIN); block(6,-7,6,3,HAIRL);
+  block(9,-3,2,1,EYE); block(9,2,2,1,EYE);
+  block(11,-1,2,2,"#9b5c5f");
+  block(7,-6,2,1,"#ef9ca3"); block(7,4,2,1,"#ef9ca3");
+  block(12,-8,2,2,"#fffdf5"); block(14,-8,2,2,"#fffdf5");
+  block(13,-9,2,2,"#fffdf5"); block(13,-7,2,2,"#e7ad58");
+  ctx.restore();
+}
 function drawGirl(cx,cy,frame,back,xs,pose="stand"){
+  if(pose==="fallen"){ drawGirlFallen(cx,cy,xs); return; }
   xs=Math.max(0.18,xs===undefined?1:xs);
   ctx.save(); ctx.translate(cx,cy); ctx.scale(xs,1);
   if(pose==="stumble") ctx.rotate(0.34);
-  if(pose==="fall") ctx.rotate(0.92);
+  if(pose==="falling") ctx.rotate(0.66);
 
   // Legs and Mary Jane shoes; the lifted toe makes the trip readable.
   block(-5,5,3,5,SKIN); block(2,5,3,5,SKIN);
@@ -188,7 +213,7 @@ function drawGirl(cx,cy,frame,back,xs,pose="stand"){
   if(!back){
     block(-3,-7,1,2,EYE); block(2,-7,1,2,EYE);
     block(-6,-5,2,1,"#ef9ca3"); block(4,-5,2,1,"#ef9ca3");
-    if(pose==="stumble"||pose==="fall") block(-1,-4,2,2,"#9b5c5f");
+    if(pose==="stumble"||pose==="falling") block(-1,-4,2,2,"#9b5c5f");
     else { block(-1,-4,1,1,"#9b5c5f"); block(0,-3,2,1,"#9b5c5f"); }
   }else{
     block(-5,-8,10,6,HAIR); block(-2,-2,4,2,HAIRL);
@@ -261,11 +286,11 @@ function girlPose(t){
     return {x:lerp(140,245,p),y:940,f:wf,back:false,xs:1,pose:"walk"}; }
   if(t<950){ const p=stepped((t-650)/300,5);                           // 靴先が引っかかり前のめり
     return {x:lerp(245,285,p),y:940-12*Math.sin(Math.PI*p),f:1,back:false,xs:1,pose:"stumble"}; }
-  if(t<1250){ const p=stepped((t-950)/300,6);                          // 手をついて転ぶ（一回転しない）
-    return {x:lerp(285,325,p),y:lerp(940,963,p),f:0,back:false,xs:1,pose:"fall"}; }
-  if(t<1500) return {x:325,y:963,f:0,back:false,xs:1,pose:"fall"};     // 驚いて一拍
+  if(t<1100){ const p=stepped((t-950)/150,4);                          // 前へ倒れ込む（一回転しない）
+    return {x:lerp(285,315,p),y:lerp(940,960,p),f:0,back:false,xs:1,pose:"falling"}; }
+  if(t<1500) return {x:335,y:963,f:0,back:false,xs:1,pose:"fallen"};  // 完全に横になり両手を上げる
   if(t<1650){ const p=stepped((t-1500)/150,4);                         // 笑顔で起き上がる
-    return {x:lerp(325,342,p),y:lerp(963,940,p),f:0,back:false,xs:1,pose:p<0.55?"stumble":"stand"}; }
+    return {x:lerp(335,342,p),y:lerp(963,940,p),f:0,back:false,xs:1,pose:p<0.35?"fallen":(p<0.7?"stumble":"stand")}; }
   if(t<1900) return {x:lerp(342,398,stepped((t-1650)/250,3)),y:940,f:wf,back:false,xs:1,pose:"walk"};
   if(t<2080) return {x:398,y:940,f:0,back:false,xs:1};
   if(t<2280){ const q=(t-2080)/200;
