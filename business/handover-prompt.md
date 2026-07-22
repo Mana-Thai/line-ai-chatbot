@@ -53,13 +53,13 @@
 
 オーナーから「安っぽい。受け取った人が感動して涙を流し、心からありがとうと
 感じるデザインに一新してほしい」、さらに「月々20万THBへ伸ばし、アートの要素を
-増やしたい」と指示があり、動画v2、ポートフォリオv3、告知v2へ刷新済み。
+増やしたい」と指示があり、代表作を現代アート短編v3、ポートフォリオv4、告知v3へ刷新済み。
 
 デザイン原則:
 - 派手なハート、原色、絵文字、丸型カードを多用しない。
 - 感情を説明するのではなく、余白・光・記憶のモチーフ・静かな言葉で伝える。
-- 母の日はタイ文化に合わせ、水色（สีฟ้า）・白ジャスミン・控えめな金を使う。
-- サイトは「静かなギフトアトリエ」の世界観。紙色、白ジャスミン、真鍮色、深い青緑。
+- 母の日を花・笑顔・ハートで説明しない。手漉き紙、皺、距離、縫い目、朝の光で愛の痕跡を見せる。
+- サイトは「現代ギャラリーに置かれた私的な記憶」の世界観。暗部、紙の繊維、一本の金糸、余白。
 - タイ語ファースト、日本語併記。スマホとLINE内ブラウザを最優先する。
 
 ## 3. 完了済み
@@ -97,6 +97,17 @@
   - 記念日 -14.5 LUFS
 - Windows FFmpeg 8で `C:` がfilter_complex区切りと誤認される問題を
   `gift-video/scripts/common.py::ff_quote` で修正済み。
+- 上記3本は旧世代の比較・再生成用。公開ポートフォリオの代表作からは外した。
+
+### 母の日アートフィルムv3（現行代表作）
+
+- 作品名: **The Distance Between Two Hands / 二つの手のあいだ**。
+- 三幕構成: 手漉き紙に残る子どもの手の影 → 紙越しの老いた手と大人の手を結ぶ金糸 →
+  夜明けの部屋に残る繕われた白いシャツ。
+- 花、ハート、顔、ベクター図形、装飾額縁を排除し、現代ギャラリー／アナログ写真の質感へ変更。
+- 30秒・1080x1920・H.264/AAC。QC ALL PASS、-14.2 LUFS、TP -1.93 dBTP。
+- 2秒、12秒、25秒、28.5秒を目視し、タイ語グリフ、改行、本文から献辞への消失を確認済み。
+- タイ語を含む注文はLeelawadee UI / Noto Sans Thaiを優先するよう制作パイプラインを修正。
 
 ### ポートフォリオv2
 
@@ -122,6 +133,14 @@
 - GitHub Pages公開URL: https://mana-thai.github.io/line-ai-chatbot/
 - 配信正本: `.github/workflows/portfolio-pages.yml`。作業ブランチの`portfolio/**`更新で自動配信。
 - 公開前検査で自己ホストフォントが`fonts/fonts/`を参照する不具合を修正済み。
+
+### ポートフォリオv4・母の日告知v3
+
+- ヒーローの花ベクターを廃止し、v3の「二つの手と金糸」をギャラリープリントとして配置。
+- 旧誕生日・記念日動画を代表作一覧から外し、v3を記憶／距離／繕いの三部作として展示。
+- 告知は花・手紙・額縁のコラージュを廃止。一枚の展覧会ポスターとして再設計。
+- `promo.png`は1080x1350。タイ語、日本語、1,290 THB、期限、CTAの表示を目視確認済み。
+- 公開用動画は30秒のv3へ差し替え、ポスターと展示静止画2枚も更新。
 
 ### 母の日告知v2
 
@@ -177,6 +196,10 @@
   - `artwork/works/gift-video-samples/mothersday/scene1.svg`〜`scene3.svg`
   - `artwork/works/gift-video-samples/birthday/scene1.svg`〜`scene3.svg`
   - `artwork/works/gift-video-samples/anniversary/scene1.svg`〜`scene3.svg`
+- 現行代表作の画像・美術設計・音源生成:
+  - `artwork/works/gift-video-samples/mothersday-v3/scene1.png`〜`scene3.png`
+  - `artwork/works/gift-video-samples/mothersday-v3/art-direction.md`
+  - `artwork/works/gift-video-samples/mothersday-v3/gen_soundscape.py`
 - SVG→PNG:
   `artwork/tools/rasterize.py`
 - 静止画→動画:
@@ -186,6 +209,7 @@
 - QC:
   `gift-video/scripts/qc.py`
 - 注文設定:
+  - `gift-video/orders/sample-mothersday-v3/order.yaml`（現行代表作）
   - `gift-video/orders/sample-mothersday/order.yaml`
   - `gift-video/orders/sample-birthday/order.yaml`
   - `gift-video/orders/sample-anniversary/order.yaml`
@@ -198,12 +222,11 @@
 - フォント: `portfolio/fonts/`
 - 公開用軽量動画:
   - `portfolio/assets/sample-mothersday_portrait.mp4`
-  - `portfolio/assets/sample-birthday_portrait.mp4`
-  - `portfolio/assets/sample-anniversary_portrait.mp4`
+  - 旧birthday / anniversary動画は比較用として残るが、現在のページでは非表示。
 - ポスター:
   - `portfolio/assets/sample-mothersday_poster.jpg`
-  - `portfolio/assets/sample-birthday_poster.jpg`
-  - `portfolio/assets/sample-anniversary_poster.jpg`
+  - `portfolio/assets/mothersday-study-memory.jpg`
+  - `portfolio/assets/mothersday-study-repair.jpg`
 - OGP正本: `portfolio/images/ogp.html`
 - OGP画像: `portfolio/images/ogp.jpg`
 
@@ -272,8 +295,8 @@
 ## 8. 現在の状態
 
 - ブランチはoriginと同期済み。
-- 最新の動画v2、月商20万THBの商品階段・90日営業KPI、ポートフォリオv3、
-  母の日告知v2は更新済み。
+- 現行代表作は母の日アートフィルムv3。月商20万THBの商品階段・90日営業KPI、
+  ポートフォリオv4、母の日告知v3へ更新済み。
 - pro-marketing-directorとlaunch-ai-side-hustleの観点で母の日ローンチを再点検済み。
   段階はP0（初回受注の検証）。価格1,290 THB、3接触営業、掲載任意へ修正済み。
 - 採算仮定は変動費50 THB、制作2.5時間で、1件あたり限界利益1,240 THB、
@@ -286,8 +309,8 @@
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
 - PagesはActions方式。`github-pages`環境には`main`と作業ブランチを許可済み。
-- 375px / 1280pxで横スクロールなし、動画3本readyState=4、フォントとOGP画像はHTTP 200、
-  公開後コンソールエラー0を確認済み。
+- v4のローカル1440px全画面をPlaywrightで目視確認済み。公開後の375px / 1280px、
+  動画readyState、フォント、OGP、コンソールエラーはpush後に再確認すること。
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
 - 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
