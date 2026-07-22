@@ -341,4 +341,19 @@
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
 - 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
+
+## 9. STC母の日マルキー（2026-07-22追加）
+
+- 元データ `stc-marquee-v16.html` を壊さず、派生正本を
+  `artwork/works/stc-mothersday-marquee/stc-marquee-mothersday.html` に保存。
+- 梯子を運ぶテニスボールと文字配置の演出を継承し、`LOVE MOM`、リボン、頬、
+  白ジャスミン、母の日ブルー／コーラル／金の配色へ再構成。
+- 終幕は `THANK YOU MOM` と `สุขสันต์วันแม่`。怖さや暗さを避けた13秒の祝福作品。
+- 音楽正本は同ディレクトリの `gen_music.py`。F majorのベル、フェルトピアノ、
+  柔らかなパッドを文字配置・看板点灯・終幕に同期。WAVは再生成可能。
+- Canvas録画補助は `export_webm.js`。中間WAV/WebMは`.gitignore`対象。
+- 完成動画: `portfolio/assets/stc-mothersday-marquee_1080x1080.mp4`
+- ポスター: `portfolio/assets/stc-mothersday-marquee_poster.png`
+- QC: 13.02秒、H.264 1080x1080 30fps、AAC 48kHz stereo 192kbps、
+  -13.3 LUFS / -1.5 dBTP。0.5 / 5.3 / 8.8 / 12.3秒を原寸目視確認済み。
 ```
