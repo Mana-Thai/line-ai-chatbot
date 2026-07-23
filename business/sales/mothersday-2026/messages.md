@@ -126,7 +126,7 @@ https://mana-thai.github.io/line-ai-chatbot/
 申込締切: 8月5日（5枠が埋まり次第終了）
 
 サンプル: https://mana-thai.github.io/line-ai-chatbot/
-ご相談: <LINE URL または送信者へ直接返信>
+ご相談: https://lin.ee/zuu5hJM または送信者へ直接返信
 ```
 
 ### タイ語
@@ -139,7 +139,7 @@ https://mana-thai.github.io/line-ai-chatbot/
 ปิดรับ 5 ส.ค. หรือเมื่อครบ 5 คิว
 
 ชมตัวอย่าง: https://mana-thai.github.io/line-ai-chatbot/
-ปรึกษา: <LINE URL หรือส่งข้อความตอบกลับได้เลย>
+ปรึกษา: https://lin.ee/zuu5hJM หรือส่งข้อความตอบกลับได้เลย
 ```
 
 ## 納品後 — 感想と掲載許可は別々に聞く

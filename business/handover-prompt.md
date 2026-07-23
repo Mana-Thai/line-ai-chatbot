@@ -159,7 +159,7 @@
 - 「写真を並べるのではなく、声・光・沈黙を残す」というアトリエ宣言を追加。
 - 商品表示をMini / Story / Heirloom / Shop Story / Web / LINE AI Careの6段階へ変更。
 - 375px幅・1280px幅をChromeで再確認し、横切れなし。
-- LINE URLは未確定のため `data-line-placeholder` を維持。
+- （v4当時）LINE URLは未確定のため `data-line-placeholder` を維持していた。v7で解消済み。
 - GitHub Pages公開URL: https://mana-thai.github.io/line-ai-chatbot/
 - 配信正本: `.github/workflows/portfolio-pages.yml`。作業ブランチの`portfolio/**`更新で自動配信。
 - 公開前検査で自己ホストフォントが`fonts/fonts/`を参照する不具合を修正済み。
@@ -313,10 +313,9 @@
 
 1. `warm-leads.csv` の候補01〜15を実際の表示名へ置き換える（個人情報は最小限）。
 2. `messages.md` の接触1だけを15人へ個別送信する。価格や条件は最初から詰め込まない。
-3. `line-setup.md` に従いLINE公式アカウントを本人ログインで作り、lin.ee URLを取得する。
-4. LINE URL取得後、`portfolio/index.html` の `data-line-placeholder` と、`posts.md` の
-   `<LINE URL>`を実URLへ差し替え、pushしてPagesの再配信を確認する。
-5. LINE内ブラウザ、スマホ実機、LINEのOGPプレビューを確認し、
+3. LINE公式アカウント `https://lin.ee/zuu5hJM` を自分の個人LINEで友だち追加し、
+   あいさつ文の表示と公式アカウント側からの返信を実機確認する。
+4. LINE内ブラウザ、スマホ実機、LINEのOGPプレビューを確認し、
    `promo.png` + `posts.md`を対象グループへ週1回の範囲で投稿する。
 
 ### 返信・受注後にAIが実行できる作業
@@ -350,7 +349,7 @@
 - 7/25までの検証KPIは、接触1を15件、サンプル閲覧許可8件、相談4件、
   条件提示3件、有料受注1件。これは実績ではなく検証仮説。
 - 実受注はまだ0件。
-- LINE URL未確定。
+- LINE公式アカウントの友だち追加URLは `https://lin.ee/zuu5hJM`。サイト・投稿文・営業文へ反映済み。
 - Chrome接続ランタイムの初期化エラー（`Cannot redefine property: process`）により、
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
@@ -399,11 +398,11 @@
   LINE AI Careを外し、MiniとStoryの2択に限定。法人商品は収入計画から削除していない。
 - 透かし入りプレビュー確認後の支払い、入金後Full HD納品、掲載任意、修正条件、納品形式、
   日本語・タイ語対応を信頼情報とFAQへ追加。未確認の削除期限・キャンセル条件は掲載していない。
-- LINE URL未取得のため、動かない疑似ボタンは撤去。現状はLINEでこのURLを受け取った人が
-  送信者へ「母」と返信する案内を表示し、`data-line-placeholder` は差し替え位置として維持。
+- LINE URL取得前の動かない疑似ボタンは撤去済み。取得した `https://lin.ee/zuu5hJM` を
+  ヘッダー・ヒーロー・商品欄・最終CTAへ設定し、すべて同じ友だち追加導線に統一。
 - ローカル品質確認: Playwright 375x812 / 1280x800、横スクロールなし、画像3点読込成功、
   動画56秒・1080x1920、console error 0。確認画像は `output/playwright/portfolio-v7-*.png`。
 - OGPも同じ母の日訴求、1,290 THB、母娘の代表画像へ更新。正本は
   `portfolio/images/ogp.html`、配信用画像は `portfolio/images/ogp.jpg`（1200x630）。
-- 未解消の販売ブロッカーは実LINE URLのみ。取得後、最終案内をLINE友だち追加ボタンへ差し替える。
+- LINE URLの販売ブロッカーは解消。残る本人確認は、個人LINEでの友だち追加・あいさつ文・返信テスト。
 ```

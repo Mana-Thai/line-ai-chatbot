@@ -1,6 +1,7 @@
 # LINE公式アカウント 15分セットアップ
 
-外部アカウント作成は本人ログインが必要。作成後はこの内容をそのまま設定する。
+外部アカウントは開設済み。友だち追加URLは `https://lin.ee/zuu5hJM`。
+本人ログインで、未完了のあいさつ文・返信テストを実施する。
 ただしP0実売テストは個人LINEで今日開始し、公式アカウント開設を営業開始の条件にしない。
 
 ## 推奨設定
@@ -38,11 +39,11 @@
 
 ## 開設直後の確認
 
-1. LINE Official Account Managerから友だち追加URL `https://lin.ee/...` を取得する。
+1. LINE Official Account Managerから友だち追加URL `https://lin.ee/zuu5hJM` を取得済み。
 2. 自分の個人LINEで追加し、あいさつ文が表示されるか確認する。
 3. 個人LINEからテスト送信し、公式アカウント側で返信する。
-4. URLを次の3箇所へ反映する。
-   - `portfolio/index.html` の `data-line-placeholder`
+4. URLを次の3箇所へ反映済み。
+   - `portfolio/index.html` のLINE相談ボタン
    - `business/promo/mothersday-2026/posts.md`
    - `business/sales/mothersday-2026/messages.md`
 5. 反映後にpushし、公開済みポートフォリオへLINEボタンが反映されたことを確認する。

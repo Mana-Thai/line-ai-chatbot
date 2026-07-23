@@ -1,7 +1,7 @@
 # 母の日キャンペーン 投稿文（2026年・タイ母の日 8/12）
 
-`promo.png` と一緒に投稿する。ポートフォリオURLは公開済み。投稿前に `<LINE URL>` を実URLへ
-置き換える。媒体ルール: 同じグループLINEは週1回まで。残枠は実数だけを書く。
+`promo.png` と一緒に投稿する。ポートフォリオURL・LINE公式アカウントURLは反映済み。
+媒体ルール: 同じグループLINEは週1回まで。残枠は実数だけを書く。
 
 今回の公開告知は **Mini Gift Film 1商品だけ**。Storyなど他商品は問い合わせ後に案内する。
 
@@ -17,7 +17,7 @@
 申込締切: 8月5日（枠が埋まり次第終了）
 
 サンプル: https://mana-thai.github.io/line-ai-chatbot/
-ご相談: <LINE URL>
+ご相談: https://lin.ee/zuu5hJM
 ```
 
 ## 2. กลุ่ม LINE / Facebook ภาษาไทย
@@ -30,7 +30,7 @@
 ปิดรับ 5 ส.ค. หรือเมื่อคิวเต็ม
 
 ชมตัวอย่าง: https://mana-thai.github.io/line-ai-chatbot/
-ปรึกษาทาง LINE: <LINE URL>
+ปรึกษาทาง LINE: https://lin.ee/zuu5hJM
 ```
 
 ## 3. Facebook在タイ日本人グループ
@@ -46,7 +46,7 @@
 8月5日申込締切、8月11日までに納品します。
 
 作品サンプル: https://mana-thai.github.io/line-ai-chatbot/
-日本語でのご相談: <LINE URL>
+日本語でのご相談: https://lin.ee/zuu5hJM
 ```
 
 ## 投稿・送信の記録

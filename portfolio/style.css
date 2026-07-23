@@ -191,10 +191,6 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 .contact > p:not(.eyebrow) { color: var(--ink-soft); }
 .contact .btn { margin: 30px 0 10px; }
 .contact > small { display: block; color: var(--ink-soft); }
-.line-pending { max-width: 700px; margin: 30px auto 14px; padding: 18px 22px; border: 1px solid rgba(70,110,114,.3); background: rgba(255,255,255,.55); }
-.line-pending p { color: var(--ink); font-size: .88rem; }
-.line-pending strong { color: var(--blue-deep); }
-.line-pending span { color: var(--ink-soft); font-size: .8rem; }
 
 footer { display: flex; justify-content: space-between; padding: 26px 5vw; background: var(--night); color: #9fb1b2; font: 400 .68rem/1.5 "Kanit", sans-serif; letter-spacing: .1em; text-transform: uppercase; }
 
