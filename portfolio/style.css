@@ -125,6 +125,10 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 
 .works { background: var(--night); color: #f7f3e8; }
 .works .section-heading > div > p:last-child { color: #aebfc0; }
+.film-synopsis { max-width: 920px; margin: -18px 0 54px 54px; padding: 4px 0 4px 24px; border-left: 1px solid var(--gold); }
+.film-synopsis p { color: #d9e1df; font-size: .9rem; line-height: 1.85; }
+.film-synopsis p + p { margin-top: 8px; color: #aebfc0; }
+.film-synopsis small { display: block; margin-top: 14px; color: var(--gold-light); font-size: .72rem; line-height: 1.7; }
 .works-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(22px, 4vw, 58px); }
 .works figure:nth-child(2) { margin-top: 72px; }
 .video-shell { position: relative; padding: 10px; border: 1px solid rgba(223,201,144,.35); background: rgba(255,255,255,.025); }
@@ -198,6 +202,7 @@ footer { display: flex; justify-content: space-between; padding: 26px 5vw; backg
   .section-heading h2, .campaign h2, .contact h2 { word-break: break-word; overflow-wrap: anywhere; }
   .campaign h2, .campaign-offer p { overflow-wrap: anywhere; word-break: break-all; }
   .works-grid { display: block; }
+  .film-synopsis { margin: -8px 0 42px 38px; padding-left: 16px; }
   .works figure { max-width: 340px; margin: 0 auto 54px; }
   .works figure:nth-child(2) { margin-top: 0; }
   .service-list article { grid-template-columns: 34px 1fr; gap: 14px; }

@@ -1,0 +1,9 @@
+order_id: "sample-mothersday-v5"
+couple_names: "ถึงแม่ จากลูก"
+anniversary_date: "12 AUGUST 2026"
+scene1_caption: "ตั้งแต่วันแรก แม่เฝ้ามองลูกเติบโต"
+message: ""
+message_start_sec: 41
+target_duration: 56
+output_formats: ["portrait"]
+portrait_mode: "crop"

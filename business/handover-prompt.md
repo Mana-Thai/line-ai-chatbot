@@ -54,13 +54,13 @@
 オーナーから「安っぽい。受け取った人が感動して涙を流し、心からありがとうと
 感じるデザインに一新してほしい」、さらに「月々20万THBへ伸ばし、アートの要素を
 増やしたい」と指示があり、その後「品質は良いが少し怖い」との評価を受けた。
-現行代表作は明るい現代アート短編v4、ポートフォリオv5、告知v4へ刷新済み。
+現行代表作は母親視点の人生短編v5、ポートフォリオv6、告知v4へ刷新済み。
 
 デザイン原則:
 - 派手なハート、原色、絵文字、丸型カードを多用しない。
 - 感情を説明するのではなく、余白・光・記憶のモチーフ・静かな言葉で伝える。
 - 母の日を花・笑顔・ハートで説明しない。手漉き紙、皺、距離、縫い目、朝の光で愛の痕跡を見せる。
-- サイトは「自然光の中で一緒につくる記憶」の世界観。紙の繊維、タイの水色、朝の金色、余白。
+- サイトは「母が見つめてきた子どもの人生」の世界観。働く手、修繕した水色の布、朝の金色、余白。
 - タイ語ファースト、日本語併記。スマホとLINE内ブラウザを最優先する。
 
 ## 3. 完了済み
@@ -115,7 +115,7 @@
 - タイ語を含む注文はLeelawadee UI / Noto Sans Thaiを優先するよう制作パイプラインを修正。
 - 画像品質は高いが、暗室、隔たり、空席が一部の鑑賞者に恐怖・喪失を連想させたため公開代表作から外した。
 
-### 母の日アートフィルムv4（現行代表作）
+### 母の日アートフィルムv4（旧版・比較用）
 
 - 作品名: **The Light We Make Together / ふたりでつくる光**。
 - 三幕構成: 朝の光で母娘がサイアノタイプをつくる → 同じ白布を金糸で一緒に繕う →
@@ -124,6 +124,20 @@
 - BGMは低いドローンと紙の軋みを廃止し、朝の空気、穏やかな波、Dメジャー五音音階で新規生成。
 - 30秒・1080x1920・H.264/AAC。QC ALL PASS、-14.4 LUFS、TP -4.35 dBTP。
 - 2秒、12秒、25秒、28.5秒を目視し、温度感、人物、タイ語、改行、終幕を確認済み。
+
+### 母の日アートフィルムv5（現行代表作）
+
+- 作品名: **From the Day I First Saw You / 母が見つめた成長**。
+- 母親の視点で、幼少期の世話 → 母の縫製仕事 → 幸せな子ども時代 → 思春期の衝突と
+  言えない後悔 → 自立 → 娘が働く大変さを理解して思い出の映画を作る → 母が涙を隠して笑う、
+  の7章を描く。代表作は娘版で、息子版も受注時に同じ感情設計で制作可能。
+- 貧しさは悲惨さで誇張せず、弁当、給料袋、修繕、請求書、働く手の具体で表現。
+  母の縫製机と娘の編集机を同じ構図で反復し、娘の気づきを説明字幕なしで伝える。
+- 7シーン×8秒、56秒、1080x1920、H.264/AAC。`precheck.py` / `assemble.py` /
+  `qc.py` ALL PASS。-13.8 LUFS、TP -3.41 dBTP。
+- 2 / 10 / 18 / 26 / 34 / 42 / 50 / 54.5秒を完成MP4から抽出し、人物の年齢推移、
+  母親視点、タイ語キャプション、喧嘩場面の安全性、涙を隠す笑顔、終幕を目視確認済み。
+- 公開用動画はCRF 23 / faststartで13,956,833 bytesへ軽量化。マスターは注文output内で再生成可能。
 
 ### ポートフォリオv2
 
@@ -165,6 +179,13 @@
 - `promo.png`は1080x1350。価格、期限、CTA、日タイ文字の切れがないことを目視確認済み。
 - ローカル375px / 1280pxでPlaywright確認済み。参照切れ0、300KB超のWeb画像0、
   HTMLと動画はHTTP 200。
+
+### ポートフォリオv6
+
+- ヒーロー、作品本編、展示静止画をv5の「母の仕事／娘の気づき／涙を隠す母」へ差し替え。
+- 日タイ二言語のあらすじを追加し、代表作は娘版、息子版も写真から制作可能と明記。
+- Playwrightで375x812 / 1280x800を全画面・作品セクション原寸確認。横スクロールなし、
+  参照切れ0、画像300KB超0、公開動画56秒・1080x1920の読込を確認済み。
 
 ### 母の日告知v2
 
@@ -221,10 +242,10 @@
   - `artwork/works/gift-video-samples/birthday/scene1.svg`〜`scene3.svg`
   - `artwork/works/gift-video-samples/anniversary/scene1.svg`〜`scene3.svg`
 - 現行代表作の画像・美術設計・音源生成:
-  - `artwork/works/gift-video-samples/mothersday-v4/scene1.png`〜`scene3.png`
-  - `artwork/works/gift-video-samples/mothersday-v4/art-direction.md`
-  - `artwork/works/gift-video-samples/mothersday-v4/gen_soundscape.py`
-  - `mothersday-v3/`は暗い旧版の比較・履歴用として保持。
+  - `artwork/works/gift-video-samples/mothersday-v5/scene1.png`〜`scene7.png`
+  - `artwork/works/gift-video-samples/mothersday-v5/art-direction.md`
+  - `artwork/works/gift-video-samples/mothersday-v5/gen_soundscape.py`
+  - `mothersday-v3/`と`mothersday-v4/`は比較・履歴用として保持。
 - SVG→PNG:
   `artwork/tools/rasterize.py`
 - 静止画→動画:
@@ -234,7 +255,8 @@
 - QC:
   `gift-video/scripts/qc.py`
 - 注文設定:
-  - `gift-video/orders/sample-mothersday-v4/order.yaml`（現行代表作）
+  - `gift-video/orders/sample-mothersday-v5/order.yaml`（現行代表作）
+  - `gift-video/orders/sample-mothersday-v4/order.yaml`（旧版）
   - `gift-video/orders/sample-mothersday-v3/order.yaml`（旧版）
   - `gift-video/orders/sample-mothersday/order.yaml`
   - `gift-video/orders/sample-birthday/order.yaml`
@@ -251,8 +273,8 @@
   - 旧birthday / anniversary動画は比較用として残るが、現在のページでは非表示。
 - ポスター:
   - `portfolio/assets/sample-mothersday_poster.jpg`
-  - `portfolio/assets/mothersday-study-making.jpg`
-  - `portfolio/assets/mothersday-study-walking.jpg`
+  - `portfolio/assets/mothersday-study-work.jpg`
+  - `portfolio/assets/mothersday-study-realization.jpg`
 - OGP正本: `portfolio/images/ogp.html`
 - OGP画像: `portfolio/images/ogp.jpg`
 
@@ -267,19 +289,17 @@
 
 概略:
 
-1. SVGを再生成:
-   `python artwork/works/gift-video-samples/generate_scenes.py`
-2. 各SVGを `artwork/tools/rasterize.py` で3840x2160 PNGへ変換。
-3. `gift-video/scripts/animate.py` で各10秒、1920x1080のscene1〜3.mp4を生成。
-   推奨プリセットは scene1=zoom-in / scene2=sway / scene3=zoom-out。
-4. `gen_bgm.py <theme> <out.wav> 30` でBGMを生成し、mp3へ変換。
-5. 各 `gift-video/orders/sample-*/input/` にscene1〜3.mp4とbgm.mp3を配置。
+1. v5の画像正本 `mothersday-v5/scene1.png`〜`scene7.png` を使用。
+2. `gift-video/scripts/animate.py` で各8秒、1080x1920のscene1〜7.mp4を生成。
+   推奨プリセットは zoom-in / pan-right / zoom-out / zoom-in / pan-right / zoom-in / zoom-in。
+3. `mothersday-v5/gen_soundscape.py <out.wav>` で56秒BGMを生成し、mp3へ変換。
+4. `gift-video/orders/sample-mothersday-v5/input/` にscene1〜7.mp4とbgm.mp3を配置。
 6. `gift-video/` で以下をテーマごとに実行:
    - `python scripts/precheck.py <order-id>`
    - `python scripts/assemble.py <order-id> --keep-work`
    - `python scripts/qc.py <order-id>`
 7. ALL PASS後、portrait出力を `portfolio/assets/` の公開用ファイルへコピー。
-8. 26秒付近のフレームをJPEG化し、各poster.jpgを更新。
+8. scene7をposter、scene2とscene6を展示JPEGへ変換。公開動画はCRF 23 / faststartで軽量化。
 
 注意:
 - `precheck.py --all` は素材未配置の古い `sample-001` / `sample-002` も拾うため、
@@ -321,8 +341,8 @@
 ## 8. 現在の状態
 
 - ブランチはoriginと同期済み。
-- 現行代表作は母の日アートフィルムv4。月商20万THBの商品階段・90日営業KPI、
-  ポートフォリオv5、母の日告知v4へ更新済み。
+- 現行代表作は母の日アートフィルムv5。月商20万THBの商品階段・90日営業KPI、
+  ポートフォリオv6、母の日告知v4へ更新済み。
 - pro-marketing-directorとlaunch-ai-side-hustleの観点で母の日ローンチを再点検済み。
   段階はP0（初回受注の検証）。価格1,290 THB、3接触営業、掲載任意へ修正済み。
 - 採算仮定は変動費50 THB、制作2.5時間で、1件あたり限界利益1,240 THB、
@@ -335,9 +355,8 @@
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
 - PagesはActions方式。`github-pages`環境には`main`と作業ブランチを許可済み。
-- v5はGitHub Pagesへ配信済み。公開URLをPlaywrightで375px / 1280pxの全画面目視確認済み。
-  HTMLは新しい`THE LIGHT WE MAKE TOGETHER`と制作／歩行の展示画像を参照。
-  新動画14,578,499 bytes、展示静止画、CSS、OGPがHTTP 200であることを確認済み。
+- v6はローカルでwebsite-quality-check済み。HTMLは`FROM THE DAY I FIRST SAW YOU`と
+  母の仕事／娘の気づき／涙を隠す母の展示画像を参照。新動画13,956,833 bytes。
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
 - 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
