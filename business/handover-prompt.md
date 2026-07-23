@@ -417,8 +417,13 @@
   汎用的な紙トランジションは使用せず、物語に合わせた章間トランジションへ変更。
 - 冒頭・終幕に使う母娘の画像から、母親の目の下にあった薄い涙の滴と涙の筋を除去。
   顔、手、タブレット、衣服、照明、構図は維持し、乾いた頬と穏やかな笑顔にした。
+- 第4章は、背中を向けて手紙を隠す旧構図と、母の前で謝罪文を見せる試作をともに不採用。
+  手紙・紙・文字を完全に除き、娘の伏せた視線、言いかけて止まる唇、内側へ寄せた肩、
+  制服の裾を落ち着かず握る両手、踏み出せない重心だけで「心では謝っているのに言えない」を表現。
+  ワイド→表情→指先の3カットを完成MP4から抽出し、手紙が残っていないことを目視確認済み。
 - 56秒の専用音楽とフォーリーを新規設計。ミシン、布、紙、扉／足音、キーボード、
   タブレット再生音を物語へ同期し、喧嘩の章では音数を減らし、和解の章では和声を広げた。
+  第4章からは紙の効果音も削除し、沈黙と小さな心拍だけに変更。
 - 画像・演出正本:
   - `artwork/works/gift-video-samples/mothersday-v6/scene1.png`〜`scene7.png`
   - `artwork/works/gift-video-samples/mothersday-v6/art-direction.md`
@@ -431,10 +436,10 @@
   56.00秒、1080x1920、H.264/AAC、-13.7 LUFS、-2.09 dBTP。
   最終MP4の全フレームデコードと代表フレームの目視確認にも成功。
 - 公開用動画はCRF 22 slow / faststartへ変換し
-  `portfolio/assets/sample-mothersday_portrait.mp4`（29,543,775 bytes）へ配置。
+  `portfolio/assets/sample-mothersday_portrait.mp4`（29,264,309 bytes）へ配置。
   涙を除いたポスターは `portfolio/assets/sample-mothersday_poster.jpg`、
   同じ画像を使うOGPは `portfolio/images/ogp.jpg`。
 - ローカルwebsite-quality-checkは375x812で横はみ出しなし、console error 0。
-  OGPは1200x630で目視確認済み。GitHub Pagesのデプロイ成功後、動画29,543,775 bytes、
+  OGPは1200x630で目視確認済み。GitHub Pagesのデプロイ成功後、動画29,264,309 bytes、
   ポスター158,027 bytes、OGP 78,599 bytesが公開URLからHTTP 200で返ることを照合済み。
 ```

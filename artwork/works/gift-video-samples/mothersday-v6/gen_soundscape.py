@@ -66,7 +66,7 @@ def main() -> None:
     sewing = [8.55 + .43 * i for i in range(17)]
     footsteps = (32.75, 33.62, 34.49)
     keyboard = (40.75, 41.08, 41.43, 42.02, 42.35, 42.83, 43.28, 44.05)
-    paper = ((16.25, .72), (24.45, .88), (45.15, .55))
+    paper = ((16.25, .72), (45.15, .55))
 
     for index in range(total):
         t = index / SR
@@ -131,4 +131,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
