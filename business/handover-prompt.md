@@ -453,7 +453,24 @@
 - 第4章 `mothersday-v6/scene4.png` を入力し、`cinematic`、`9:16`、2候補、
   人物・衣服・母親肩越し構図・伏せた視線・指先のしぐさを維持し、手紙・文字・涙・
   重複した手足を禁止するプロンプトを `--dry-run` で検証済み。
-- 実行環境とリポジトリ直下に `GEMINI_API_KEY` がなく、API生成は未実行。
-  キー設定後は検証済みコマンドから2候補を生成し、目視比較で改善した場合だけscene4へ採用する。
-  採用後は第4章再描画 → precheck → assemble → qc → Web用変換 → Pages公開確認を行う。
+- リポジトリ直下のgit管理外 `.env` に `GEMINI_API_KEY` を保存済み。値は表示せず、
+  設定済み判定と文字数のみで検証した。キーをコミットしてはいけない。
+- Gemini APIはキーを正常認識したが、`gemini-2.5-flash-preview-image` の無料枠上限が0で
+  HTTP 429 `RESOURCE_EXHAUSTED`。Google Cloud側で画像生成の課金枠を有効化すれば再実行可能。
+- 作業を止めず、`image-stylize` の同一性維持・禁止要素・2候補比較の仕様を組み込み画像編集へ適用。
+  2候補を生成し、母親との距離と温かさが最も自然な候補1をscene4へ採用した。
+- 採用画像は1024x1536へ正規化。母親肩越し構図、人物と服装、伏せた視線、言いかけた唇、
+  制服の裾をつまむ両手を維持し、自然な肌、雨の寒色、ランプの暖色、奥行きを改善。
+  手紙、紙、文字、涙、余分な手足、恐怖表現がないことを目視確認済み。
+- 第4章のみ再描画して56秒マスターへ再結合。他6章は再利用。
+  `precheck.py` → `assemble.py --keep-work` → `qc.py` はALL PASS。
+  56.00秒、1080x1920、H.264/AAC、-13.7 LUFS、TP -2.10 dBTP。
+- 完成動画の24.8秒（広角）、27.7秒（表情）、30.5秒（両手）を抽出して目視検査し合格。
+  公開用はCRF 22 slow / AAC 160kbps / faststartへ変換し、
+  `portfolio/assets/sample-mothersday_portrait.mp4`（29,449,971 bytes）へ反映。
+  全フレームデコードもPASS。
+- `website-quality-check` を実行。375x812と1280x800の全ページ画像を目視し、
+  スマホ横はみ出しなし、本文16px、タイ語フォント正常、動画readyState 4、console error 0。
+  ローカル資産とLINEリンクはHTTP 200、viewport/title/OGP/絶対og:imageもPASS。
+  次はコミット・push後のPages公開容量照合。
 ```
