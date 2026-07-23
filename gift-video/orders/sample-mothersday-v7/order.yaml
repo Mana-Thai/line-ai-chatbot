@@ -1,0 +1,9 @@
+order_id: "sample-mothersday-v7"
+couple_names: "\u200B"
+anniversary_date: "\u200B"
+scene1_caption: ""
+message: ""
+message_start_sec: 25.15
+target_duration: 30
+output_formats: ["portrait"]
+portrait_mode: "crop"

@@ -1,0 +1,49 @@
+{
+  "title": "The Coin Comes Home",
+  "duration_seconds": 30.0,
+  "overall_style": "original intimate cinematic lullaby, restrained Thai atmosphere without quoting any existing song",
+  "instrumentation": [
+    "felt piano",
+    "airy wooden flute breath texture",
+    "very soft warm strings",
+    "subtle low room-tone drone"
+  ],
+  "tempo_bpm": 68,
+  "meter": "4/4",
+  "tonal_center": "D minor colors resolving gently toward F major",
+  "mix_notes": "instrumental only, no vocals and no percussion; sparse enough to preserve coin, rain and paper foley; begin immediately but quietly; one coherent three-note motif; no trailer impacts; natural warm ending by 30 seconds",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 7.0,
+      "emotion": "humble tenderness and childhood memory",
+      "intensity": 0.2,
+      "music": "three widely spaced felt-piano notes introduce a simple original lullaby-like motif; a nearly inaudible warm string harmonic arrives after the first breath",
+      "sync": "leave acoustic space around the coin contact at 4.10 seconds; let one high piano overtone answer it rather than striking on top of it"
+    },
+    {
+      "start": 7.0,
+      "end": 16.0,
+      "emotion": "solitary realization after learning the weight of earning",
+      "intensity": 0.34,
+      "music": "move the same three-note motif into a lower felt-piano register with restrained suspended harmony; add only an airy wooden-flute breath texture, not a lead melody",
+      "sync": "darken gently with the rainy Bangkok cut at 7.0 seconds; keep the midrange open for rain and paper movements at 10.25, 12.15 and 13.35 seconds"
+    },
+    {
+      "start": 16.0,
+      "end": 23.0,
+      "emotion": "role reversal, gratitude and quiet resolve",
+      "intensity": 0.68,
+      "music": "return the opening motif one octave higher; warm strings widen gradually beneath it and the harmony turns toward hope without becoming triumphant",
+      "sync": "recognize the visual rhyme at 16.0 seconds; reserve the strongest but still restrained harmonic bloom for the envelope touching the mother's palm at 20.25 seconds"
+    },
+    {
+      "start": 23.0,
+      "end": 30.0,
+      "emotion": "maternal warmth, acceptance and afterglow",
+      "intensity": 0.42,
+      "music": "release into a soft F-major-colored piano voicing; the airy texture recedes and one final felt-piano note rings naturally over warm strings",
+      "sync": "open space as jasmine appears at 23.0 seconds and as the Thai sentence fades in at 25.15 seconds; resolve between 28.8 and 29.6 seconds with no abrupt cutoff"
+    }
+  ]
+}
