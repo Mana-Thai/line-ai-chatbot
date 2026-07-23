@@ -440,6 +440,7 @@
   涙を除いたポスターは `portfolio/assets/sample-mothersday_poster.jpg`、
   同じ画像を使うOGPは `portfolio/images/ogp.jpg`。
 - ローカルwebsite-quality-checkは375x812で横はみ出しなし、console error 0。
-  OGPは1200x630で目視確認済み。GitHub Pagesのデプロイ成功後、動画29,264,309 bytes、
-  ポスター158,027 bytes、OGP 78,599 bytesが公開URLからHTTP 200で返ることを照合済み。
+  OGPは1200x630で目視確認済み。修正版はコミット `9805fdb` でPages配信ブランチへpush済み。
+  ローカルの公開用動画は29,264,309 bytesで全フレームデコードPASS。push後に実行環境から
+  `github.io` への接続が一時的に失敗したため、同容量が公開URLから返ることの再照合だけ未完了。
 ```
