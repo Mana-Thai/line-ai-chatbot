@@ -355,8 +355,9 @@
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
 - PagesはActions方式。`github-pages`環境には`main`と作業ブランチを許可済み。
-- v6はローカルでwebsite-quality-check済み。HTMLは`FROM THE DAY I FIRST SAW YOU`と
-  母の仕事／娘の気づき／涙を隠す母の展示画像を参照。新動画13,956,833 bytes。
+- v6はGitHub Pagesへ配信済み。ローカルwebsite-quality-checkに加え、公開HTMLで
+  `FROM THE DAY I FIRST SAW YOU`への切替を確認。56秒動画13,956,833 bytes、母の仕事／
+  娘の気づきの展示画像は公開URLですべてHTTP 200。
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
 - 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
