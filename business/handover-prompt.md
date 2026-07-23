@@ -443,4 +443,17 @@
   OGPは1200x630で目視確認済み。修正版はコミット `9805fdb` でPages配信ブランチへpush済み。
   ローカルの公開用動画は29,264,309 bytesで全フレームデコードPASS。push後に実行環境から
   `github.io` への接続が一時的に失敗したため、同容量が公開URLから返ることの再照合だけ未完了。
+
+## 12. image-stylize Skill（PR #28、2026-07-23追加）
+
+- PR `https://github.com/Mana-Thai/line-ai-chatbot/pull/28` のコミット `f571b28` から、
+  `image-stylize` Skillと `artwork/tools/stylize.py` を作業ブランチへ取り込んだ。
+- `npm.cmd run sync-skills` を実行し、`.claude/skills/image-stylize/SKILL.md` と
+  `.agents/skills/image-stylize/SKILL.md` の同期を確認。取り込みコミットは `2e5e294`。
+- 第4章 `mothersday-v6/scene4.png` を入力し、`cinematic`、`9:16`、2候補、
+  人物・衣服・母親肩越し構図・伏せた視線・指先のしぐさを維持し、手紙・文字・涙・
+  重複した手足を禁止するプロンプトを `--dry-run` で検証済み。
+- 実行環境とリポジトリ直下に `GEMINI_API_KEY` がなく、API生成は未実行。
+  キー設定後は検証済みコマンドから2候補を生成し、目視比較で改善した場合だけscene4へ採用する。
+  採用後は第4章再描画 → precheck → assemble → qc → Web用変換 → Pages公開確認を行う。
 ```
