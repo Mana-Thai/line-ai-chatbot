@@ -472,5 +472,8 @@
 - `website-quality-check` を実行。375x812と1280x800の全ページ画像を目視し、
   スマホ横はみ出しなし、本文16px、タイ語フォント正常、動画readyState 4、console error 0。
   ローカル資産とLINEリンクはHTTP 200、viewport/title/OGP/絶対og:imageもPASS。
-  次はコミット・push後のPages公開容量照合。
+  映像更新コミット `b00ecf8` を作業ブランチへpush済み。
+- GitHub Pagesの公開動画
+  `https://mana-thai.github.io/line-ai-chatbot/assets/sample-mothersday_portrait.mp4`
+  はHTTP 200、Content-Length 29,449,971 bytesでローカル正本と一致し、公開反映完了。
 ```
