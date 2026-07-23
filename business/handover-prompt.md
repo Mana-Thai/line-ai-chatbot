@@ -476,4 +476,30 @@
 - GitHub Pagesの公開動画
   `https://mana-thai.github.io/line-ai-chatbot/assets/sample-mothersday_portrait.mp4`
   はHTTP 200、Content-Length 29,449,971 bytesでローカル正本と一致し、公開反映完了。
+
+## 13. ElevenLabs Music v2映画音楽版（2026-07-23追加）
+
+- `create-cinematic-short-music` Skillで56秒の代表動画を解析し、
+  `output/cinematic-music/mothersday-v6/analysis/contact_sheet.jpg` と
+  `analysis.json` を生成。7章の物語を6区間の感情曲線へ再設計した。
+- 音楽設計は「母の静かな献身 → 労働と娘の幸福 → 言えない謝罪の沈黙 →
+  自立の重み → 感謝への気づき → 母娘の再会と受容」。
+  D major / B minor、72 BPM、フェルトピアノ、ソロチェロ、室内弦、
+  微かな低域パルスのオリジナル器楽曲。特定の楽曲・作曲家は参照していない。
+- `ELEVENLABS_API_KEY` はgit管理外 `.env` に保存。値は表示・コミット禁止。
+  `music_generation` 権限を付与し、ElevenLabs Music v2で56秒を1回生成した。
+- 出力:
+  - 単独音楽: `portfolio/assets/sample-mothersday_cinematic-score.mp3`
+  - 元音声保持の合成版: `portfolio/assets/sample-mothersday_cinematic-mix.mp4`
+  - 感情設計: `output/cinematic-music/mothersday-v6/analysis/emotional_plan.json`
+  - 送信内容: `output/cinematic-music/mothersday-v6/generation_request.json`
+  - 実行報告: `output/cinematic-music/mothersday-v6/render_report.json`
+- 元の `portfolio/assets/sample-mothersday_portrait.mp4` は上書きせず保存。
+  `portfolio/index.html` の再生対象だけを映画音楽版へ変更した。
+- QC: 56.00秒、尺差0、1080x1920、H.264/AAC stereo、-13.55 LUFS、
+  True Peak -2.15 dBTP。単独音楽は-23.12 LUFS / -5.07 dBTP。
+  元音声が主役になる控えめなミックスで、全フレームデコードPASS。
+- `website-quality-check` は375x812 / 1280x800の全ページ目視PASS。
+  スマホ横はみ出しなし、本文16px、動画readyState 4、尺56秒、1080x1920、
+  `sample-mothersday_cinematic-mix.mp4` の読込成功、console error 0。
 ```
