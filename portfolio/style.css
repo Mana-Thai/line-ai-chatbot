@@ -122,6 +122,8 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 .campaign-offer .deadline { color: var(--ink); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .campaign-offer .founding-note { margin-top: 16px; padding-left: 14px; border-left: 1px solid var(--gold); color: var(--ink); }
 .campaign-offer .founding-note span { color: var(--ink-soft); font-size: .76rem; }
+.text-link { display: inline-block; min-height: 44px; margin-top: 18px; color: var(--blue-deep); font: 500 .82rem/1.5 "Kanit", sans-serif; text-underline-offset: 5px; }
+.text-link span { margin-left: 6px; color: var(--ink-soft); font-size: .74rem; }
 
 .works { background: var(--night); color: #f7f3e8; }
 .works .section-heading > div > p:last-child { color: #aebfc0; }
@@ -149,12 +151,15 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 .services { background: var(--paper); }
 .service-list { border-top: 1px solid var(--line); }
 .service-list article { display: grid; grid-template-columns: 54px 1fr auto; gap: 22px; align-items: center; padding: 27px 0; border-bottom: 1px solid var(--line); }
+.service-list .featured-service { margin-inline: -22px; padding-inline: 22px; background: rgba(237,244,243,.78); border-left: 2px solid var(--gold); }
 .service-no { color: var(--gold); font: 400 .72rem/1 "Kanit", sans-serif; }
 .service-list h3 { font-size: 1.2rem; }
 .service-list h3 small { color: var(--ink-soft); font-size: .76rem; }
 .service-list article > div p { color: var(--ink-soft); font-size: .86rem; }
 .price { color: var(--blue-deep); font: 500 1.1rem/1.4 "Kanit", sans-serif; text-align: right; }
 .price small { display: block; color: var(--ink-soft); font-size: .68rem; }
+.service-guidance { max-width: 760px; margin: 26px 0 0 54px; padding-left: 18px; border-left: 1px solid var(--gold); color: var(--ink); font-size: .88rem; }
+.service-guidance span { color: var(--ink-soft); font-size: .8rem; }
 
 .flow { background: var(--paper-deep); }
 .flow ol { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
@@ -165,12 +170,31 @@ section { padding: 76px max(22px, calc((100vw - 1120px) / 2)); }
 .flow strong { display: block; margin: 22px 0 12px; font: 400 1rem/1.4 "Kanit", sans-serif; }
 .flow li p { color: var(--ink-soft); font-size: .86rem; }
 
+.assurance { background: var(--paper); }
+.assurance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.assurance-grid article { min-height: 250px; padding: 28px; background: var(--paper); }
+.assurance-grid h3 { margin-bottom: 16px; font-size: 1.08rem; }
+.assurance-grid p { color: var(--ink-soft); font-size: .84rem; }
+.assurance-grid p + p { margin-top: 8px; }
+.faq { max-width: 900px; margin: 48px auto 0; border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { min-height: 58px; padding: 16px 34px 16px 0; position: relative; cursor: pointer; list-style: none; font: 500 .92rem/1.5 "Kanit", sans-serif; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; position: absolute; right: 6px; top: 14px; color: var(--gold); font-size: 1.2rem; }
+.faq details[open] summary::after { content: "−"; }
+.faq summary span { margin-left: 8px; color: var(--ink-soft); font-size: .76rem; }
+.faq details p { padding: 0 34px 12px 0; color: var(--ink-soft); font-size: .84rem; }
+
 .contact { text-align: center; padding-top: 104px; padding-bottom: 104px; background: var(--mist); }
 .contact-flower { margin-bottom: 20px; transform: scale(1.5); }
 .contact h2 { font-size: clamp(2.2rem, 4.8vw, 4.2rem); margin: 15px 0 22px; }
 .contact > p:not(.eyebrow) { color: var(--ink-soft); }
 .contact .btn { margin: 30px 0 10px; }
 .contact > small { display: block; color: var(--ink-soft); }
+.line-pending { max-width: 700px; margin: 30px auto 14px; padding: 18px 22px; border: 1px solid rgba(70,110,114,.3); background: rgba(255,255,255,.55); }
+.line-pending p { color: var(--ink); font-size: .88rem; }
+.line-pending strong { color: var(--blue-deep); }
+.line-pending span { color: var(--ink-soft); font-size: .8rem; }
 
 footer { display: flex; justify-content: space-between; padding: 26px 5vw; background: var(--night); color: #9fb1b2; font: 400 .68rem/1.5 "Kanit", sans-serif; letter-spacing: .1em; text-transform: uppercase; }
 
@@ -207,9 +231,14 @@ footer { display: flex; justify-content: space-between; padding: 26px 5vw; backg
   .works figure:nth-child(2) { margin-top: 0; }
   .service-list article { grid-template-columns: 34px 1fr; gap: 14px; }
   .service-list .price { grid-column: 2; text-align: left; margin-top: 5px; }
+  .service-list .featured-service { margin-inline: -10px; padding-inline: 10px; }
+  .service-guidance { margin-left: 38px; }
   .flow ol { grid-template-columns: 1fr; }
   .flow li { padding: 24px 0; min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .flow li + li { padding-left: 0; }
+  .assurance-grid { grid-template-columns: 1fr; }
+  .assurance-grid article { min-height: 0; }
+  .faq summary span { display: block; margin-left: 0; }
   .contact { padding-top: 82px; padding-bottom: 82px; }
   .contact h2 { font-size: 1.9rem; }
   .contact .btn { width: 100%; }
