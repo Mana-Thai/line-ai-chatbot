@@ -356,8 +356,8 @@
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
 - PagesはActions方式。`github-pages`環境には`main`と作業ブランチを許可済み。
-- ポートフォリオv7はGitHub Pagesへ配信済み。母の日アートフィルムv6への差し替えは
-  ローカルwebsite-quality-check済みで、公開反映待ち。
+- ポートフォリオv7と母の日アートフィルムv6はGitHub Pagesへ配信済み。
+  ローカルwebsite-quality-checkと公開ファイルの応答・容量照合まで完了。
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
 - 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
@@ -435,5 +435,6 @@
   涙を除いたポスターは `portfolio/assets/sample-mothersday_poster.jpg`、
   同じ画像を使うOGPは `portfolio/images/ogp.jpg`。
 - ローカルwebsite-quality-checkは375x812で横はみ出しなし、console error 0。
-  OGPは1200x630で目視確認済み。
+  OGPは1200x630で目視確認済み。GitHub Pagesのデプロイ成功後、動画29,543,775 bytes、
+  ポスター158,027 bytes、OGP 78,599 bytesが公開URLからHTTP 200で返ることを照合済み。
 ```
