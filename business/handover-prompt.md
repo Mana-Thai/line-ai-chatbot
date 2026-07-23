@@ -502,4 +502,7 @@
 - `website-quality-check` は375x812 / 1280x800の全ページ目視PASS。
   スマホ横はみ出しなし、本文16px、動画readyState 4、尺56秒、1080x1920、
   `sample-mothersday_cinematic-mix.mp4` の読込成功、console error 0。
+- 実装コミット `b4493a5` を作業ブランチへpush。GitHub Pagesで
+  映画音楽版MP4 29,671,905 bytes、単独MP3 1,345,005 bytes、ページの新MP4参照が
+  すべて一致し、公開反映を確認済み。
 ```
