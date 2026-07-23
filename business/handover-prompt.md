@@ -242,10 +242,11 @@
   - `artwork/works/gift-video-samples/birthday/scene1.svg`〜`scene3.svg`
   - `artwork/works/gift-video-samples/anniversary/scene1.svg`〜`scene3.svg`
 - 現行代表作の画像・美術設計・音源生成:
-  - `artwork/works/gift-video-samples/mothersday-v5/scene1.png`〜`scene7.png`
-  - `artwork/works/gift-video-samples/mothersday-v5/art-direction.md`
-  - `artwork/works/gift-video-samples/mothersday-v5/gen_soundscape.py`
-  - `mothersday-v3/`と`mothersday-v4/`は比較・履歴用として保持。
+  - `artwork/works/gift-video-samples/mothersday-v6/scene1.png`〜`scene7.png`
+  - `artwork/works/gift-video-samples/mothersday-v6/art-direction.md`
+  - `artwork/works/gift-video-samples/mothersday-v6/cinematic_master.py`
+  - `artwork/works/gift-video-samples/mothersday-v6/gen_soundscape.py`
+  - `mothersday-v3/`〜`mothersday-v5/`は比較・履歴用として保持。
 - SVG→PNG:
   `artwork/tools/rasterize.py`
 - 静止画→動画:
@@ -255,7 +256,8 @@
 - QC:
   `gift-video/scripts/qc.py`
 - 注文設定:
-  - `gift-video/orders/sample-mothersday-v5/order.yaml`（現行代表作）
+  - `gift-video/orders/sample-mothersday-v6/order.yaml`（現行代表作）
+  - `gift-video/orders/sample-mothersday-v5/order.yaml`（旧版）
   - `gift-video/orders/sample-mothersday-v4/order.yaml`（旧版）
   - `gift-video/orders/sample-mothersday-v3/order.yaml`（旧版）
   - `gift-video/orders/sample-mothersday/order.yaml`
@@ -289,21 +291,21 @@
 
 概略:
 
-1. v5の画像正本 `mothersday-v5/scene1.png`〜`scene7.png` を使用。
-2. `gift-video/scripts/animate.py` で各8秒、1080x1920のscene1〜7.mp4を生成。
-   推奨プリセットは zoom-in / pan-right / zoom-out / zoom-in / pan-right / zoom-in / zoom-in。
-3. `mothersday-v5/gen_soundscape.py <out.wav>` で56秒BGMを生成し、mp3へ変換。
-4. `gift-video/orders/sample-mothersday-v5/input/` にscene1〜7.mp4とbgm.mp3を配置。
-6. `gift-video/` で以下をテーマごとに実行:
+1. v6の画像正本 `mothersday-v6/scene1.png`〜`scene7.png` を使用。
+2. `mothersday-v6/cinematic_master.py <output.mp4>` で、21ショットの56秒映像を生成する。
+3. `mothersday-v6/gen_soundscape.py <out.wav>` で56秒の専用音楽とフォーリーを生成し、mp3へ変換。
+4. 映像を `gift-video/orders/sample-mothersday-v6/input/scene1.mp4`、音源を同じ
+   `input/bgm.mp3` に配置する。
+5. `gift-video/` で以下を実行:
    - `python scripts/precheck.py <order-id>`
    - `python scripts/assemble.py <order-id> --keep-work`
    - `python scripts/qc.py <order-id>`
-7. ALL PASS後、portrait出力を `portfolio/assets/` の公開用ファイルへコピー。
-8. scene7をposter、scene2とscene6を展示JPEGへ変換。公開動画はCRF 23 / faststartで軽量化。
+6. ALL PASS後、portrait出力を `portfolio/assets/` の公開用ファイルへコピー。
+7. 涙を除いたscene7をposterへ変換。公開動画はCRF 22 slow / faststartで軽量化。
 
 注意:
 - `precheck.py --all` は素材未配置の古い `sample-001` / `sample-002` も拾うため、
-  今回の3本は個別IDで実行する。
+  現行代表作は `sample-mothersday-v6` を個別指定して実行する。
 - Windows PowerShellで絵文字出力が文字化けする場合は `$env:PYTHONUTF8='1'` を設定。
 - 一時PNG/WAVやChromeプロファイルをコミットしない。
 
@@ -340,7 +342,7 @@
 ## 8. 現在の状態
 
 - ブランチはoriginと同期済み。
-- 現行代表作は母の日アートフィルムv5。月商20万THBの商品階段・90日営業KPI、
+- 現行代表作は母の日アートフィルムv6。月商20万THBの商品階段・90日営業KPI、
   ポートフォリオv6、母の日告知v4へ更新済み。
 - pro-marketing-directorとlaunch-ai-side-hustleの観点で母の日ローンチを再点検済み。
   段階はP0（初回受注の検証）。価格1,290 THB、3接触営業、掲載任意へ修正済み。
@@ -354,9 +356,8 @@
   AI側からLINE公式アカウント作成画面の操作はできなかった。本人が `line-setup.md` で開設する。
 - ポートフォリオはGitHub Pagesで公開済み: https://mana-thai.github.io/line-ai-chatbot/
 - PagesはActions方式。`github-pages`環境には`main`と作業ブランチを許可済み。
-- v6はGitHub Pagesへ配信済み。ローカルwebsite-quality-checkに加え、公開HTMLで
-  `FROM THE DAY I FIRST SAW YOU`への切替を確認。56秒動画13,956,833 bytes、母の仕事／
-  娘の気づきの展示画像は公開URLですべてHTTP 200。
+- ポートフォリオv7はGitHub Pagesへ配信済み。母の日アートフィルムv6への差し替えは
+  ローカルwebsite-quality-check済みで、公開反映待ち。
 - グループLINEへの告知未投稿。
 - 実在する見込み客の連絡先・表示名はAIに渡されていないため、個別送信は未実行。
 - 1,290 THBへの変更後、告知PNG（1080x1350）と公開ポートフォリオを目視確認済み。
@@ -405,4 +406,34 @@
 - OGPも同じ母の日訴求、1,290 THB、母娘の代表画像へ更新。正本は
   `portfolio/images/ogp.html`、配信用画像は `portfolio/images/ogp.jpg`（1200x630）。
 - LINE URLの販売ブロッカーは解消。残る本人確認は、個人LINEでの友だち追加・あいさつ文・返信テスト。
+
+## 11. 母の日アートフィルムv6（2026-07-23追加）
+
+- v5の7枚を単純にパン／ズームする構成から、7章×3カットの全21ショットへ再編集。
+  各章にワイド、感情または手元のディテール、余韻のショットを割り当て、
+  母の労働と成長した娘の仕事を平行するカメラリズムで結んだ。
+- 章ごとに焦点位置とカメラ軌道を個別設計。低彩度の母の日ブルーを基調に、
+  控えめなハレーション、フィルムグレイン、ビネット、フォーカス移動を重ねた。
+  汎用的な紙トランジションは使用せず、物語に合わせた章間トランジションへ変更。
+- 冒頭・終幕に使う母娘の画像から、母親の目の下にあった薄い涙の滴と涙の筋を除去。
+  顔、手、タブレット、衣服、照明、構図は維持し、乾いた頬と穏やかな笑顔にした。
+- 56秒の専用音楽とフォーリーを新規設計。ミシン、布、紙、扉／足音、キーボード、
+  タブレット再生音を物語へ同期し、喧嘩の章では音数を減らし、和解の章では和声を広げた。
+- 画像・演出正本:
+  - `artwork/works/gift-video-samples/mothersday-v6/scene1.png`〜`scene7.png`
+  - `artwork/works/gift-video-samples/mothersday-v6/art-direction.md`
+  - `artwork/works/gift-video-samples/mothersday-v6/cinematic_master.py`
+  - `artwork/works/gift-video-samples/mothersday-v6/gen_soundscape.py`
+- 注文設定: `gift-video/orders/sample-mothersday-v6/order.yaml`
+- `cinematic_master.py` は中間解像度2560x3840、1080x1920、30fps、CRF 16 slowで
+  7章を描画して56秒へ結合する。中断再開時は各章を全フレームデコードしてから再利用する。
+- `precheck.py` → `assemble.py --keep-work` → `qc.py` を完走しALL PASS。
+  56.00秒、1080x1920、H.264/AAC、-13.7 LUFS、-2.09 dBTP。
+  最終MP4の全フレームデコードと代表フレームの目視確認にも成功。
+- 公開用動画はCRF 22 slow / faststartへ変換し
+  `portfolio/assets/sample-mothersday_portrait.mp4`（29,543,775 bytes）へ配置。
+  涙を除いたポスターは `portfolio/assets/sample-mothersday_poster.jpg`、
+  同じ画像を使うOGPは `portfolio/images/ogp.jpg`。
+- ローカルwebsite-quality-checkは375x812で横はみ出しなし、console error 0。
+  OGPは1200x630で目視確認済み。
 ```
