@@ -505,4 +505,55 @@
 - 実装コミット `b4493a5` を作業ブランチへpush。GitHub Pagesで
   映画音楽版MP4 29,671,905 bytes、単独MP3 1,345,005 bytes、ページの新MP4参照が
   すべて一致し、公開反映を確認済み。
+
+## 14. 母の日マッチカット短編v7（2026-07-24追加・現行公開版）
+
+- 旧7章構成を継ぎ足さず、30秒・3シーン（映像上はジャスミンを含む4ショット）として
+  最初から再設計した。顔を映さず、手と物だけで母娘の役割の反転を描く。
+  1) 1990年代の田舎のタイで、働く母の手が子どもの掌へ一枚のコインを渡す。
+  2) 雨のバンコクの夜、成長した娘が稼いだ紙幣と読めない私信を白い封筒へ入れる。
+  3) シーン1と同じ光・焦点・手の接点で、娘が封筒を老いた母の掌へ返す。
+  4) 白いジャスミンと封筒へ移り、`ตอนนี้…ถึงตาลูกดูแลแม่บ้างนะ` だけを表示する。
+- シーン1を参照画像としてシーン3を編集生成し、窓、斜光、青緑の布、手の侵入方向、
+  接点の位置を揃えた。コイン→封筒、子どもの手→老いた母の手、母の手→娘の手だけを
+  変えることで、偶然ではないマッチカットを成立させた。
+- 35mm調、24fpsの元マスター、teal & amber、4〜6%の緩いドリー、控えめな粒子と
+  ビネットを採用。読みやすさは背景光で確保し、末尾テキストの半透明帯は
+  テンプレート感が出るため不採用。涙、顔、ロゴ、説明字幕は使っていない。
+- 正本:
+  - `artwork/works/gift-video-samples/mothersday-v7-matchcut/scene1-coin.png`
+  - `scene2-envelope.png` / `scene3-return.png` / `scene3-jasmine.png`
+  - `art-direction.md` / `render_master.py` / `gen_foley.py`
+  - `emotional_plan.json`
+- 音はコイン接触、雨、紙、ペン、室内音を先に自作し、ElevenLabs Music v2で
+  30秒のオリジナル器楽曲を1回生成して `mix`。68 BPM、フェルトピアノの3音動機、
+  息のような木管質感、非常に薄い弦。既存曲・特定作曲家は参照していない。
+  コインの4.10秒、紙の10.25/12.15/13.35秒、封筒接触の20.25秒に音楽の隙間と
+  和声の持ち上がりを同期した。APIキーはgit管理外 `.env` のみ。値の表示・コミット禁止。
+- 注文設定: `gift-video/orders/sample-mothersday-v7/order.yaml`。
+  `precheck.py` はWARNなし、`assemble.py --keep-work`、`qc.py` はALL PASS。
+  完成版は30.00秒、1080x1920、H.264/AAC、-14.1 LUFS、TP -1.76 dBTP。
+  元マスターは24fps、納品パイプライン版は30fps。
+- 公開資産:
+  - 動画: `portfolio/assets/sample-mothersday_matchcut.mp4`（14,433,721 bytes）
+  - 単独音楽: `portfolio/assets/sample-mothersday_matchcut-score.mp3`
+  - 静止画: `mothersday-matchcut-coin.jpg` / `mothersday-matchcut-return.jpg`
+- `portfolio/index.html` のヒーロー、作品説明、中央動画、前後の静止画をv7へ変更。
+  旧v6資産は削除せず保存した。`business/promo/mothersday-2026/posts.md` の
+  日タイ告知3種へ「コインが封筒となって母へ戻る」新サンプルの導入を追加した。
+- website-quality-check:
+  - ローカル375x812: scrollWidth 375、本文16px、動画readyState 4、30秒、
+    1080x1920、console error 0。
+  - ローカル1280x800: scrollWidth 1280、console error 0。
+  - 相対資産はすべてHTTP 200、viewport/title/OGP/絶対og:imageあり。
+  - 公開ページも動画readyState 4、30秒、1080x1920、console error 0。
+- コミット: 正本 `230db72`、原画補完 `1b92c28`、公開導線 `01fe9ec`。
+  すべて `origin/claude/ai-side-income-plan-039ya4` へpush済み。
+- 公開URL:
+  - ページ: `https://mana-thai.github.io/line-ai-chatbot/`
+  - 動画直リンク: `https://mana-thai.github.io/line-ai-chatbot/assets/sample-mothersday_matchcut.mp4`
+  公開ページ/MP4/ポスターはHTTP 200。MP4のContent-Lengthはローカルと一致。
+- 未実施は外部グループへの実投稿のみ。投稿時は
+  `business/promo/mothersday-2026/promo.png` と更新済み `posts.md` を使い、
+  同一グループ週1回、実残枠のみ記載する。受注時は `business/orders.csv` を更新する。
 ```
