@@ -19,7 +19,7 @@
 写真10枚まで／縦または横／修正2回／8月11日までに納品
 申込締切: 8月5日（枠が埋まり次第終了）
 
-サンプル: https://mana-thai.github.io/line-ai-chatbot/
+サンプル: https://mana-thai.github.io/line-ai-chatbot/ja/
 ご相談: https://lin.ee/zuu5hJM
 ```
 
@@ -53,7 +53,7 @@
 写真10枚まで／30秒／縦または横／修正2回まで
 8月5日申込締切、8月11日までに納品します。
 
-作品サンプル: https://mana-thai.github.io/line-ai-chatbot/
+作品サンプル: https://mana-thai.github.io/line-ai-chatbot/ja/
 日本語でのご相談: https://lin.ee/zuu5hJM
 ```
 
