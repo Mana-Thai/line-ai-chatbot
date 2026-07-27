@@ -575,4 +575,24 @@
 - 未実施は外部グループへの実投稿のみ。投稿時は
   `business/promo/mothersday-2026/promo.png` と更新済み `posts.md` を使い、
   同一グループ週1回、実残枠のみ記載する。受注時は `business/orders.csv` を更新する。
+
+## 16. ポートフォリオの日本語・タイ語分離（2026-07-27追加）
+
+- ポートフォリオを言語別の独立ページへ分離した。
+  - タイ語のみ: `https://mana-thai.github.io/line-ai-chatbot/`
+  - 日本語のみ: `https://mana-thai.github.io/line-ai-chatbot/ja/`
+- タイ語版の正本は `portfolio/index.html`、日本語版は
+  `portfolio/ja/index.html`。共通スタイルは `portfolio/style.css`。
+- 両ページのヘッダーに小さな言語切替を設置し、`canonical` と
+  `hreflang`（`th` / `ja` / `x-default`）を設定した。
+- `business/promo/mothersday-2026/posts.md` は、日本語投稿のリンクだけ
+  `/ja/` へ変更し、タイ語投稿はルートURLのままとした。
+- website-quality-check:
+  - 375px幅・1280px幅とも横スクロールなし。
+  - 両言語とも本文16px、動画readyState 4、30秒、1080x1920。
+  - console error 0、相対資産はすべてHTTP 200。
+  - 言語切替はタイ語→日本語、日本語→タイ語の両方向で動作確認済み。
+- 公開確認: 両URLともHTTP 200。ルートは `<html lang="th">`、
+  `/ja/` は `<html lang="ja">` で配信されている。
+- 実装コミット: `0afda7a`。`origin/claude/ai-side-income-plan-039ya4` へpush済み。
 ```
