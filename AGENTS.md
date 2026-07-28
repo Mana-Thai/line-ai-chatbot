@@ -82,6 +82,7 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `roblox-game-dev` | Robloxゲーム開発(Luau・Studio連携・サーバー権威設計・公開) |
 | `new-web-game` | ブラウザミニゲーム(Canvas)の作成とURL共有 |
 | `illustration-animation` | イラスト・静止画のアニメーション化(animate.py・ギフト動画連携) |
+| `image-to-video` | 静止画をAIでプロンプトの指示通りに動かして動画化(i2v.py・Veo生成・外部サービス整形) |
 | `apparel-graphic-design` | アパレルプリントのデザイン制作(SVG→300dpi透過PNG・印刷制約) |
 | `pixel-art` | ピクセルアート制作(テキストグリッド作画→SVG→PNG) |
 | `gimmick-art` | 仕掛けアート(逆さ絵・隠し文字・QRアート等)の制作と検証 |

@@ -9,6 +9,7 @@ gift-video/
 ├── scripts/
 │   ├── new_order.py      # 新規注文フォルダを生成 (--dummy でテスト素材も生成)
 │   ├── animate.py        # イラスト(静止画)からシーン動画を生成 (ズーム/パン/揺れ/パラパラ)
+│   ├── i2v.py            # 静止画をAI(Veo)でプロンプト通りに動かしてシーン動画に (要 GEMINI_API_KEY)
 │   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
 │   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
@@ -101,6 +102,9 @@ python scripts/animate.py frames_dir/ --out orders/sample-001/input/scene2.mp4 -
 ```
 
 入力イラストは出力解像度の1.5〜2倍以上を推奨(ズーム・パンの余白になる)。
+
+絵の中身そのもの(髪・波・人物など)をAIで動かしたい場合は `scripts/i2v.py` を使います
+(Veo / Gemini API。`GEMINI_API_KEY` が必要で有料。`python scripts/i2v.py --help` 参照)。
 
 ### 複数注文をまとめて作る
 
