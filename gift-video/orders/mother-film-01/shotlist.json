@@ -1,0 +1,83 @@
+{
+  "title": "mother-film-01",
+  "note": "母と娘・1分の短編。テキスト/キャプション/ロゴなし。合計60.0秒 (シーン計64.0秒 - クロスフェード0.5秒×8)",
+  "target_duration": 60.0,
+  "xfade_duration": 0.5,
+  "end_fade_duration": 2.0,
+  "style": "Cinematic 35mm film look, anamorphic, shallow depth of field, soft natural light, warm amber and pale blue palette, gentle film grain, muted desaturated colors, quiet restrained mood, handheld with minimal movement, authentic rural and urban Thailand, no text, no captions, no logos",
+  "negative_prompt": "saturated colors, glossy commercial look, stock-footage smiles, hearts, sparkles, fast cuts, text, captions, subtitles, logos, watermark, distortion, morphing, warping, extra fingers, deformed face, identity change",
+  "scenes": [
+    {
+      "n": 1,
+      "slug": "braiding-morning",
+      "duration": 7.0,
+      "previz_preset": "zoom-in",
+      "beat": "朝の木造家屋。母が6歳の娘の髪を編む。編む手のクローズ。",
+      "prompt": "A mother braids her six-year-old daughter's hair in a wooden house in the morning, warm light falling through slatted windows. Her hands move slowly and steadily through the braid while the girl sits still. Close on the braiding hands, static handheld camera. Slow, quiet, tender."
+    },
+    {
+      "n": 2,
+      "slug": "dinner-fish",
+      "duration": 7.0,
+      "previz_preset": "sway",
+      "beat": "質素な夕食。母が魚を娘の皿に移し、自分は白飯を食べる。無言。",
+      "prompt": "A mother and her young daughter eat a simple dinner at a wooden table. The mother slowly lifts a piece of fish with her spoon and places it on the girl's plate, then quietly eats plain rice herself. Neither speaks. Static camera, candid, slow natural movement, dim warm kitchen light."
+    },
+    {
+      "n": 3,
+      "slug": "roadside-banknote",
+      "duration": 7.0,
+      "previz_preset": "zoom-in",
+      "beat": "田舎の道端。旅立つ娘のポケットに母が札を押し込み、二度叩く。無言。",
+      "prompt": "At a rural roadside beside an old bus, a mother slips a small folded banknote deep into her adult daughter's shirt pocket, then pats the pocket twice with her palm. The daughter looks down, silent. Static handheld camera, hazy morning light, dust in the air."
+    },
+    {
+      "n": 4,
+      "slug": "office-night",
+      "duration": 6.0,
+      "previz_preset": "zoom-in",
+      "beat": "深夜のバンコクのオフィス。娘が給与通知を長く見つめる。",
+      "prompt": "A young woman sits alone at her desk in a near-empty office at night, looking at the phone in her hand. Her eyes stay on the screen for a long moment, her expression still and tired. She blinks slowly. Cool fluorescent light, dark city window behind her. Static camera, very slow."
+    },
+    {
+      "n": 5,
+      "slug": "store-blouse",
+      "duration": 6.0,
+      "previz_preset": "zoom-in",
+      "beat": "デパート。娘が水色のブラウスを手に取り、値段を見て計算し、決める。",
+      "prompt": "A young woman holds up a soft blue blouse on a hanger in a clothing store, turning it slightly to look at it. She glances at the price tag, thinks for a moment, then smiles very slightly to herself. Static camera, shallow depth of field, warm store light."
+    },
+    {
+      "n": 6,
+      "slug": "mirror-blouse",
+      "duration": 7.0,
+      "previz_preset": "zoom-in",
+      "beat": "田舎の家。母が届いたブラウスを鏡の前で当て、白髪に触れる。照れくささ。",
+      "prompt": "An older woman holds a soft blue blouse against her chest in front of an old spotted mirror in a wooden room. She looks at her reflection, then slowly raises one hand to touch her greying hair, shy and almost embarrassed to like it. Static camera, soft window light."
+    },
+    {
+      "n": 7,
+      "slug": "porch-hairdye",
+      "duration": 8.0,
+      "previz_preset": "zoom-out",
+      "beat": "夕方の縁側。娘が母の白髪を梳き、染める。幼少期の逆再生。",
+      "prompt": "On a wooden porch in late afternoon, a young woman sits behind her mother and slowly combs dye through her mother's greying hair. Both are calm and silent. Golden hour light, dust floating in the air, green field behind. Static handheld camera, slow and gentle."
+    },
+    {
+      "n": 8,
+      "slug": "garland-face",
+      "duration": 9.0,
+      "previz_preset": "zoom-in",
+      "beat": "娘がひざまずきジャスミンの花輪を差し出す。母が娘の顔を両手で包み、長く見つめる。涙は落ちない。",
+      "prompt": "A mother takes her kneeling adult daughter's face in both hands and looks at her for a long moment, her eyes wet but the tears not falling. A white jasmine garland rests between them. Both are still. Static camera, warm side light, shallow depth of field."
+    },
+    {
+      "n": 9,
+      "slug": "hands-jasmine",
+      "duration": 7.0,
+      "previz_preset": "sway",
+      "beat": "クローズアップ。二組の手が水色のリボンのジャスミンの花輪を持つ。静止からゆっくり暗転。",
+      "prompt": "Extreme close-up of two pairs of hands, one older and one younger, holding a white jasmine garland with a pale blue ribbon. The hands hold steady; the ribbon stirs very slightly in the breeze. Warm sunlight, very shallow focus. Camera completely still."
+    }
+  ]
+}

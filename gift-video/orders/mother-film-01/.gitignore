@@ -1,0 +1,7 @@
+# 生成物(容量が大きいためコミットしない。build.py で再生成できる)
+input/
+output/
+
+# 参考画像から拡大した暫定の生成用画像。本番の高解像度画像に差し替えたら
+# git add -f stills/sceneN.png でコミットする
+stills/scene*[0-9].png
