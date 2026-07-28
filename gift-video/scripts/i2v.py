@@ -34,12 +34,12 @@ import common
 from common import PipelineError
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_MODEL = "veo-3.1-fast-generate-preview"
+# Veo 3.0 / 2.0 系は 2026-06-30 に停止済み。3.1 系のみ使える。
+# 料金は出力1秒あたり: Lite $0.05 / Fast $0.10 / 標準 $0.40 (720p基準)
+DEFAULT_MODEL = "veo-3.1-fast-generate-001"
 FALLBACK_MODELS = [
-    "veo-3.1-generate-preview",
-    "veo-3.0-fast-generate-001",
-    "veo-3.0-generate-001",
-    "veo-2.0-generate-001",
+    "veo-3.1-lite-generate-preview",    # 最安 (Fastの半額以下)
+    "veo-3.1-generate-preview",         # 最高品質・高価
 ]
 IMAGE_MIMES = {".png": "image/png", ".jpg": "image/jpeg",
                ".jpeg": "image/jpeg", ".webp": "image/webp"}
@@ -51,7 +51,9 @@ KEY_HELP = """\
 環境変数 GEMINI_API_KEY が設定されていません。
 
   https://aistudio.google.com/apikey でAPIキーを取得して設定してください。
-  ※ Veo(動画生成)は有料ティアのみ。1本あたり数十円〜数百円かかります。
+  ※ Veo(動画生成)に無料枠はありません。キー作成後にそのプロジェクトで
+    課金を有効化する必要があります(有効化しないと 429/403 で失敗します)。
+    料金は出力1秒あたり Lite $0.05 / Fast $0.10 / 標準 $0.40 (720p基準)。
 
 APIが使えない場合は、外部サービス(Kling / Hailuo / Runway 等)のWeb画面で
 画像から動画を生成してダウンロードし、このスクリプトの --normalize-only で
