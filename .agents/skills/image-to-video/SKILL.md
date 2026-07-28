@@ -45,19 +45,37 @@ description: 静止画(写真・イラスト)をAIでプロンプトの指示通
 [被写体と現状] + [どう動くか(1つに絞る)] + [カメラ] + [速度・雰囲気]
 ```
 
-- **動きは1〜2個に絞る**。欲張ると破綻する(顔が溶ける・指が増える)
+### 動きは3層に分けて書く
+
+「画面全体が自然に動いてほしい」という依頼はほぼ必ず来る。ここで主動作を並べると
+破綻するので、**層を分けて、増やすのは3層目だけ**にする:
+
+1. **主動作(必ず1つだけ)** — 髪を編む、皿に料理を移す、顔を両手で包む
+2. **表情・呼吸** — まばたき、目を伏せる、唇を結ぶ、息で胸が上下する、涙が溜まるが落ちない
+3. **アンビエントな微動(いくらでも足してよい)** — 髪・布・湯気・埃・草木・水面・
+   光のゆらぎ・背景の人通り。破綻の原因にならず、"生きた画"になるかを決めるのはここ
+
+3層目を書かないと、被写体だけ動いて背景が止まった「動く写真」になりやすい。
+それを避けるため、共通スタイルに
+`Full live-action motion: ... Nothing in the frame is a frozen still image.` を、
+負のプロンプトに `static frozen image, cinemagraph, parallax photo effect, ken burns zoom,
+motionless background, frozen faces` を入れておく。
+
+- **主動作は1〜2個に絞る**。欲張ると破綻する(顔が溶ける・指が増える)
 - 静止画の内容は変えない前提で書く(「turns into...」のような変身指示は破綻しやすい)
 - ゆっくり自然に: `slowly` `gently` `subtly` を多用する。激しい動きほど破綻リスクが上がる
 - カメラを動かしたくなければ `static camera, no camera movement` を足す
 - 破綻対策の負のプロンプト: `--negative-prompt "distortion, morphing, warping, extra fingers"`
 
-**例1** 「この夫婦の写真、2人が微笑み合う感じで動かして」
-> A couple standing in a park. They slowly turn to each other and smile warmly.
-> Subtle natural movement, hair sways gently in the breeze. Static camera, photorealistic.
+**例1** 「この夫婦の写真、2人が微笑み合う感じで動かして」(主動作=向き合って微笑む)
+> A couple standing in a park slowly turn to each other and smile warmly. They blink and
+> their shoulders rise with a breath. Their hair and clothes stir in the breeze, leaves
+> move behind them and the light shifts across their faces. Static camera, photorealistic.
 
-**例2** 「この海のイラスト、波と雲が動くように」
-> An illustrated seascape. Waves roll gently onto the shore, clouds drift slowly across
-> the sky. The illustration style stays exactly the same. Slow ambient motion, static camera.
+**例2** 「この海のイラスト、波と雲が動くように」(主動作=波)
+> An illustrated seascape. Waves roll gently onto the shore and retreat. Clouds drift
+> slowly across the sky, beach grass sways and light glitters on the water. The
+> illustration style stays exactly the same. Slow ambient motion, static camera.
 
 ※ 人物写真は安全フィルタで生成拒否されることがある(エラーに理由が出る)。
 その場合は表現を穏当にするか、別カット・イラストで試す。
@@ -95,8 +113,10 @@ python scripts/i2v.py --normalize-only downloaded.mp4 \
 
 ## 品質チェック
 
+- [ ] **画面のどこかが静止画のまま止まっていないか**(背景・布・髪が固まっていると
+      「動く写真」に見える)。止まっていたらアンビエント層(3層目)を書き足して再生成
 - [ ] 全編再生して破綻がない(顔・手・文字が溶ける/歪む/増える)。あれば再生成:
-      動きを1つに減らす・`subtly` を足す・`--negative-prompt` を付ける
+      主動作を1つに減らす・`subtly` を足す・`--negative-prompt` を付ける
 - [ ] 指示した動きになっている(意図しないカメラ移動・別人化がない)
 - [ ] `--fit-duration` でループ延長した場合、つなぎ目が目立たない
 - [ ] どうしても破綻が直らないときは `illustration-animation`(カメラワーク)に切り替える
