@@ -5,6 +5,10 @@
     python scripts/i2v.py photo.png --prompt "The couple slowly turn to each other and smile" \
         --out orders/x-001/input/scene1.mp4 --fit-duration 10
 
+    # 参照画像で人物の同一性を保つ (複数シーンで同じ顔にしたいとき。最大3枚)
+    python scripts/i2v.py scene3.png --prompt "..." --out scene3.mp4 \
+        --ref faces/mother.png --ref faces/daughter.png
+
     # 外部サービス(Kling/Hailuo等)でダウンロードした動画をシーン素材の仕様に整える
     python scripts/i2v.py --normalize-only downloaded.mp4 --out orders/x-001/input/scene1.mp4 --fit-duration 10
 
@@ -43,6 +47,7 @@ FALLBACK_MODELS = [
 ]
 IMAGE_MIMES = {".png": "image/png", ".jpg": "image/jpeg",
                ".jpeg": "image/jpeg", ".webp": "image/webp"}
+MAX_ASSET_REFS = 3      # Veoの制約: 同一人物・商品の参照画像は最大3枚
 STRETCH_MAX = 1.6       # これ以上のスロー再生は不自然になるのでループで埋める
 POLL_SEC = 15
 POLL_TIMEOUT_SEC = 15 * 60
@@ -84,6 +89,10 @@ def api_call(url: str, key: str, payload: dict | None = None, timeout: int = 120
             hint = "\nクォータ超過です。時間を置くか、Google AI Studio で課金設定・上限を確認してください。"
         elif e.code in (400, 403) and "API_KEY" in body.upper():
             hint = "\nAPIキーが無効です。GEMINI_API_KEY の値を確認してください。"
+        elif e.code == 400 and "reference" in body.lower():
+            hint = ("\n参照画像がこのモデルで使えない可能性があります。--model を変えて試すか"
+                    "(--list-models で候補を確認)、--ref を外して、プロンプトに人物の特徴"
+                    "(年齢・髪型・服装)を書き込む方法に切り替えてください。")
         raise PipelineError(f"APIエラー HTTP {e.code}: {url}\n{body}{hint}")
     except urllib.error.URLError as e:
         raise PipelineError(f"APIに接続できません: {e.reason}\nネットワーク・プロキシ設定を確認してください。")
@@ -156,13 +165,40 @@ def image_aspect(src: Path) -> str:
     return "16:9" if int(st["width"]) >= int(st["height"]) else "9:16"
 
 
-def generate(src: Path, prompt: str, raw_out: Path, model: str, aspect: str,
-             resolution: str | None, negative: str | None, gen_seconds: int | None) -> None:
-    key = api_key()
-    mime = IMAGE_MIMES.get(src.suffix.lower())
+def encode_image(path: Path) -> dict:
+    mime = IMAGE_MIMES.get(path.suffix.lower())
     if not mime:
-        raise PipelineError(f"対応していない画像形式です: {src} (png/jpg/webpのみ)")
-    b64 = base64.b64encode(src.read_bytes()).decode("ascii")
+        raise PipelineError(f"対応していない画像形式です: {path} (png/jpg/webpのみ)")
+    if not path.is_file():
+        raise PipelineError(f"画像がありません: {path}")
+    return {"bytesBase64Encoded": base64.b64encode(path.read_bytes()).decode("ascii"),
+            "mimeType": mime}
+
+
+def build_reference_images(assets: list[Path], style: Path | None) -> list[dict]:
+    """参照画像リストを組み立てる。
+
+    asset は「同じ人物・キャラクター・商品」の見た目を保つための画像で最大3枚。
+    style は画風を移すための画像で1枚。Veoの制約でこの2種類は混在できない。
+    複数シーンで同じ人物を出したいとき(顔が別人になるのを防ぐとき)は asset を使う。
+    """
+    if assets and style:
+        raise PipelineError(
+            "--ref (asset) と --style-ref (style) は同時に使えません。\n"
+            "Veoの制約: asset画像 最大3枚 か style画像 1枚 のどちらかです。")
+    if len(assets) > MAX_ASSET_REFS:
+        raise PipelineError(f"--ref は最大{MAX_ASSET_REFS}枚までです (指定: {len(assets)}枚)。\n"
+                            f"人物ごとに1枚ずつ、顔がはっきり写ったものを選んでください。")
+    refs = [{"image": encode_image(p), "referenceType": "asset"} for p in assets]
+    if style:
+        refs.append({"image": encode_image(style), "referenceType": "style"})
+    return refs
+
+
+def generate(src: Path | None, prompt: str, raw_out: Path, model: str, aspect: str,
+             resolution: str | None, negative: str | None, gen_seconds: int | None,
+             refs: list[dict] | None = None) -> None:
+    key = api_key()
 
     params: dict = {"aspectRatio": aspect}
     if resolution:
@@ -171,13 +207,16 @@ def generate(src: Path, prompt: str, raw_out: Path, model: str, aspect: str,
         params["negativePrompt"] = negative
     if gen_seconds:
         params["durationSeconds"] = gen_seconds
-    payload = {
-        "instances": [{"prompt": prompt,
-                       "image": {"bytesBase64Encoded": b64, "mimeType": mime}}],
-        "parameters": params,
-    }
 
-    print(f"[i2v] モデル {model} / {aspect} で生成を開始 (通常1〜5分)...")
+    instance: dict = {"prompt": prompt}
+    if src is not None:
+        instance["image"] = encode_image(src)
+    if refs:
+        instance["referenceImages"] = refs
+    payload = {"instances": [instance], "parameters": params}
+
+    ref_note = f" / 参照画像{len(refs)}枚" if refs else ""
+    print(f"[i2v] モデル {model} / {aspect}{ref_note} で生成を開始 (通常1〜5分)...")
     op = api_call(f"{API_BASE}/models/{model}:predictLongRunning", key, payload)
     op_name = op.get("name")
     if not op_name:
@@ -254,8 +293,15 @@ def normalize(src: Path, out: Path, W: int, H: int, fps: int, crf: int,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="静止画をAI(Veo)でプロンプト通りに動く動画にする")
-    ap.add_argument("src", nargs="?", help="入力画像 (png/jpg/webp)。--normalize-only なら動画(mp4等)")
+    ap.add_argument("src", nargs="?",
+                    help="入力画像 (png/jpg/webp)。--normalize-only なら動画(mp4等)。"
+                         "--ref を使う場合は省略できる(参照画像だけから生成)")
     ap.add_argument("--prompt", help="動きの指示 (英語推奨。書き方は Skill image-to-video 参照)")
+    ap.add_argument("--ref", action="append", default=[], metavar="IMG",
+                    help=f"人物・商品の参照画像。複数シーンで同じ顔を保つときに使う"
+                         f"(最大{MAX_ASSET_REFS}枚。人物ごとに --ref を繰り返す)")
+    ap.add_argument("--style-ref", metavar="IMG",
+                    help="画風の参照画像 (1枚)。--ref とは併用できない")
     ap.add_argument("--out", help="出力mp4のパス (例: orders/x/input/scene1.mp4)")
     ap.add_argument("--model", default=DEFAULT_MODEL,
                     help=f"Veoモデル名 (既定: {DEFAULT_MODEL}。他候補: {', '.join(FALLBACK_MODELS)})")
@@ -282,10 +328,18 @@ def main() -> None:
     if args.list_models:
         list_models()
         return
-    if not args.src or not args.out:
-        ap.error("src と --out は必須です (--list-models を除く)")
-    src, out = Path(args.src), Path(args.out)
-    if not src.is_file():
+    refs = build_reference_images([Path(p) for p in args.ref],
+                                  Path(args.style_ref) if args.style_ref else None)
+    if args.normalize_only and refs:
+        ap.error("--normalize-only では参照画像は使えません (生成しないため)")
+    if not args.out:
+        ap.error("--out は必須です (--list-models を除く)")
+    if not args.src and not refs:
+        ap.error("src は必須です (--ref で参照画像だけから生成する場合を除く)")
+
+    out = Path(args.out)
+    src = Path(args.src) if args.src else None
+    if src is not None and not src.is_file():
         raise PipelineError(f"入力ファイルがありません: {src}")
     if args.fit_duration is not None and not 1 <= args.fit_duration <= 120:
         raise PipelineError("--fit-duration は 1〜120 秒で指定してください")
@@ -296,10 +350,11 @@ def main() -> None:
     else:
         if not args.prompt:
             ap.error("--prompt は必須です (動きの指示。例: \"Her hair sways gently in the wind\")")
-        aspect = args.aspect or image_aspect(src)
+        # src が無い(参照画像のみ)ときは1枚目の参照画像から縦横を判定する
+        aspect = args.aspect or image_aspect(src if src is not None else Path(args.ref[0]))
         raw = out.with_name(out.stem + ".raw.mp4") if not args.no_normalize else out
         generate(src, args.prompt, raw, args.model, aspect,
-                 args.resolution, args.negative_prompt, args.gen_seconds)
+                 args.resolution, args.negative_prompt, args.gen_seconds, refs)
         if args.no_normalize:
             print(f"[done] {out} (整形なし)")
             return

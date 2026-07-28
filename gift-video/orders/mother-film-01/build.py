@@ -74,6 +74,25 @@ def build_previz(sl: dict) -> list[Path]:
     return out
 
 
+def ref_args(sl: dict, sc: dict) -> list[str]:
+    """シーンに出る人物の参照画像を --ref 引数に変換する。
+
+    シーンをまたいで顔が別人になるのを防ぐためのもの。画像が未配置なら黙って
+    落とさず警告して続行する — 4人分揃うのを待たずに、用意できた人物から
+    順に効かせられる方が制作を進めやすいため。
+    """
+    args, missing = [], []
+    for name in sc.get("refs", []):
+        rel = sl.get("characters", {}).get(name)
+        if not rel:
+            raise PipelineError(f"shotlist.json の characters に {name} がありません")
+        path = HERE / rel
+        (args.extend(["--ref", str(path)]) if path.is_file() else missing.append(name))
+    if missing:
+        print(f"[ref] scene{sc['n']}: 参照画像が未配置のためスキップ: {', '.join(missing)}")
+    return args
+
+
 def build_generated(sl: dict, only: list[int] | None) -> list[Path]:
     """Veoで各シーンを生成する(i2v.py)。既にあるシーンはスキップする。"""
     out = []
@@ -92,7 +111,8 @@ def build_generated(sl: dict, only: list[int] | None) -> list[Path]:
                               "--out", str(dst),
                               "--negative-prompt", sl["negative_prompt"],
                               "--fit-duration", str(sc["duration"]),
-                              "--size", SIZE])
+                              "--size", SIZE,
+                              *ref_args(sl, sc)])
         out.append(dst)
     return out
 

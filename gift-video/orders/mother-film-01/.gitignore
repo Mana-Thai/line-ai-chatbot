@@ -5,3 +5,9 @@ output/
 # 参考画像から拡大した暫定の生成用画像。本番の高解像度画像に差し替えたら
 # git add -f stills/sceneN.png でコミットする
 stills/scene*[0-9].png
+
+# 人物の参照画像(実写。README以外はコミットしない)
+refs/*.png
+refs/*.jpg
+refs/*.jpeg
+refs/*.webp
