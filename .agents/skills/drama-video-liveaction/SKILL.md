@@ -12,17 +12,34 @@ gift-video パイプラインで1本に結合する。
 ## 前提(必ず最初に確認・依頼者に伝える)
 
 - **有料課金が必須**: Veo は無料枠では使えない。`GEMINI_API_KEY` に支払い設定が必要
-- **料金が高い**: 8秒1本で約$1(Fast)〜$3(Standard)。**1分のドラマはリテイク込みで
-  $15〜30(¥2,500〜5,000)** が目安。副業案件なら biz-quote でAPI実費を織り込むこと
 - **本人の同意が必須**: 実在の人物を動かして話させる動画になる。写っている本人の明確な
   了解を得る。有名人・第三者の写真は使わない
 - スクリプトは費用防止のため**出力済みシーンをスキップ**する(作り直しは `--overwrite`)
+
+### ティアの使い分け(費用が8倍違う)
+
+| `--tier` | 料金(8秒) | 参照画像 | 使いどころ |
+|---|---|---|---|
+| `lite` | 約$0.40 | **不可**(720p専用) | 構図・演出の下見。人物の一貫性が要らない段階 |
+| `fast` | 約$0.80 | 可 | 人物込みのテスト生成。依頼者への確認用 |
+| `standard` | 約$3.20 | 可 | 本番。1080pが720pと同額なので既定で1080p |
+
+**1分(8秒×8シーン)の本生成は約$26**。リテイク込みで$30〜40(¥4,500〜6,000)が目安。
+副業案件なら biz-quote でAPI実費を織り込むこと。
+
+### APIの制約(スクリプトが自動調整・検証する)
+
+- **参照画像あり、または1080pのときは8秒クリップしか返らない**。4秒・6秒を指定しても
+  スクリプトが8秒に自動調整する(そのまま送ると課金後に尺が食い違い assemble で落ちる)
+- `lite` は720p専用・参照画像に非対応(指定するとエラーで止まる)
+- 尺の設計は**8秒の倍数**で考える。1分なら8シーン(64秒)
 
 ## 制作フロー
 
 ### 1. 脚本を作る(依頼者と合意してから生成に進む)
 
-シーン表を YAML で作る。各シーンは4/6/8秒。セリフは「」で書くとリップシンク付きで発話される:
+シーン表を YAML で作る。参照画像を使う本番は1シーン8秒固定なので、**8秒×シーン数**で
+尺を設計する。セリフは「」で書くとリップシンク付きで発話される:
 
 ```yaml
 # drama.yaml
@@ -33,6 +50,7 @@ style: >
 refs: [chara/face.jpg, chara/full.jpg]   # 全シーン共通の参照画像(最大3枚)
 aspect: "16:9"        # 縦型ドラマなら "9:16"
 duration: 8
+# tier: standard      # 省略可(CLIの --tier が優先)
 scenes:
   - id: 1
     prompt: 朝の台所。女性がコーヒーを入れながら振り向いて微笑み、「おはよう、今日は特別な日だね」と言う
@@ -47,13 +65,21 @@ scenes:
 
 ### 3. テスト生成 → 本生成
 
+費用を抑えるため**安いティアから順に上げる**。いきなり standard で全シーン生成しない:
+
 ```bash
 cd gift-video
-# まず1シーンだけFastで試す(約$1)。本人らしさ・声・雰囲気を依頼者に確認してもらう
-python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input --fast --dry-run  # 内容確認
-python3 scripts/drama_clip.py --prompt "(scene1の内容)" --refs chara/face.jpg --out test.mp4 --fast
+# (0) 送る内容と概算費用の確認 (APIを呼ばない)
+python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input --dry-run
 
-# OKが出たら全シーンをStandardで生成
+# (1) 下見: 構図・演出だけliteで確認 (約$0.40。参照画像は使えない)
+python3 scripts/drama_clip.py --prompt "(scene1の内容)" --out test-lite.mp4 --tier lite
+
+# (2) 人物テスト: 参照画像ありでfast (約$0.80)。本人らしさ・声を依頼者に見てもらう
+python3 scripts/drama_clip.py --prompt "(scene1の内容)" --refs chara/face.jpg \
+    --out test-fast.mp4 --tier fast
+
+# (3) OKが出たら全シーンを本生成 (standard・1080p)
 python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input
 ```
 
@@ -89,6 +115,7 @@ precheck → assemble(BGM・テロップ)→ qc ALL PASS(`gift-video-run` Skill)
 | 安全フィルタでブロック | 実在人物系で起きやすい。表現を穏当にする・参照画像を替える。子どもの写真は特に通りにくい |
 | HTTP 404(モデルID) | Veoのモデル名が更新された可能性。エラーに出るcurlで一覧を確認し `--model` で指定 |
 | HTTP 429 | 課金未設定かレート制限。キーの支払い設定を確認 |
+| assembleで尺が合わない | 4/6秒指定が8秒で返ったケース。スクリプトが自動調整するので、脚本の秒数と実尺を確認し `order.yaml` の `target_duration` を8秒×シーン数に合わせる |
 
 ## 品質チェック
 

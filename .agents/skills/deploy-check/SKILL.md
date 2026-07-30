@@ -26,8 +26,15 @@ grep -rhoE "process\.env\.[A-Z_]+" server.js lib/ shared/ index.js | sort -u
 | `.env.example` | コメント付きでサンプル行を追加 |
 | `SETUP.md` | STEP 3 の環境変数テーブルに行を追加 |
 
-注意:
+注意(4点セットの対象外にする例外):
 - `ALLOW_INSECURE_DEV` は開発専用。**render.yaml には絶対に追加しない**
+- `GEMINI_API_KEY` は**ローカルのAI制作ツール専用**(`artwork/tools/stylize.py`・
+  `gift-video/scripts/drama_clip.py`・休止中の `index.js`)。注文アプリ本体は使わないので
+  **render.yaml と SETUP.md STEP 3 の表には追加しない**(`.env.example` にのみ記載)
+- `LINE_CHANNEL_ACCESS_TOKEN` / `LINE_CHANNEL_SECRET` は**休止中のチャットボット
+  (`index.js`)専用**。同じく render.yaml には追加しない。
+  上の grep は `index.js` も見るためこれらが出るが、想定どおり(注文アプリの
+  LINEログインで使うのは `LINE_LOGIN_CHANNEL_ID` の方)
 - 秘密値(パスコード・接続文字列)は `sync: false`、`SESSION_SECRET` のような乱数は
   `generateValue: true` が使える
 

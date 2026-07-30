@@ -12,10 +12,26 @@ description: 写真の人物・ペットをアニメキャラ化し、アニメ�
 
 ## 前提(必ず最初に確認・依頼者に伝える)
 
-- **有料課金が必須・料金が高い**: 8秒1本で約$1(Fast)〜$3(Standard)、1分もので
-  リテイク込み$15〜30目安(+設定画の画像生成が1枚約$0.04)。biz-quote で実費を織り込む
+- **有料課金が必須**: Veo は無料枠では使えない。`GEMINI_API_KEY` に支払い設定が必要
 - **本人の同意**: アニメ化しても元は預かり写真。写っている本人の了解を得る
 - スクリプトは費用防止のため出力済みシーンをスキップする(作り直しは `--overwrite`)
+
+### ティアの使い分けとAPIの制約
+
+料金は `--tier` で8倍変わる。**安いティアから順に上げる**:
+
+| `--tier` | 料金(8秒) | 参照画像(設定画) | 使いどころ |
+|---|---|---|---|
+| `lite` | 約$0.40 | **不可**(720p専用) | 絵柄・演出の下見 |
+| `fast` | 約$0.80 | 可 | 設定画込みのテスト |
+| `standard` | 約$3.20 | 可 | 本番(1080pが同額なので既定で1080p) |
+
+**1分(8秒×8シーン)の本生成は約$26**、リテイク込みで$30〜40(+設定画1枚約$0.04)。
+biz-quote で実費を織り込む。
+
+- **参照画像あり、または1080pのときは8秒クリップのみ**。4/6秒指定はスクリプトが8秒に
+  自動調整する。尺は**8秒の倍数**で設計する(1分=8シーン)
+- `lite` は設定画(参照画像)を使えないので、キャラの一貫性が要る段階では `fast` 以上にする
 
 ## 制作フロー
 
@@ -55,9 +71,18 @@ scenes:
 
 ```bash
 cd gift-video
-python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input --dry-run  # 内容と費用を確認
-python3 scripts/drama_clip.py --prompt "(scene1の内容)" --refs chara/front.png --out test.mp4 --fast
-# キャラの再現と動きを依頼者に確認してもらい、OKなら全シーンをStandardで
+# (0) 内容と概算費用を確認 (APIを呼ばない)
+python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input --dry-run
+
+# (1) 絵柄・動きの下見をliteで (約$0.40。設定画は使えないので雰囲気の確認用)
+python3 scripts/drama_clip.py --prompt "(scene1の内容)" --style "(drama.yamlのstyle)" \
+    --out test-lite.mp4 --tier lite
+
+# (2) 設定画ありでfastテスト (約$0.80)。キャラの再現と動きを依頼者に確認してもらう
+python3 scripts/drama_clip.py --prompt "(scene1の内容)" --refs chara/front.png \
+    --out test-fast.mp4 --tier fast
+
+# (3) OKなら全シーンを本生成 (standard・1080p)
 python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input
 ```
 
@@ -88,6 +113,7 @@ precheck → assemble(BGM・テロップ)→ qc(`gift-video-run` Skill)→ `biz-
 | 元の人物に似ていない | 設定画の段階で直す(image-stylize に写真を2〜3枚渡して `--count 3` から選ぶ) |
 | 安全フィルタでブロック | 表現を穏当に。アニメ化済みの設定画を参照にすると実写より通りやすい |
 | HTTP 404 / 429 | モデルID変更(`--model`で指定)/課金未設定。liveaction版の表と同じ |
+| assembleで尺が合わない | 4/6秒指定が8秒で返ったケース。`order.yaml` の `target_duration` を8秒×シーン数に合わせる |
 
 ## 品質チェック
 

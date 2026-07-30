@@ -6,17 +6,26 @@ Gemini API の動画生成モデル(Veo)を呼び、参照画像で人物の見�
 orders/<注文ID>/input/sceneN.mp4 に置けば通常の assemble → qc フローに乗る。
 
 使い方:
-    # 1クリップだけ生成(まずはテストに)
+    # 絵づくりの下見を最安ティアで(8秒 約$0.40。ただし参照画像は使えない)
     python3 scripts/drama_clip.py --prompt "教室で少女が微笑んで「おはよう」と言う" \
-        --refs chara1.png chara2.png --out test.mp4 --fast
+        --out test.mp4 --tier lite
 
-    # 脚本(YAML)から全シーンを一括生成
+    # 人物を固定してテスト(参照画像は fast 以上が必要。8秒 約$0.80)
+    python3 scripts/drama_clip.py --prompt "..." --refs chara1.png chara2.png \
+        --out test.mp4 --tier fast
+
+    # 脚本(YAML)から全シーンを本生成(standard・1080p)
     python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input
 
 必要なもの:
     環境変数 GEMINI_API_KEY(リポジトリ直下の .env でも可)。
     Veo は無料枠では使えないため、キーに有料課金の設定が必要。
-    料金が高い(8秒で数百円)ので、必ず --dry-run とテスト生成から始めること。
+    料金が高い(standardは8秒で約$3)ので、必ず --dry-run と下見生成から始めること。
+
+APIの制約(スクリプト側で自動調整・検証する):
+    - 参照画像あり、または 1080p のときは 8秒クリップしか返らない(4/6秒指定は8秒に調整)
+    - lite は 720p 専用で参照画像に非対応
+    - standard は 720p と 1080p が同額のため 1080p を既定にしている
 
 詳しい手順は Skill `drama-video-liveaction` / `drama-video-anime` を参照。
 """
@@ -31,15 +40,26 @@ import urllib.error
 import urllib.request
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_MODEL = "veo-3.1-generate-preview"
-FAST_MODEL = "veo-3.1-fast-generate-preview"
 
-# 料金の目安(USD/秒、2026年7月時点・音声込み)。見積もり表示にのみ使う
-COST_PER_SEC = {"standard": 0.40, "fast": 0.15}
+# ティア別のモデルIDと料金(USD/出力秒・音声込み。2026年7月時点)。
+# 料金は見積もり表示にのみ使う。Standardは720pと1080pが同額なので1080pが既定。
+TIERS = {
+    "standard": {"model": "veo-3.1-generate-preview",
+                 "cost": {"720p": 0.40, "1080p": 0.40}, "default_res": "1080p"},
+    "fast": {"model": "veo-3.1-fast-generate-preview",
+             "cost": {"720p": 0.10, "1080p": 0.12}, "default_res": "720p"},
+    # Lite は最安だが 720p 専用で参照画像に非対応(下でチェックする)
+    "lite": {"model": "veo-3.1-lite-generate-preview",
+             "cost": {"720p": 0.05}, "default_res": "720p"},
+}
 
 MIME_BY_EXT = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
 ASPECT_RATIOS = ["16:9", "9:16"]
+RESOLUTIONS = ["720p", "1080p"]
 DURATIONS = [4, 6, 8]
+# 参照画像あり / 1080p のときは 8秒クリップしか返らない(APIの仕様)。
+# 4・6秒を指定していても8秒が返るため、課金後に尺が合わず assemble で落ちるのを防ぐ
+FORCED_8S_DURATION = 8
 POLL_INTERVAL_SEC = 15
 POLL_TIMEOUT_SEC = 15 * 60
 
@@ -164,11 +184,17 @@ def main():
     parser.add_argument("--style", default="", help="全シーン共通のスタイル文(プロンプトの先頭に付く)")
     parser.add_argument("--out", default="clip.mp4", help="出力mp4(1クリップ生成時)")
     parser.add_argument("--out-dir", default=".", help="出力先フォルダ(--scenes 時。sceneN.mp4 で保存)")
-    parser.add_argument("--aspect", choices=ASPECT_RATIOS, default="16:9", help="16:9=横型 / 9:16=縦型")
-    parser.add_argument("--resolution", choices=["720p", "1080p"], default="720p", help="解像度")
-    parser.add_argument("--duration", type=int, choices=DURATIONS, default=8, help="クリップ秒数")
-    parser.add_argument("--fast", action="store_true", help="Fastモデルを使う(安い・速い。テスト生成向け)")
-    parser.add_argument("--model", default="", help="モデルIDの上書き(既定: Veo 3.1 preview系)")
+    parser.add_argument("--aspect", choices=ASPECT_RATIOS, default="",
+                        help="16:9=横型 / 9:16=縦型(既定: 16:9)")
+    parser.add_argument("--resolution", choices=RESOLUTIONS, default="",
+                        help="解像度(既定: standardは1080p=720pと同額 / fast・liteは720p)")
+    parser.add_argument("--duration", type=int, choices=DURATIONS, default=8,
+                        help="クリップ秒数(参照画像あり・1080p では8秒に自動調整される)")
+    parser.add_argument("--tier", choices=sorted(TIERS), default="",
+                        help="standard=高品質($0.40/秒) / fast=下見向き($0.10) / "
+                             "lite=最安($0.05・720p専用・参照画像不可)")
+    parser.add_argument("--fast", action="store_true", help="--tier fast の別名(下位互換)")
+    parser.add_argument("--model", default="", help="モデルIDの上書き(既定: ティアに応じたVeo 3.1)")
     parser.add_argument("--overwrite", action="store_true", help="出力が既にあっても生成し直す(既定はスキップ=課金防止)")
     parser.add_argument("--dry-run", action="store_true", help="APIを呼ばず、送る内容と概算費用だけ確認")
     args = parser.parse_args()
@@ -178,14 +204,14 @@ def main():
     if len(args.refs) > 3:
         sys.exit("エラー: 参照画像は3枚までです")
 
-    # シーン一覧に正規化。scenes.yaml の値は defaults として CLI 未指定分を埋める
+    # シーン一覧に正規化。脚本YAMLの値は既定値として使い、CLI指定があればそちらを優先する
     if args.scenes:
         doc = load_scenes_yaml(args.scenes)
         style = args.style or doc.get("style", "")
         refs = args.refs or doc.get("refs", [])
-        aspect = doc.get("aspect", args.aspect)
-        resolution = doc.get("resolution", args.resolution)
-        fast = args.fast or bool(doc.get("fast"))
+        aspect = args.aspect or doc.get("aspect", "")
+        resolution = args.resolution or doc.get("resolution", "")
+        tier = args.tier or ("fast" if args.fast else doc.get("tier", "standard"))
         scenes = []
         for i, s in enumerate(doc["scenes"], 1):
             if not s.get("prompt"):
@@ -198,29 +224,50 @@ def main():
             })
         out_paths = [os.path.join(args.out_dir, f"scene{s['id']}.mp4") for s in scenes]
     else:
-        style, refs, aspect, resolution, fast = args.style, args.refs, args.aspect, args.resolution, args.fast
+        style, refs = args.style, args.refs
+        aspect, resolution = args.aspect, args.resolution
+        tier = args.tier or ("fast" if args.fast else "standard")
         scenes = [{"id": 1, "prompt": args.prompt, "image": args.image, "duration": args.duration}]
         out_paths = [args.out]
 
+    if tier not in TIERS:
+        sys.exit(f"エラー: tier は {sorted(TIERS)} から選んでください(指定: {tier})")
+    spec = TIERS[tier]
+    aspect = aspect or "16:9"
+    resolution = resolution or spec["default_res"]
+    if resolution not in spec["cost"]:
+        sys.exit(f"エラー: {tier} は {resolution} に対応していません"
+                 f"(対応: {', '.join(spec['cost'])})")
+    if refs and tier == "lite":
+        sys.exit("エラー: lite は参照画像に対応していません。\n"
+                 "  人物の一貫性が要るシーンは --tier fast か standard を使ってください")
     if len(refs) > 3:
         sys.exit("エラー: 参照画像は3枚までです")
+
+    # 参照画像あり・1080p では8秒クリップしか返らない。指定を先に合わせておかないと、
+    # 課金後に実尺が食い違って assemble の尺チェックで落ちる
+    force_reason = ("参照画像あり" if refs else "1080p") if (refs or resolution == "1080p") else ""
     for s in scenes:
         if s["duration"] not in DURATIONS:
             sys.exit(f"エラー: scene{s['id']} の duration は {DURATIONS} から選んでください")
+        if force_reason and s["duration"] != FORCED_8S_DURATION:
+            print(f"注意: scene{s['id']} の {s['duration']}秒 → {FORCED_8S_DURATION}秒 に調整"
+                  f"({force_reason}のときは8秒クリップのみ生成できるため)")
+            s["duration"] = FORCED_8S_DURATION
         if style:
             s["prompt"] = f"{style.strip()}\n{s['prompt'].strip()}"
 
-    model = args.model or (FAST_MODEL if fast else DEFAULT_MODEL)
-    tier = "fast" if fast else "standard"
+    model = args.model or spec["model"]
+    rate = spec["cost"][resolution]
     total_sec = sum(s["duration"] for s in scenes)
-    est = total_sec * COST_PER_SEC[tier]
+    est = total_sec * rate
 
-    print(f"モデル: {model} / {aspect} / {resolution} / 参照画像{len(refs)}枚")
+    print(f"モデル: {model}(tier={tier}) / {aspect} / {resolution} / 参照画像{len(refs)}枚")
     for s, out in zip(scenes, out_paths):
         start = f" / 開始フレーム: {s['image']}" if s["image"] else ""
         print(f"  scene{s['id']} ({s['duration']}秒{start}) → {out}")
         print(f"    {s['prompt'][:200]}")
-    print(f"概算費用: 約${est:.2f}({total_sec}秒 × ${COST_PER_SEC[tier]}/秒・目安)")
+    print(f"概算費用: 約${est:.2f}({total_sec}秒 × ${rate}/秒・目安)")
 
     if args.dry_run:
         print("--dry-run のためAPIは呼びません")
