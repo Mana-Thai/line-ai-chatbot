@@ -1,0 +1,57 @@
+# 縦型ショートドラマ パイロット第1話「用済みの妻」(オリジナル脚本・約64秒)
+# 生成: python3 scripts/drama_clip.py --scenes orders/drama-pilot-001/drama.yaml --out-dir orders/drama-pilot-001/input
+# 主人公・美咲の外見は style で固定し、全シーンのプロンプト先頭に自動で付く。
+# 服装はシーン展開で変わるため各シーンに明記している。
+style: >
+  Vertical 9:16 photorealistic live-action Japanese short drama, cinematic
+  lighting, natural skin texture, shallow depth of field, film color grading.
+  Main character Misaki: a Japanese woman in her mid-30s with shoulder-length
+  black hair and calm intelligent eyes. Keep her face identical in every scene.
+  All dialogue and narration are in Japanese.
+
+# 預かり写真やキャラ設定画があればここで指定すると一貫性が上がる(最大3枚):
+# refs: [chara/misaki1.jpg, chara/misaki2.jpg]
+
+aspect: "9:16"
+duration: 8
+scenes:
+  - id: 1
+    prompt: >
+      夜のダイニング。40代の日本人男性(夫・グレーのシャツ)が離婚届をテーブルに
+      叩きつけ、冷たく「お前みたいな平凡な主婦は、もう用済みなんだよ」と言い放つ。
+      ベージュのエプロン姿の美咲はうつむいて黙って立っている
+  - id: 2
+    prompt: >
+      同じ夜のダイニング。エプロン姿の美咲の顔のクローズアップ。ゆっくりと目を
+      上げ、落ち着いた女性のナレーション「平凡な主婦……10年間、そう演じてきた
+      だけよ」
+  - id: 3
+    prompt: >
+      同じダイニング。エプロン姿の美咲が左手の結婚指輪をゆっくり外し、離婚届の
+      上にそっと置く。セリフはなし。指輪が紙に触れる小さな音だけが響く。
+      カメラは手元にゆっくり寄る
+  - id: 4
+    prompt: >
+      翌朝の都心のオフィス街。黒のパンツスーツにサングラスの美咲が高層ビルに
+      向かって颯爽と歩く。風で髪がなびき、道行く人々が振り返る。力強いヒールの
+      足音
+  - id: 5
+    prompt: >
+      大企業の広いエントランスロビー。スーツ姿の社員たちが両側に並んで一斉に
+      頭を下げ、「おかえりなさいませ、社長!」と声を揃える。黒のパンツスーツの
+      美咲が歩きながらサングラスを外す
+  - id: 6
+    prompt: >
+      高層階の社長室。黒のパンツスーツの美咲が窓際のデスクで書類にサインしながら、
+      落ち着いた女性のナレーション「最初の仕事は……あの人の会社の買収」。
+      窓の外に朝の街並み
+  - id: 7
+    prompt: >
+      昼のリビング。scene1と同じ40代の日本人男性(夫・グレーのシャツ)がスマホを
+      見て青ざめ、手が震える。画面には「貴社は買収されました」という通知。
+      彼は「そんな……まさか」と呟く
+  - id: 8
+    prompt: >
+      社長室。デスクの椅子に座った黒のパンツスーツの美咲がカメラをまっすぐ見て、
+      静かに微笑みながら「私を捨てたこと、後悔させてあげる」と言う。
+      カメラはゆっくり寄って表情のアップで終わる

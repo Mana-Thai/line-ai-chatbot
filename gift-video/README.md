@@ -128,6 +128,8 @@ message_start_sec: 22               # メッセージのフェードイン開始
 target_duration: 30                 # 完成動画の目標秒数 (許容 -2/+5秒。60で約1分)
 output_formats: ["portrait", "landscape"]  # 1080x1920 / 1920x1080
 portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
+mix_scene_audio: false              # true: シーン動画の音声(セリフ等)を残しBGMを下げて重ねる
+                                    # (drama_clip.py のドラマ動画用。全シーンに音声トラック必須)
 ```
 
 ## 4. 組み立ての内容 (assemble.py)

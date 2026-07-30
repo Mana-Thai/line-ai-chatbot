@@ -54,6 +54,7 @@ MESSAGE_FADE = 3.0      # メッセージのゆっくりフェードイン
 NAMES_LEAD = 2.0        # ラスト2秒
 NAMES_FADE = 0.5
 AUDIO_FADE = 2.0        # BGM末尾フェードアウト
+MIX_BGM_VOL = 0.3       # mix_scene_audio 時にBGMを下げる倍率 (セリフを立たせる)
 
 
 class PipelineError(RuntimeError):
@@ -174,6 +175,9 @@ ORDER_DEFAULTS = {
     "output_formats": ["portrait", "landscape"],
     "portrait_mode": "crop",   # crop: センタークロップ / pad: 余白パディング
     "text_color": "white",
+    # true にするとシーン動画自体の音声(セリフ・環境音)を残し、BGMを下げて重ねる。
+    # ドラマ動画(drama_clip.py のクリップ)用。全シーンに音声トラックが必要
+    "mix_scene_audio": False,
 }
 
 
@@ -198,6 +202,8 @@ def load_order(order_id: str) -> dict:
             raise PipelineError(f"未知の output_format: {fmt} (portrait / landscape のみ対応)")
     if merged["portrait_mode"] not in ("crop", "pad"):
         raise PipelineError("portrait_mode は crop か pad を指定してください")
+    if not isinstance(merged["mix_scene_audio"], bool):
+        raise PipelineError("mix_scene_audio は true か false を指定してください")
     merged["message_start_sec"] = float(merged["message_start_sec"])
     merged["target_duration"] = float(merged["target_duration"])
     if not 10 <= merged["target_duration"] <= 300:

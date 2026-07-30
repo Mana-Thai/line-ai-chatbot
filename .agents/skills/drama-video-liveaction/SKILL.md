@@ -65,6 +65,13 @@ python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input
 precheck → assemble(BGM・テロップ)→ qc ALL PASS(`gift-video-run` Skill)。
 納品は `biz-delivery` Skill(透かしプレビュー → 入金 → 本納品)。
 
+**重要: order.yaml に `mix_scene_audio: true` を必ず設定する。** 未設定(既定false)だと
+音声がBGMだけになり、生成したセリフ音声が消える。true にするとセリフを残してBGMが
+自動で小さく(0.3倍)ミックスされる。BGMはセリフの邪魔をしない静かな曲を選ぶ。
+
+実例: `gift-video/orders/drama-pilot-001/` に1分パイロットの脚本一式
+(drama.yaml・order.yaml・実行手順README)がある。新規案件はこれを雛形にする。
+
 ## 実写らしくするプロンプトのコツ
 
 - style には **photorealistic / natural skin texture / cinematic lighting / 35mm** 等を入れる

@@ -64,6 +64,10 @@ python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input
 生成前に表示される**概算費用を依頼者に伝えて了解を取る**。仕上げは通常フロー:
 precheck → assemble(BGM・テロップ)→ qc(`gift-video-run` Skill)→ `biz-delivery` で納品。
 
+**重要: order.yaml に `mix_scene_audio: true` を必ず設定する**(未設定だとBGMだけに
+なりセリフ音声が消える)。脚本や注文フォルダの雛形は実写版の実例
+`gift-video/orders/drama-pilot-001/` が使える(スタイル文をアニメ用に差し替える)。
+
 ## アニメらしくするプロンプトのコツ
 
 - style に **2D cel animation / clean line art / anime style** を入れ、

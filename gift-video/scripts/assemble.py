@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common
 from common import (AUDIO_FADE, CAPTION_END, CAPTION_FADE, CAPTION_START, FORMATS,
                     FPS, LOUDNORM_I, LOUDNORM_LRA, LOUDNORM_TP, MESSAGE_FADE,
-                    NAMES_FADE, NAMES_LEAD, PAPER_HOLD, XFADE_DUR,
+                    MIX_BGM_VOL, NAMES_FADE, NAMES_LEAD, PAPER_HOLD, XFADE_DUR,
                     PipelineError, ff_quote)
 
 
@@ -191,14 +191,33 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
 
     parts.append(f"[{cur}]{','.join(texts)}[vout]")
 
-    # --- BGM: loudnorm → 長さ合わせ → 末尾フェードアウト ---
+    # --- 音声 ---
     bgm_idx = n + 1 if n >= 2 else 1
     fade_start = round(total - AUDIO_FADE, 3)
-    parts.append(
-        f"[{bgm_idx}:a]loudnorm=I={LOUDNORM_I}:TP={LOUDNORM_TP}:LRA={LOUDNORM_LRA},"
-        f"aresample=48000,atrim=0:{total},asetpts=PTS-STARTPTS,"
-        f"apad=whole_dur={total},afade=t=out:st={fade_start}:d={AUDIO_FADE}[aout]")
+    if order["mix_scene_audio"]:
+        # ドラマ動画向け: シーン音声(セリフ・環境音)を連結して残し、BGMを下げて重ねる。
+        # 既定の転換設定(PAPER_HOLD=2*XFADE_DUR)では総尺=シーン合計なので、
+        # 音声の単純連結で映像とズレない。最後に loudnorm でミックス全体を目標音量に揃える
+        fmt_a = "aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo"
+        for i in range(n):
+            parts.append(f"[{i}:a]{fmt_a}[sa{i}]")
+        ins = "".join(f"[sa{i}]" for i in range(n))
+        parts.append(f"{ins}concat=n={n}:v=0:a=1,"
+                     f"apad=whole_dur={total},atrim=0:{total},asetpts=PTS-STARTPTS[dlg]")
+        parts.append(f"[{bgm_idx}:a]{fmt_a},atrim=0:{total},asetpts=PTS-STARTPTS,"
+                     f"apad=whole_dur={total},volume={MIX_BGM_VOL}[bgmq]")
+        parts.append(
+            f"[dlg][bgmq]amix=inputs=2:duration=first:normalize=0,"
+            f"loudnorm=I={LOUDNORM_I}:TP={LOUDNORM_TP}:LRA={LOUDNORM_LRA},"
+            f"aresample=48000,afade=t=out:st={fade_start}:d={AUDIO_FADE}[aout]")
+    else:
+        # 既定: BGMのみ (loudnorm → 長さ合わせ → 末尾フェードアウト)
+        parts.append(
+            f"[{bgm_idx}:a]loudnorm=I={LOUDNORM_I}:TP={LOUDNORM_TP}:LRA={LOUDNORM_LRA},"
+            f"aresample=48000,atrim=0:{total},asetpts=PTS-STARTPTS,"
+            f"apad=whole_dur={total},afade=t=out:st={fade_start}:d={AUDIO_FADE}[aout]")
     timing["audio"] = {"loudnorm_target_i": LOUDNORM_I,
+                       "mix_scene_audio": order["mix_scene_audio"],
                        "fade_out_start": fade_start, "fade_out_dur": AUDIO_FADE}
 
     return ";\n".join(parts), total, timing
@@ -227,6 +246,18 @@ def assemble(order_id: str, keep_work: bool) -> None:
     scene_durs = [common.probe_duration(p) for p in scenes]
     print(f"[probe] scenes={len(scenes)} " +
           " ".join(f"{p.name}={d:.2f}s" for p, d in zip(scenes, scene_durs)))
+
+    if order["mix_scene_audio"]:
+        # セリフを重ねる場合は全シーンに音声トラックが必須 (エンコード後に無音で気づくのを防ぐ)
+        silent = [p.name for p in scenes
+                  if not any(s.get("codec_type") == "audio"
+                             for s in common.ffprobe_json(p).get("streams", []))]
+        if silent:
+            raise PipelineError(
+                f"mix_scene_audio: true ですが音声トラックの無いシーンがあります: {', '.join(silent)}\n"
+                f"  - drama_clip.py で生成したクリップは音声付きです\n"
+                f"  - animate.py 等の無音素材を混ぜる場合は mix_scene_audio を false にするか、"
+                f"該当シーンに無音音声を付けてください")
 
     # エンコード前に総再生時間を検算する (時間のかかるエンコード後に QC で落ちるのを防ぐ)
     target = order["target_duration"]
