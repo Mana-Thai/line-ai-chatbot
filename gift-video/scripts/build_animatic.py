@@ -35,6 +35,7 @@ from common import PipelineError
 
 CARD_W, CARD_H = 2880, 1620          # 出力1920x1080に対して1.5倍(ズームの余白)
 SCRIPTS_DIR = Path(__file__).resolve().parent
+MARKER_NAME = ".animatic"            # 仮の絵コンテであることの印(drama_clip.py が見る)
 
 # シーンの雰囲気に応じた背景色(暖色=室内・夜明け / 寒色=夜・朝)。
 # プロンプトの語から選ぶだけの簡易マッピングで、あくまで絵コンテの見分け用
@@ -170,6 +171,7 @@ def main():
     work.mkdir(exist_ok=True)
 
     total = 0.0
+    made = []
     for i, s in enumerate(doc["scenes"], 1):
         scene = {"id": s.get("id", i), "prompt": " ".join(str(s.get("prompt", "")).split())}
         if not scene["prompt"]:
@@ -203,6 +205,12 @@ def main():
              "--duration", str(dur), "--size", args.size],
             check=True)
         total += dur
+        made.append(out_mp4)
+
+    # 生成したファイルを記録しておく。本生成(drama_clip.py)がこの印を見て、
+    # 仮の絵コンテを実素材で上書きする(印が無いと「出力済み」と誤判定されて1本も生成されない)
+    (out_dir / MARKER_NAME).write_text(
+        "\n".join(sorted(p.name for p in made)) + "\n", encoding="utf-8")
 
     bgm = out_dir / "bgm.mp3"
     if not args.no_bgm and not bgm.is_file():

@@ -7,5 +7,6 @@ message_start_sec: 0
 target_duration: 70                 # 5秒×4 + 10秒×5 = 70秒(許容 68〜75秒)
 output_formats: ["landscape"]       # anamorphic 指定のためシネマ横型 1920x1080
 portrait_mode: "crop"
-mix_scene_audio: false              # アニマティックはBGMのみ(本生成後は true にする)
+mix_scene_audio: false              # BGMのみ。9本のクリップで環境音がばらつくと繋ぎが不自然に
+                                    # なるため、まずfalseで仕上げる(READMEの「音について」)
 show_names: false                   # ラストの名前・日付テロップも出さない

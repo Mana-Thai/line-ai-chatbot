@@ -309,6 +309,46 @@ def load_scenes_yaml(path):
     return doc
 
 
+ANIMATIC_MARKER = ".animatic"
+
+
+def read_animatic_marker(out_paths):
+    """build_animatic.py が置いた印を読み、仮の絵コンテのパス集合を返す。
+
+    仮素材は本生成で上書きされるべきなので、「出力済みだからスキップ」の対象外にする。
+    """
+    dirs = {os.path.dirname(os.path.abspath(p)) for p in out_paths}
+    placeholders = set()
+    for d in dirs:
+        marker = os.path.join(d, ANIMATIC_MARKER)
+        if not os.path.isfile(marker):
+            continue
+        with open(marker, encoding="utf-8") as f:
+            for name in f:
+                name = name.strip()
+                if name:
+                    placeholders.add(os.path.join(d, name))
+    return placeholders
+
+
+def clear_animatic_marker(out_paths, replaced):
+    """置き換え済みのファイルを印から外す(全部消えたら印そのものを削除)。"""
+    dirs = {os.path.dirname(os.path.abspath(p)) for p in out_paths}
+    done = {os.path.abspath(p) for p in replaced}
+    for d in dirs:
+        marker = os.path.join(d, ANIMATIC_MARKER)
+        if not os.path.isfile(marker):
+            continue
+        with open(marker, encoding="utf-8") as f:
+            names = [n.strip() for n in f if n.strip()]
+        remain = [n for n in names if os.path.join(d, n) not in done]
+        if remain:
+            with open(marker, "w", encoding="utf-8") as f:
+                f.write("\n".join(remain) + "\n")
+        else:
+            os.remove(marker)
+
+
 def write_prompt_sheet(path, scenes, out_paths, negative, aspect):
     """Web UI に手で貼るためのプロンプト集を書き出す(APIを使わないので無料)。
 
@@ -487,9 +527,15 @@ def main():
         print("--dry-run のためAPIは呼びません")
         return
 
+    # build_animatic.py が作った仮の絵コンテは「出力済み」と見なさず、実素材で置き換える
+    placeholders = read_animatic_marker(out_paths)
+    if placeholders:
+        print(f"注意: 仮の絵コンテ{len(placeholders)}本を実素材で置き換えます")
+
     pending = []
     for s, out_path in zip(scenes, out_paths):
-        if os.path.exists(out_path) and not args.overwrite:
+        is_placeholder = os.path.abspath(out_path) in placeholders
+        if os.path.exists(out_path) and not args.overwrite and not is_placeholder:
             print(f"scene{s['id']}: {out_path} が既にあるためスキップ(作り直すなら --overwrite)")
         else:
             pending.append((s, out_path))
@@ -537,6 +583,7 @@ def main():
             continue
         print(f"  保存: {out_path} ({os.path.getsize(out_path) / 1024 / 1024:.1f} MB)")
         ok.append(out_path)
+        clear_animatic_marker(out_paths, ok)
 
     print(f"完了: 成功{len(ok)}件 / 失敗{len(failed)}件" + (f"(失敗シーン: {failed})" if failed else ""))
     if failed:
