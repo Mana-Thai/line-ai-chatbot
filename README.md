@@ -98,7 +98,12 @@ npm start              # http://localhost:3000
 | `DATABASE_URL` | 推奨 | PostgreSQL接続文字列(Supabase等)。未設定ならファイル保存 |
 | `SESSION_SECRET` | 推奨 | セッション署名鍵。未設定なら起動ごとにランダム生成 |
 | `APP_TITLE` | - | 画面に表示するタイトル |
+| `PORT` | - | 待ち受けポート(未設定なら3000。Renderは自動で設定する) |
 | `ALLOW_INSECURE_DEV` | - | `1`でLINEログインを省略(ローカル開発専用) |
+| `DATABASE_SSL` | - | `false` でDB接続のSSLを無効化。SSL無しのローカルPostgreSQL用で、**本番(Supabase等)では設定しない**(未設定=SSL有効) |
+| `GEMINI_API_KEY` | - | AI制作ツール(`artwork/tools/stylize.py`・`gift-video/scripts/drama_clip.py`)と旧チャットボット用。**手元のPC専用でRenderには設定しない** |
+| `LINE_CHANNEL_ACCESS_TOKEN` | - | 旧チャットボット(`npm run chatbot`)専用 |
+| `LINE_CHANNEL_SECRET` | - | 旧チャットボット(`npm run chatbot`)専用 |
 
 ## 旧チャットボットについて
 
