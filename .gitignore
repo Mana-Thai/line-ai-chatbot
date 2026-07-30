@@ -2,3 +2,7 @@ node_modules/
 .env
 *.log
 data/
+
+# ギフト動画の生成物(素材・完成品はリポジトリに入れない)
+gift-video/orders/*/input/
+gift-video/orders/*/output/

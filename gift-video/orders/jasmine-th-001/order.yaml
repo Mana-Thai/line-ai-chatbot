@@ -1,0 +1,11 @@
+order_id: "jasmine-th-001"
+couple_names: "白いジャスミンの花輪"   # show_names: false のため画面には出ない(管理用の題名)
+anniversary_date: "2026"
+scene1_caption: ""                  # ブリーフの「No text」に合わせて文字は一切入れない
+message: ""
+message_start_sec: 0
+target_duration: 72                 # 8秒×9シーン(許容 70〜77秒)
+output_formats: ["landscape"]       # anamorphic 指定のためシネマ横型 1920x1080
+portrait_mode: "crop"
+mix_scene_audio: false              # アニマティックはBGMのみ(本生成後は true にする)
+show_names: false                   # ラストの名前・日付テロップも出さない

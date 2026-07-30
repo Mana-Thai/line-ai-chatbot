@@ -173,23 +173,25 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         timing["message"] = {"text": order["message"],
                              "start": msg_start, "fade": MESSAGE_FADE}
 
-    names_start = round(total - NAMES_LEAD, 3)
-    names_txt = work / "names.txt"
-    names_txt.write_text(order["couple_names"], encoding="utf-8")
-    date_txt = work / "date.txt"
-    date_txt.write_text(order["anniversary_date"], encoding="utf-8")
-    names_alpha = alpha_fade_in(names_start, NAMES_FADE)
-    texts.append(drawtext(font, names_txt, fontsize=int(H * 0.042), color=color,
-                          x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.135)}",
-                          alpha=names_alpha, enable_from=names_start, enable_to=total))
-    texts.append(drawtext(font, date_txt, fontsize=int(H * 0.028), color=color,
-                          x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.09)}",
-                          alpha=names_alpha, enable_from=names_start, enable_to=total))
-    timing["names"] = {"start": names_start, "fade": NAMES_FADE,
-                       "couple_names": order["couple_names"],
-                       "anniversary_date": order["anniversary_date"]}
+    if order["show_names"]:
+        names_start = round(total - NAMES_LEAD, 3)
+        names_txt = work / "names.txt"
+        names_txt.write_text(order["couple_names"], encoding="utf-8")
+        date_txt = work / "date.txt"
+        date_txt.write_text(order["anniversary_date"], encoding="utf-8")
+        names_alpha = alpha_fade_in(names_start, NAMES_FADE)
+        texts.append(drawtext(font, names_txt, fontsize=int(H * 0.042), color=color,
+                              x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.135)}",
+                              alpha=names_alpha, enable_from=names_start, enable_to=total))
+        texts.append(drawtext(font, date_txt, fontsize=int(H * 0.028), color=color,
+                              x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.09)}",
+                              alpha=names_alpha, enable_from=names_start, enable_to=total))
+        timing["names"] = {"start": names_start, "fade": NAMES_FADE,
+                           "couple_names": order["couple_names"],
+                           "anniversary_date": order["anniversary_date"]}
 
-    parts.append(f"[{cur}]{','.join(texts)}[vout]")
+    # テキストを一切出さない設定でも filtergraph が途切れないよう null を通す
+    parts.append(f"[{cur}]{','.join(texts) if texts else 'null'}[vout]")
 
     # --- 音声 ---
     bgm_idx = n + 1 if n >= 2 else 1

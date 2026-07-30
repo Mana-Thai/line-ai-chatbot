@@ -49,6 +49,19 @@ python3 artwork/tools/stylize.py photo1.jpg photo2.jpg --style anime --count 3 \
 **ここで依頼者にキャラデザインのOKをもらってから**次へ進む(以降の全シーンの見た目が
 この設定画で決まる。後から変えると全シーン作り直し=費用も倍かかる)。
 
+### 1.5. 無料で構成を確認する(アニマティック)
+
+脚本ができたら、**課金の前に**絵コンテ動画で尺とテンポを確認する(費用ゼロ):
+
+```bash
+cd gift-video
+python3 scripts/build_animatic.py orders/x-001/drama.yaml --out-dir orders/x-001/input
+python3 scripts/assemble.py x-001 && python3 scripts/qc.py x-001
+```
+
+各シーンに `ref: refs/xxx.jpg`(設定画)を書くと代役として敷かれる。詳細は
+`drama-video-liveaction` Skill と同じ。
+
 ### 2. 脚本を作る
 
 ```yaml

@@ -123,7 +123,11 @@ def qc_format(fmt: str, fmt_info: dict, order: dict, output_dir: Path,
     if order["scene1_caption"]:
         report.check("caption" in fmt_info, label + "Scene1キャプション",
                      "フィルタに設定済み" if "caption" in fmt_info else "フィルタに未設定")
-    if "names" in fmt_info:
+    if not order["show_names"]:
+        # 文字を入れない作品(show_names: false)。意図どおり出ていないことを確認する
+        report.check("names" not in fmt_info, label + "名前・日付表示 (show_names: false)",
+                     "意図どおり非表示" if "names" not in fmt_info else "非表示のはずが設定されている")
+    elif "names" in fmt_info:
         expected = total - NAMES_LEAD
         diff = abs(fmt_info["names"]["start"] - expected)
         report.check(diff <= TIMING_TOL, label + "名前・日付表示 (ラスト2秒)",

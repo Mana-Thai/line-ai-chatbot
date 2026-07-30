@@ -10,6 +10,7 @@ gift-video/
 │   ├── new_order.py      # 新規注文フォルダを生成 (--dummy でテスト素材も生成)
 │   ├── animate.py        # イラスト(静止画)からシーン動画を生成 (ズーム/パン/揺れ/パラパラ)
 │   ├── drama_clip.py     # Veo 3.1で人物が動き話すクリップを生成 (要GEMINI_API_KEY・有料)
+│   ├── build_animatic.py # 脚本から無料の絵コンテ動画を生成 (課金前の構成確認)
 │   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
 │   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
@@ -130,6 +131,8 @@ output_formats: ["portrait", "landscape"]  # 1080x1920 / 1920x1080
 portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
 mix_scene_audio: false              # true: シーン動画の音声(セリフ等)を残しBGMを下げて重ねる
                                     # (drama_clip.py のドラマ動画用。全シーンに音声トラック必須)
+show_names: true                    # false: ラストの名前・日付テロップを出さない
+                                    # (映像に文字を入れない作品用)
 ```
 
 ## 4. 組み立ての内容 (assemble.py)
@@ -142,6 +145,7 @@ mix_scene_audio: false              # true: シーン動画の音声(セリフ�
   - `message`: 画面中央に `message_start_sec` から3秒かけてゆっくりフェードイン
     (画面幅に収まらない長文は行頭禁則を考慮して自動折り返し。yaml内の改行もそのまま反映)
   - ラスト2秒: `couple_names` と `anniversary_date` を下部中央に表示
+    (`show_names: false` で非表示。文字を一切入れない作品向け)
 - BGM: `loudnorm` で -14 LUFS にノーマライズ → 全体の長さに合わせてトリム → 末尾2秒フェードアウト
   (シーン素材側の音声は使用しない)
 - 出力: H.264 (CRF 18) + AAC 192kbps、`+faststart`。縦型は order.yaml の `portrait_mode` で

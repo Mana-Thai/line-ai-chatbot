@@ -178,6 +178,9 @@ ORDER_DEFAULTS = {
     # true にするとシーン動画自体の音声(セリフ・環境音)を残し、BGMを下げて重ねる。
     # ドラマ動画(drama_clip.py のクリップ)用。全シーンに音声トラックが必要
     "mix_scene_audio": False,
+    # false にするとラストの名前・日付テロップを出さない。映像に文字を入れない
+    # 作品(シネマティックな短編等)用。既定 true はギフト動画の従来どおりの見た目
+    "show_names": True,
 }
 
 
@@ -204,6 +207,8 @@ def load_order(order_id: str) -> dict:
         raise PipelineError("portrait_mode は crop か pad を指定してください")
     if not isinstance(merged["mix_scene_audio"], bool):
         raise PipelineError("mix_scene_audio は true か false を指定してください")
+    if not isinstance(merged["show_names"], bool):
+        raise PipelineError("show_names は true か false を指定してください")
     merged["message_start_sec"] = float(merged["message_start_sec"])
     merged["target_duration"] = float(merged["target_duration"])
     if not 10 <= merged["target_duration"] <= 300:
