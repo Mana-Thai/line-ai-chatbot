@@ -182,6 +182,8 @@ def main():
     parser.add_argument("--image", default="", help="開始フレームにする画像(この絵から動き出す)")
     parser.add_argument("--refs", nargs="*", default=[], help="人物の参照画像(最大3枚。全シーン共通で渡すと一貫する)")
     parser.add_argument("--style", default="", help="全シーン共通のスタイル文(プロンプトの先頭に付く)")
+    parser.add_argument("--negative", default="",
+                        help="出したくない要素(negativePrompt)。例: 派手な色, 作り笑い")
     parser.add_argument("--out", default="clip.mp4", help="出力mp4(1クリップ生成時)")
     parser.add_argument("--out-dir", default=".", help="出力先フォルダ(--scenes 時。sceneN.mp4 で保存)")
     parser.add_argument("--aspect", choices=ASPECT_RATIOS, default="",
@@ -208,6 +210,7 @@ def main():
     if args.scenes:
         doc = load_scenes_yaml(args.scenes)
         style = args.style or doc.get("style", "")
+        negative = args.negative or doc.get("negative", "")
         refs = args.refs or doc.get("refs", [])
         aspect = args.aspect or doc.get("aspect", "")
         resolution = args.resolution or doc.get("resolution", "")
@@ -224,7 +227,7 @@ def main():
             })
         out_paths = [os.path.join(args.out_dir, f"scene{s['id']}.mp4") for s in scenes]
     else:
-        style, refs = args.style, args.refs
+        style, refs, negative = args.style, args.refs, args.negative
         aspect, resolution = args.aspect, args.resolution
         tier = args.tier or ("fast" if args.fast else "standard")
         scenes = [{"id": 1, "prompt": args.prompt, "image": args.image, "duration": args.duration}]
@@ -262,7 +265,10 @@ def main():
     total_sec = sum(s["duration"] for s in scenes)
     est = total_sec * rate
 
+    negative = " ".join(negative.split())
     print(f"モデル: {model}(tier={tier}) / {aspect} / {resolution} / 参照画像{len(refs)}枚")
+    if negative:
+        print(f"除外指定(negativePrompt): {negative}")
     for s, out in zip(scenes, out_paths):
         start = f" / 開始フレーム: {s['image']}" if s["image"] else ""
         print(f"  scene{s['id']} ({s['duration']}秒{start}) → {out}")
@@ -302,6 +308,8 @@ def main():
             "personGeneration": "allow_adult",
             "sampleCount": 1,
         }
+        if negative:
+            params["negativePrompt"] = negative
         op_name = start_generation(api_key, model, s, refs, params)
         uri, error = wait_for_video(api_key, op_name)
         if not uri:

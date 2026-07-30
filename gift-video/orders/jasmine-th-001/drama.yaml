@@ -1,86 +1,86 @@
-# 「白いジャスミンの花輪」— タイの母と子の約1分の短編(9シーン×8秒=72秒)
+# 「白いジャスミンの花輪」— タイの母と娘の約1分の短編(9シーン×8秒=72秒)
 #
-# これは本生成(Veo 3.1)用の脚本。無料のアニマティック(絵コンテ動画)は
-# scripts/build_animatic.py で先に確認できる。
+# 無料の絵コンテ確認:
+#   python3 scripts/build_animatic.py orders/jasmine-th-001/drama.yaml \
+#       --out-dir orders/jasmine-th-001/input
+# 本生成(有料・Veo 3.1):
+#   python3 scripts/drama_clip.py --scenes orders/jasmine-th-001/drama.yaml \
+#       --out-dir orders/jasmine-th-001/input
 #
-# 生成: python3 scripts/drama_clip.py --scenes orders/jasmine-th-001/drama.yaml \
-#           --out-dir orders/jasmine-th-001/input
-#
-# 【要確認】refs は「同一人物1人」を固定するための設定画。人物が変わるシーンごとに
-# 分けて生成する必要がある(下の scene ごとのコメント参照)。
-# 現状いただいた設定画は 母(現在)/母(若い頃)/子(幼少・女児)/子(成人・女性) の4枚で、
-# 脚本の SON(28歳男性)に対応する設定画が無い。物語を母娘にするか、
-# 男性の設定画を追加するかを決めてから本生成に進むこと。
+# 【本生成のときの注意】refs は「同一人物」を固定するための設定画。人物が変わるので
+# シーンごとに refs を指定して分けて生成する(各シーンのコメントに対応する設定画を記載)。
+# 母は若い頃(1〜3)と現在(6〜8)で見た目が変わるため、設定画も分けてある。
 
 style: >
   Cinematic 35mm film look, anamorphic, shallow depth of field, soft natural light,
   warm amber and pale blue palette, gentle film grain, muted colors, quiet and
   restrained mood. Handheld with minimal movement. Rural and urban Thailand, authentic.
   No text, no captions, no logos, no on-screen words.
-  Avoid: saturated colors, glossy commercial look, stock-footage smiles, hearts,
-  sparkles, fast cuts.
   MOTHER: Thai woman, late 50s, sun-tanned skin, hair in a low bun with grey strands,
   faded floral blouse, soft lines around the eyes, calm and unshowy.
-  SON: Thai man, 28, short black hair, plain polo shirt, quiet reserved face,
-  working-class hands.
+  DAUGHTER: Thai woman, 27, long dark hair, simple cream blouse, gentle but tired eyes.
+
+# ブリーフの NEGATIVE。Veo の negativePrompt にそのまま渡される
+negative: >
+  saturated colors, glossy commercial look, stock-footage smiles, hearts, sparkles,
+  fast cuts
 
 aspect: "16:9"
 duration: 8
-# refs: [refs/mother-now.jpg]   # 本生成時に、シーンの人物に合わせて指定する
 
 scenes:
   - id: 1
-    ref: refs/mother-young.jpg
-    # 母(若い頃)+ 幼い子 → refs: mother-young.png
+    ref: refs/child.jpg
+    # 母(若い頃)+ 娘(6歳)→ 本生成 refs: mother-young.jpg
     prompt: >
-      Dawn, roadside noodle cart. MOTHER ladles broth, steam rising into cold blue
-      morning air. Beside her, a 6-year-old child asleep on plastic stools, covered
-      by her shawl. Slow push-in.
+      Morning, wooden house. MOTHER braids her 6-year-old daughter's hair before school,
+      humming. Warm light through slatted windows. Close on the hands braiding.
   - id: 2
-    # 手元のみ(人物の顔は写らない)→ refs 不要
+    ref: refs/mother-young.jpg
+    # 母(若い頃)+ 娘(幼少)→ 本生成 refs: mother-young.jpg
     prompt: >
-      Night, bare bulb. MOTHER counts worn banknotes at a wooden table, hesitates,
-      then slides the folded money into a small school backpack. Close on her hands.
+      Simple dinner. MOTHER moves the piece of fish onto her daughter's plate, then eats
+      plain rice herself. She doesn't say anything. Static shot, candid.
   - id: 3
     ref: refs/mother-young.jpg
-    # 母(若い頃)+ 十代の子 → refs: mother-young.png
+    # 母(若い頃)+ 娘(旅立ち)→ 本生成 refs: mother-young.jpg
     prompt: >
-      Rural bus stop, morning. Teenage child boards an old bus with a bag. MOTHER waves
-      from the roadside. Bus pulls away, her figure shrinking in the rear window. Handheld.
+      Rural roadside. Young woman with a suitcase about to leave. MOTHER pushes a small
+      folded banknote deep into her pocket and pats it twice. Neither speaks.
   - id: 4
     ref: refs/adult-child.jpg
-    # 子(成人)→ refs: adult-child.png
+    # 娘(27歳)→ 本生成 refs: adult-child.jpg
     prompt: >
-      Small rented room in Bangkok at night. The grown child sits on the floor after work,
-      still in uniform, city lights through thin curtains. Staring at a phone.
-      Silent, exhausted.
+      Bangkok office at night, near-empty. DAUGHTER at her desk, checks a salary
+      notification on her phone. She looks at it for a long moment. Cool fluorescent light.
   - id: 5
-    # 手元のみ → refs 不要
+    ref: refs/adult-child.jpg
+    # 娘(27歳)→ 本生成 refs: adult-child.jpg
     prompt: >
-      Extreme close-up: the grown child's hands on a phone, completing a mobile bank
-      transfer. The hands are calloused, adult. Screen glow on the face. A slow exhale.
+      Department store. DAUGHTER holds up a soft blue blouse, checking the price,
+      calculating. She decides, and smiles very slightly to herself.
   - id: 6
     ref: refs/mother-now.jpg
-    # 母(現在)→ refs: mother-now.png
+    # 母(現在)→ 本生成 refs: mother-now.jpg
     prompt: >
-      Wooden house, upcountry. MOTHER folding laundry. Her phone chimes. She reads it,
-      stops moving, presses the phone to her chest, then quietly wipes her eye with
-      her wrist. Static wide shot.
+      Upcountry house. MOTHER unwraps a parcel, finds the blue blouse. She holds it
+      against herself in front of an old spotted mirror, shy, almost embarrassed to
+      like it. Touches her grey hair.
   - id: 7
     ref: refs/mother-now.jpg
-    # 母(現在)+ 子(成人)→ refs: mother-now.png(2人が写るため一貫性が最も難しい)
+    # 母(現在)+ 娘 → 本生成 refs: mother-now.jpg(2人が写るため一貫性が最も難しい)
     prompt: >
-      MOTHER opens the door. The grown child stands there unannounced, holding a white
-      jasmine garland. Her face slowly changes. Backlit doorway, dust in the light.
+      Wooden porch, late afternoon. DAUGHTER sits behind her MOTHER, gently combing and
+      dyeing her grey hair. The exact reverse of the childhood braiding. Golden hour,
+      dust in the air.
   - id: 8
-    ref: refs/adult-child.jpg
-    # 母(現在)+ 子(成人)→ refs: mother-now.png
+    ref: refs/mother-now.jpg
+    # 母(現在)+ 娘 → 本生成 refs: mother-now.jpg
     prompt: >
-      The grown child kneels on the floor, presses palms together, and lowers the
-      forehead to MOTHER's hands, offering the jasmine garland. She touches the hair,
-      the same way she did when the child was six. Slow, reverent, no dialogue.
+      DAUGHTER kneels and offers a white jasmine garland. MOTHER takes her face in both
+      hands and looks at her for a long time. Tears held back, not falling.
   - id: 9
-    # 手元のみ → refs 不要
+    # 手元のみ(人物の顔は写らない)→ refs 不要
     prompt: >
       Close-up: two pairs of hands holding a white jasmine garland with a pale blue
       ribbon. Sunlight, soft focus. Camera holds still, then slowly fades.
