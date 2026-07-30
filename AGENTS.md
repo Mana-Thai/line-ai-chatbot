@@ -4,7 +4,7 @@
 
 ## リポジトリの構成
 
-このリポジトリには独立した2つのアプリが入っている:
+このリポジトリには独立した複数のアプリ・ツールが入っている:
 
 1. **グッズ注文とりまとめアプリ(メイン・本番運用中)** — グループLINEのメンバーで
    Tシャツ等の注文を取りまとめるWebアプリ。LIFF(LINEログイン)使用、Messaging API(Bot)不使用。
@@ -16,15 +16,22 @@
      描画・価格計算・CSV出力(日本語/タイ語)・SSE受信のすべてがある
    - `shared/constants.js` — 選択肢(胸ロゴ6種・カラー20色+持ち込み・サイズS〜5XL)と
      タイ語辞書 `TH`。サーバー/ブラウザ共用(UMD形式)
-2. **ギフト動画 組み立てパイプライン** — `gift-video/`。AI生成済みシーン素材+BGMから
+2. **家計簿アプリ(SCB通知連携)** — `kakeibo/`。銀行(SCB Connect)のLINE通知スクショから
+   自動記帳し、現金は手動入力する個人用の家計簿。使うのは本人1人でURL+合言葉ログイン。
+   `npm run kakeibo`(既定ポート3100)。詳細は `kakeibo/README.md`
+   - `lib/scb.js` — **通知の解析はここに集約**。スクショ経由もテキスト貼り付けも `buildDraft` を通る
+   - `lib/vision.js` — スクショ→通知カードの生文字列。モデルには転記だけをさせ、意味の解釈はしない
+   - `lib/ledger.js` — 集計と**残高照合**(通知の残高が前後で繋がるか。ズレは `Adjust` で記録)
+   - 日時はタイ時間(UTC+7)で解釈・表示する。仏暦で来たら西暦に直す
+3. **ギフト動画 組み立てパイプライン** — `gift-video/`。AI生成済みシーン素材+BGMから
    パーソナライズ動画(30秒〜1分等、`order.yaml` の `target_duration` で指定)を組み立てる
    Python+ffmpegのCLI。詳細は `gift-video/README.md`
-3. **アートワーク制作ツール** — `artwork/tools/`。SVG→高解像度PNGの `rasterize.py`
+4. **アートワーク制作ツール** — `artwork/tools/`。SVG→高解像度PNGの `rasterize.py`
    (ヘッドレスChrome利用・透過/生地色プレビュー対応)と、テキストグリッド→ドット絵SVGの
    `pixel2svg.py`。作品は `artwork/works/<作品名>/` に置く
-4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)と
+5. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)と
    見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)
-5. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+6. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
 
 ## 重要な仕様・約束事
 
@@ -50,6 +57,14 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 `ALLOW_INSECURE_DEV=1` でLINEログイン不要のdevログイン(名前入力のみ)が使える。開発専用。
 テストフレームワークは無く、curlによるAPIテスト+Playwrightの複数ユーザー同時UIテストで
 検証する(手順はSkill `order-app-regression` にある)。
+
+家計簿アプリ(`kakeibo/`)は別プロセス。こちらは `node --test` のテストがある:
+
+```bash
+rm -rf kakeibo/data
+APP_PASSCODE=test123 PORT=3100 npm run kakeibo
+npm run test:kakeibo   # 通知の解析・残高照合・集計
+```
 
 ## デプロイ
 

@@ -109,3 +109,19 @@
 | 本人以外がログインできない | LINE Loginチャネルが「開発中」のまま。「公開」に変更する |
 | 初回アクセスが遅い(30秒程度) | Render無料プランのスリープ復帰。2回目以降は速くなります |
 | データが消えた | `DATABASE_URL` 未設定でファイル保存になっていた。Supabaseを設定する |
+
+---
+
+## 家計簿アプリ(kakeibo/)を公開する場合
+
+同じリポジトリに入っている**家計簿アプリ**(銀行のLINE通知から自動記帳)は、
+Renderの**別サービス**として公開します。`render.yaml` に `kakeibo-app` として定義済みです。
+
+- STEP 1(Supabase)は同じ手順で、**別のプロジェクト/データベース**を作る
+- STEP 2(LINE Developers)は**不要**。LINEログインは使いません
+- STEP 3(Render)は Start Command を `npm run kakeibo` にし、環境変数は
+  `APP_PASSCODE`(合言葉・必須)/ `SESSION_SECRET` / `DATABASE_URL` /
+  `GEMINI_API_KEY`(スクショ解析用・任意)を設定
+- STEP 4(共有)は不要。自分だけで使うため、URLは他人に教えない
+
+詳しい使い方と環境変数の一覧は [`kakeibo/README.md`](kakeibo/README.md) にあります。

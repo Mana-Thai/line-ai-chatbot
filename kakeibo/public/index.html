@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4b2e83">
+    <title>家計簿</title>
+    <!-- ホーム画面に追加してアプリのように使えるようにする -->
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 読み込み中 -->
+<div id="screen-loading" class="screen center">
+    <div class="spinner"></div>
+</div>
+
+<!-- 合言葉ログイン -->
+<div id="screen-login" class="screen center hidden">
+    <div class="login-card">
+        <h1 id="login-title">家計簿</h1>
+        <p class="muted">合言葉を入力してください</p>
+        <input type="password" id="login-passcode" inputmode="text" autocomplete="current-password" placeholder="合言葉">
+        <p id="login-error" class="error-text hidden"></p>
+        <button id="login-btn" class="btn primary block">入る</button>
+    </div>
+</div>
+
+<!-- エラー -->
+<div id="screen-error" class="screen center hidden">
+    <div class="login-card">
+        <p id="error-message" class="error-text"></p>
+        <button class="btn block" onclick="location.reload()">再読み込み</button>
+    </div>
+</div>
+
+<!-- メイン -->
+<div id="screen-main" class="screen hidden">
+    <header class="app-header">
+        <h1 id="app-title">家計簿</h1>
+        <button id="settings-btn" class="icon-btn" aria-label="設定">⚙</button>
+    </header>
+
+    <div id="balance-bar" class="balance-bar">
+        <div>
+            <span class="balance-label">銀行残高</span>
+            <span id="balance-value" class="balance-value">—</span>
+        </div>
+        <span id="balance-at" class="balance-at"></span>
+    </div>
+
+    <main class="views">
+        <!-- ===== 入力 ===== -->
+        <section id="view-input" class="view">
+            <div class="card">
+                <h2>現金の買い物</h2>
+                <div class="segmented" role="group">
+                    <button class="seg active" data-cash-type="expense">支出</button>
+                    <button class="seg" data-cash-type="income">収入</button>
+                </div>
+                <div class="amount-row">
+                    <input type="number" id="cash-amount" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+                    <span class="currency">THB</span>
+                </div>
+                <div id="cash-categories" class="cat-grid"></div>
+                <details id="cash-more" class="more">
+                    <summary>ほかのカテゴリ・日付・メモ</summary>
+                    <label class="field">
+                        <span>カテゴリ</span>
+                        <select id="cash-category-select"></select>
+                    </label>
+                    <label class="field">
+                        <span>日時</span>
+                        <input type="datetime-local" id="cash-date">
+                    </label>
+                    <label class="field">
+                        <span>メモ</span>
+                        <input type="text" id="cash-memo" maxlength="200" placeholder="任意">
+                    </label>
+                </details>
+                <button id="cash-submit" class="btn primary block">登録する</button>
+                <p id="cash-status" class="status hidden"></p>
+            </div>
+
+            <div class="card">
+                <h2>銀行通知の取り込み</h2>
+                <p class="muted small">SCBの通知をスクショして選ぶだけ。相手口座も自動で入ります。</p>
+                <label id="import-file-label" class="btn block file-btn">
+                    スクショを選ぶ(複数可)
+                    <input type="file" id="import-file" accept="image/*" multiple hidden>
+                </label>
+                <details class="more">
+                    <summary>テキストを貼り付けて取り込む</summary>
+                    <textarea id="import-text" rows="5" maxlength="4000" placeholder="通知の文面を貼り付け"></textarea>
+                    <button id="import-text-btn" class="btn block">テキストから取り込む</button>
+                </details>
+                <p id="import-status" class="status hidden"></p>
+                <div id="preview-list" class="preview-list"></div>
+            </div>
+
+            <div id="gap-card" class="card warn hidden">
+                <h2>残高が合いません</h2>
+                <p class="muted small">通知の残高と記録がズレています。取り込み漏れの可能性があります。</p>
+                <div id="gap-list"></div>
+            </div>
+        </section>
+
+        <!-- ===== 履歴 ===== -->
+        <section id="view-history" class="view hidden">
+            <div class="month-nav">
+                <button id="month-prev" class="icon-btn" aria-label="前の月">‹</button>
+                <span id="month-label"></span>
+                <button id="month-next" class="icon-btn" aria-label="次の月">›</button>
+            </div>
+            <div id="history-list" class="history-list"></div>
+        </section>
+
+        <!-- ===== 集計 ===== -->
+        <section id="view-summary" class="view hidden">
+            <div class="month-nav">
+                <button id="s-month-prev" class="icon-btn" aria-label="前の月">‹</button>
+                <span id="s-month-label"></span>
+                <button id="s-month-next" class="icon-btn" aria-label="次の月">›</button>
+            </div>
+            <div class="totals">
+                <div class="total in"><span>収入</span><strong id="total-income">0</strong></div>
+                <div class="total out"><span>支出</span><strong id="total-expense">0</strong></div>
+                <div class="total net"><span>差引</span><strong id="total-net">0</strong></div>
+            </div>
+            <div class="card">
+                <h2>カテゴリ別</h2>
+                <div id="category-breakdown"></div>
+            </div>
+            <div class="card">
+                <button id="csv-btn" class="btn block">CSVをダウンロード</button>
+                <p class="muted small">これまでのスプレッドシートと同じ「日付×カテゴリ」の形式です。</p>
+            </div>
+        </section>
+    </main>
+
+    <nav class="tabbar">
+        <button class="tab active" data-view="input"><span>✎</span>入力</button>
+        <button class="tab" data-view="history"><span>☰</span>履歴</button>
+        <button class="tab" data-view="summary"><span>📊</span>集計</button>
+    </nav>
+</div>
+
+<!-- 取引の編集 -->
+<div id="edit-modal" class="modal hidden">
+    <div class="modal-body">
+        <h2>取引の編集</h2>
+        <label class="field"><span>日時</span><input type="datetime-local" id="edit-date"></label>
+        <label class="field">
+            <span>種別</span>
+            <select id="edit-type"><option value="expense">支出</option><option value="income">収入</option></select>
+        </label>
+        <label class="field"><span>金額</span><input type="number" id="edit-amount" inputmode="decimal" step="0.01" min="0"></label>
+        <label class="field"><span>カテゴリ</span><select id="edit-category"></select></label>
+        <label class="field"><span>相手</span><input type="text" id="edit-counterparty" maxlength="100"></label>
+        <label class="field"><span>メモ</span><input type="text" id="edit-memo" maxlength="200"></label>
+        <p id="edit-error" class="error-text hidden"></p>
+        <div class="modal-actions">
+            <button id="edit-delete" class="btn danger">削除</button>
+            <button id="edit-cancel" class="btn">閉じる</button>
+            <button id="edit-save" class="btn primary">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 設定 -->
+<div id="settings-modal" class="modal hidden">
+    <div class="modal-body">
+        <h2>設定</h2>
+        <label class="field">
+            <span>自分の口座(カンマ区切り)</span>
+            <input type="text" id="settings-accounts" placeholder="X-4211">
+        </label>
+        <p class="muted small">通知の「จากบัญชี / เข้าบัญชี」のうち、ここに登録した口座でない側を相手として記録します。</p>
+        <p id="settings-error" class="error-text hidden"></p>
+        <div class="modal-actions">
+            <button id="settings-cancel" class="btn">閉じる</button>
+            <button id="settings-save" class="btn primary">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/shared/constants.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

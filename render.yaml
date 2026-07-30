@@ -19,3 +19,27 @@ services:
         generateValue: true
       - key: APP_TITLE
         sync: false
+
+  # 家計簿アプリ(SCB Connect通知連携)。同じリポジトリの別サービスとして動かす
+  - type: web
+    name: kakeibo-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run kakeibo
+    healthCheckPath: /healthz
+    envVars:
+      # ログイン用の合言葉(必須。未設定だとログインできない)
+      - key: APP_PASSCODE
+        sync: false
+      # 通知スクショの解析に使う Gemini の APIキー(未設定ならスクショ取り込みだけ無効)
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: APP_TITLE
+        sync: false

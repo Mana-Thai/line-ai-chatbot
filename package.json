@@ -6,6 +6,8 @@
     "scripts": {
         "start": "node server.js",
         "dev": "node server.js",
+        "kakeibo": "node kakeibo/server.js",
+        "test:kakeibo": "node --test kakeibo/test/*.test.js",
         "chatbot": "node index.js",
         "sync-skills": "node scripts/sync-skills.js"
     },
