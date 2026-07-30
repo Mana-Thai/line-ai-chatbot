@@ -84,6 +84,8 @@ ALLOW_INSECURE_DEV=1 ADMIN_PASSCODE=admin123 PORT=3000 node server.js
 | `new-web-game` | ブラウザミニゲーム(Canvas)の作成とURL共有 |
 | `illustration-animation` | イラスト・静止画のアニメーション化(animate.py・ギフト動画連携) |
 | `image-stylize` | 写真数枚から実写映画風・アニメ風画像をAI生成(stylize.py・Gemini) |
+| `drama-video-liveaction` | 写真の人物が動いて話す実写ドラマ風動画(drama_clip.py・Veo 3.1) |
+| `drama-video-anime` | 写真をアニメキャラ化して動かすアニメ風ドラマ動画(設定画→Veo 3.1) |
 | `apparel-graphic-design` | アパレルプリントのデザイン制作(SVG→300dpi透過PNG・印刷制約) |
 | `pixel-art` | ピクセルアート制作(テキストグリッド作画→SVG→PNG) |
 | `gimmick-art` | 仕掛けアート(逆さ絵・隠し文字・QRアート等)の制作と検証 |

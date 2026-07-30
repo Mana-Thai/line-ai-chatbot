@@ -9,6 +9,7 @@ gift-video/
 ├── scripts/
 │   ├── new_order.py      # 新規注文フォルダを生成 (--dummy でテスト素材も生成)
 │   ├── animate.py        # イラスト(静止画)からシーン動画を生成 (ズーム/パン/揺れ/パラパラ)
+│   ├── drama_clip.py     # Veo 3.1で人物が動き話すクリップを生成 (要GEMINI_API_KEY・有料)
 │   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
 │   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
