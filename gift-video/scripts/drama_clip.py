@@ -111,6 +111,13 @@ def load_api_key(name):
     return ""
 
 
+def as_list(value):
+    """YAMLの値を文字列1つでもリストでも受け取れるようにする。"""
+    if not value:
+        return []
+    return list(value) if isinstance(value, (list, tuple)) else [value]
+
+
 def data_uri(path):
     """fal はローカルファイルを受け取れないので data URI にして渡す。"""
     ext = os.path.splitext(path)[1].lower()
@@ -302,6 +309,43 @@ def load_scenes_yaml(path):
     return doc
 
 
+def write_prompt_sheet(path, scenes, out_paths, negative, aspect):
+    """Web UI に手で貼るためのプロンプト集を書き出す(APIを使わないので無料)。
+
+    Google Flow の無料クレジットや、各サービスのWeb版で試すときに使う。
+    生成した動画は各シーンの「保存先」に置けば、そのまま assemble に乗る。
+    """
+    lines = [
+        "# 生成用プロンプト集(Web UIに貼り付ける)",
+        "",
+        f"アスペクト比: **{aspect}** / 全{len(scenes)}シーン",
+        "",
+        "使い方: 各シーンの「プロンプト」をコピーしてWeb UIに貼り、参照画像があれば",
+        "アップロードして生成する。できた動画を「保存先」のファイル名で保存すれば、",
+        "`assemble.py` がそのまま1本に繋ぐ。",
+        "",
+        "※ Web UI 側のクリップ長は選べる範囲が決まっている。下の秒数どおりに作れない",
+        "場合はできる長さで作り、あとで `order.yaml` の `target_duration` を合計に合わせる。",
+        "",
+    ]
+    if negative:
+        lines += ["## 全シーン共通:出したくない要素(Negative欄がある場合はそこへ)", "",
+                  "```", negative, "```", ""]
+    for s, out in zip(scenes, out_paths):
+        lines += [f"## シーン {s['id']}(目安 {s['duration']}秒)", ""]
+        if s["refs"]:
+            names = ", ".join(os.path.basename(p) for p in s["refs"])
+            lines += [f"参照画像としてアップロード: `{names}`", ""]
+        else:
+            lines += ["参照画像: なし(人物の顔が写らないシーン)", ""]
+        lines += [f"保存先: `{os.path.basename(out)}`", "", "```", s["prompt"].strip(), "```", ""]
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print(f"プロンプト集を書き出しました: {path}")
+    print(f"  {len(scenes)}シーン分。APIは呼んでいないので費用はかかっていません")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="ドラマ用クリップ(人物が動き・話す)を生成する(Veo 3.1 / Kling 3.0)",
@@ -331,6 +375,9 @@ def main():
     parser.add_argument("--model", default="", help="モデルIDの上書き(既定: ティアに応じたVeo 3.1)")
     parser.add_argument("--overwrite", action="store_true", help="出力が既にあっても生成し直す(既定はスキップ=課金防止)")
     parser.add_argument("--dry-run", action="store_true", help="APIを呼ばず、送る内容と概算費用だけ確認")
+    parser.add_argument("--export-prompts", default="",
+                        help="Web UI(Google Flow・Kling等)に貼るためのプロンプト集を書き出す。"
+                             "APIキー不要・課金なし")
     args = parser.parse_args()
 
     if bool(args.prompt) == bool(args.scenes):
@@ -360,8 +407,9 @@ def main():
                 "id": s.get("id", i),
                 "prompt": s["prompt"],
                 "image": resolve(s.get("image", "")),
-                # ref: はそのシーンだけの参照画像(人物が変わる作品ではこちらを使う)
-                "ref": resolve(s.get("ref", "")),
+                # ref: はそのシーンだけの参照画像(人物が変わる作品ではこちらを使う)。
+                # 2人以上が写るシーンはリストで複数指定できる
+                "ref": [resolve(p) for p in as_list(s.get("ref"))],
                 "duration": int(s.get("duration", doc.get("duration", 0)) or 0),
             })
         out_paths = [os.path.join(args.out_dir, f"scene{s['id']}.mp4") for s in scenes]
@@ -370,7 +418,7 @@ def main():
         aspect, resolution = args.aspect, args.resolution
         provider = args.provider or "veo"
         tier = args.tier or ("fast" if args.fast else "")
-        scenes = [{"id": 1, "prompt": args.prompt, "image": args.image, "ref": "",
+        scenes = [{"id": 1, "prompt": args.prompt, "image": args.image, "ref": [],
                    "duration": args.duration}]
         out_paths = [args.out]
 
@@ -413,7 +461,7 @@ def main():
         if style:
             s["prompt"] = f"{style.strip()}\n{s['prompt'].strip()}"
         # kling はシーンごとの ref を使える(人物が変わる作品向け)。無ければ全体の refs
-        s["refs"] = ([s["ref"]] if s["ref"] else list(refs))[:pspec["max_refs"]]
+        s["refs"] = (s["ref"] or list(refs))[:pspec["max_refs"]]
 
     model = args.model or spec["model"]
     rate = spec["cost"][resolution]
@@ -430,6 +478,10 @@ def main():
         print(f"  scene{s['id']} ({s['duration']}秒{start}{ref_note}) → {out}")
         print(f"    {s['prompt'][:200]}")
     print(f"概算費用: 約${est:.2f}({total_sec}秒 × ${rate}/秒・目安)")
+
+    if args.export_prompts:
+        write_prompt_sheet(args.export_prompts, scenes, out_paths, negative, aspect)
+        return
 
     if args.dry_run:
         print("--dry-run のためAPIは呼びません")

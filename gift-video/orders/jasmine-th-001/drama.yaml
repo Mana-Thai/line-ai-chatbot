@@ -34,59 +34,59 @@ aspect: "16:9"
 scenes:
   - id: 1
     duration: 10
-    ref: refs/child.jpg
-    # 母(若い頃)+ 娘(6歳)→ 本生成 refs: mother-young.jpg
+    ref: [refs/mother-young.jpg, refs/child.jpg]
+    # 母(若い頃)+ 娘(6歳)
     prompt: >
       Morning, wooden house. MOTHER braids her 6-year-old daughter's hair before school,
       humming. Warm light through slatted windows. Close on the hands braiding.
   - id: 2
     duration: 5
-    ref: refs/mother-young.jpg
-    # 母(若い頃)+ 娘(幼少)→ 本生成 refs: mother-young.jpg
+    ref: [refs/mother-young.jpg, refs/child.jpg]
+    # 母(若い頃)+ 娘(幼少)
     prompt: >
       Simple dinner. MOTHER moves the piece of fish onto her daughter's plate, then eats
       plain rice herself. She doesn't say anything. Static shot, candid.
   - id: 3
     duration: 10
-    ref: refs/mother-young.jpg
-    # 母(若い頃)+ 娘(旅立ち)→ 本生成 refs: mother-young.jpg
+    ref: [refs/mother-young.jpg, refs/adult-child.jpg]
+    # 母(若い頃)+ 娘(旅立ち)
     prompt: >
       Rural roadside. Young woman with a suitcase about to leave. MOTHER pushes a small
       folded banknote deep into her pocket and pats it twice. Neither speaks.
   - id: 4
     duration: 5
     ref: refs/adult-child.jpg
-    # 娘(27歳)→ 本生成 refs: adult-child.jpg
+    # 娘(27歳)
     prompt: >
       Bangkok office at night, near-empty. DAUGHTER at her desk, checks a salary
       notification on her phone. She looks at it for a long moment. Cool fluorescent light.
   - id: 5
     duration: 5
     ref: refs/adult-child.jpg
-    # 娘(27歳)→ 本生成 refs: adult-child.jpg
+    # 娘(27歳)
     prompt: >
       Department store. DAUGHTER holds up a soft blue blouse, checking the price,
       calculating. She decides, and smiles very slightly to herself.
   - id: 6
     duration: 10
     ref: refs/mother-now.jpg
-    # 母(現在)→ 本生成 refs: mother-now.jpg
+    # 母(現在)のみ
     prompt: >
       Upcountry house. MOTHER unwraps a parcel, finds the blue blouse. She holds it
       against herself in front of an old spotted mirror, shy, almost embarrassed to
       like it. Touches her grey hair.
   - id: 7
     duration: 10
-    ref: refs/mother-now.jpg
-    # 母(現在)+ 娘 → 本生成 refs: mother-now.jpg(2人が写るため一貫性が最も難しい)
+    ref: [refs/mother-now.jpg, refs/adult-child.jpg]
+    # 母(現在)+ 娘
     prompt: >
       Wooden porch, late afternoon. DAUGHTER sits behind her MOTHER, gently combing and
       dyeing her grey hair. The exact reverse of the childhood braiding. Golden hour,
       dust in the air.
   - id: 8
     duration: 10
-    ref: refs/mother-now.jpg
-    # 母(現在)+ 娘 → 本生成 refs: mother-now.jpg
+    ref: [refs/mother-now.jpg, refs/adult-child.jpg]
+    # 母(現在)+ 娘
     prompt: >
       DAUGHTER kneels and offers a white jasmine garland. MOTHER takes her face in both
       hands and looks at her for a long time. Tears held back, not falling.

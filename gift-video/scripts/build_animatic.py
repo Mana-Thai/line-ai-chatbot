@@ -176,8 +176,12 @@ def main():
             sys.exit(f"エラー: scenes[{i}] に prompt がありません")
         dur = float(s.get("duration", default_dur))
 
-        # 人物の代役に使う画像(image → ref の順)。YAMLからの相対パスで解決する
-        photo = s.get("image") or s.get("ref") or ""
+        # 人物の代役に使う画像(image → ref の順)。YAMLからの相対パスで解決する。
+        # ref は複数指定できるが、絵コンテカードには先頭の1枚だけを敷く
+        ref = s.get("ref")
+        if isinstance(ref, (list, tuple)):
+            ref = ref[0] if ref else ""
+        photo = s.get("image") or ref or ""
         photo_path = None
         if photo:
             photo_path = Path(photo)
