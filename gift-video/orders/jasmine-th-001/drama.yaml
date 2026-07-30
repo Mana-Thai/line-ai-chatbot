@@ -1,14 +1,16 @@
-# 「白いジャスミンの花輪」— タイの母と娘の約1分の短編(9シーン×8秒=72秒)
+# 「白いジャスミンの花輪」— タイの母と娘の約1分の短編(9シーン・合計70秒)
+#
+# セリフが一切無い作品なので、生成は Kling(安く人物の一貫性が強い)を使う。
+# 尺は静かな挿入=5秒 / 感情の山=10秒 で緩急をつけてある。
 #
 # 無料の絵コンテ確認:
 #   python3 scripts/build_animatic.py orders/jasmine-th-001/drama.yaml \
 #       --out-dir orders/jasmine-th-001/input
-# 本生成(有料・Veo 3.1):
+# 本生成(有料・要 FAL_KEY):
 #   python3 scripts/drama_clip.py --scenes orders/jasmine-th-001/drama.yaml \
 #       --out-dir orders/jasmine-th-001/input
 #
-# 【本生成のときの注意】refs は「同一人物」を固定するための設定画。人物が変わるので
-# シーンごとに refs を指定して分けて生成する(各シーンのコメントに対応する設定画を記載)。
+# 各シーンの ref: がそのシーンの参照画像(人物の見た目を固定する設定画)。
 # 母は若い頃(1〜3)と現在(6〜8)で見た目が変わるため、設定画も分けてある。
 
 style: >
@@ -20,46 +22,53 @@ style: >
   faded floral blouse, soft lines around the eyes, calm and unshowy.
   DAUGHTER: Thai woman, 27, long dark hair, simple cream blouse, gentle but tired eyes.
 
-# ブリーフの NEGATIVE。Veo の negativePrompt にそのまま渡される
+# ブリーフの NEGATIVE。negative_prompt としてそのまま渡される
 negative: >
   saturated colors, glossy commercial look, stock-footage smiles, hearts, sparkles,
   fast cuts
 
+provider: kling      # セリフの無い作品なので Kling(安く人物の一貫性が強い)
+tier: standard       # 品質を上げるなら pro($0.168/秒・約2倍)
 aspect: "16:9"
-duration: 8
 
 scenes:
   - id: 1
+    duration: 10
     ref: refs/child.jpg
     # 母(若い頃)+ 娘(6歳)→ 本生成 refs: mother-young.jpg
     prompt: >
       Morning, wooden house. MOTHER braids her 6-year-old daughter's hair before school,
       humming. Warm light through slatted windows. Close on the hands braiding.
   - id: 2
+    duration: 5
     ref: refs/mother-young.jpg
     # 母(若い頃)+ 娘(幼少)→ 本生成 refs: mother-young.jpg
     prompt: >
       Simple dinner. MOTHER moves the piece of fish onto her daughter's plate, then eats
       plain rice herself. She doesn't say anything. Static shot, candid.
   - id: 3
+    duration: 10
     ref: refs/mother-young.jpg
     # 母(若い頃)+ 娘(旅立ち)→ 本生成 refs: mother-young.jpg
     prompt: >
       Rural roadside. Young woman with a suitcase about to leave. MOTHER pushes a small
       folded banknote deep into her pocket and pats it twice. Neither speaks.
   - id: 4
+    duration: 5
     ref: refs/adult-child.jpg
     # 娘(27歳)→ 本生成 refs: adult-child.jpg
     prompt: >
       Bangkok office at night, near-empty. DAUGHTER at her desk, checks a salary
       notification on her phone. She looks at it for a long moment. Cool fluorescent light.
   - id: 5
+    duration: 5
     ref: refs/adult-child.jpg
     # 娘(27歳)→ 本生成 refs: adult-child.jpg
     prompt: >
       Department store. DAUGHTER holds up a soft blue blouse, checking the price,
       calculating. She decides, and smiles very slightly to herself.
   - id: 6
+    duration: 10
     ref: refs/mother-now.jpg
     # 母(現在)→ 本生成 refs: mother-now.jpg
     prompt: >
@@ -67,6 +76,7 @@ scenes:
       against herself in front of an old spotted mirror, shy, almost embarrassed to
       like it. Touches her grey hair.
   - id: 7
+    duration: 10
     ref: refs/mother-now.jpg
     # 母(現在)+ 娘 → 本生成 refs: mother-now.jpg(2人が写るため一貫性が最も難しい)
     prompt: >
@@ -74,12 +84,14 @@ scenes:
       dyeing her grey hair. The exact reverse of the childhood braiding. Golden hour,
       dust in the air.
   - id: 8
+    duration: 10
     ref: refs/mother-now.jpg
     # 母(現在)+ 娘 → 本生成 refs: mother-now.jpg
     prompt: >
       DAUGHTER kneels and offers a white jasmine garland. MOTHER takes her face in both
       hands and looks at her for a long time. Tears held back, not falling.
   - id: 9
+    duration: 5
     # 手元のみ(人物の顔は写らない)→ refs 不要
     prompt: >
       Close-up: two pairs of hands holding a white jasmine garland with a pale blue

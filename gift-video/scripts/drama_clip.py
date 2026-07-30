@@ -1,31 +1,41 @@
 #!/usr/bin/env python3
-"""drama_clip.py — Veo 3.1 でドラマ用の動画クリップ(人物が動き・話す)を生成する。
+"""drama_clip.py — ドラマ用の動画クリップ(人物が動き・話す)を生成する。
 
-Gemini API の動画生成モデル(Veo)を呼び、参照画像で人物の見た目を保ったまま、
-セリフ音声・効果音付きの数秒クリップを生成する。生成したクリップは
+参照画像で人物の見た目を保ったまま数秒のクリップを生成する。生成したクリップは
 orders/<注文ID>/input/sceneN.mp4 に置けば通常の assemble → qc フローに乗る。
 
+プロバイダは2つ。**セリフの有無で選ぶ**のが基本:
+
+| provider | 単価(目安) | 向いている作品 |
+|---|---|---|
+| `veo`(既定) | $0.05〜0.40/秒 | 登場人物が**しゃべる**作品。口パク付きのセリフ音声を同時生成できる |
+| `kling` | $0.084〜0.168/秒 | **セリフの無い**映像作品。安く、複数ショットにまたがる人物の一貫性が強い |
+
+セリフが無い作品に veo standard を使うのは、使わない機能に高い単価を払うことになる。
+
 使い方:
-    # 絵づくりの下見を最安ティアで(8秒 約$0.40。ただし参照画像は使えない)
-    python3 scripts/drama_clip.py --prompt "教室で少女が微笑んで「おはよう」と言う" \
-        --out test.mp4 --tier lite
+    # 1クリップだけ試す(Kling standard・10秒で約$0.84)
+    python3 scripts/drama_clip.py --provider kling --prompt "母が娘の髪を編む" \
+        --refs chara.jpg --out test.mp4
 
-    # 人物を固定してテスト(参照画像は fast 以上が必要。8秒 約$0.80)
-    python3 scripts/drama_clip.py --prompt "..." --refs chara1.png chara2.png \
-        --out test.mp4 --tier fast
-
-    # 脚本(YAML)から全シーンを本生成(standard・1080p)
+    # 脚本(YAML)から全シーンを本生成。provider / tier はYAMLにも書ける
     python3 scripts/drama_clip.py --scenes drama.yaml --out-dir orders/x-001/input
 
-必要なもの:
-    環境変数 GEMINI_API_KEY(リポジトリ直下の .env でも可)。
-    Veo は無料枠では使えないため、キーに有料課金の設定が必要。
-    料金が高い(standardは8秒で約$3)ので、必ず --dry-run と下見生成から始めること。
+    # セリフのある作品を Veo で(下見は lite → fast → 本番 standard の順に上げる)
+    python3 scripts/drama_clip.py --prompt "少女が「おはよう」と言う" --out t.mp4 --tier lite
 
-APIの制約(スクリプト側で自動調整・検証する):
-    - 参照画像あり、または 1080p のときは 8秒クリップしか返らない(4/6秒指定は8秒に調整)
-    - lite は 720p 専用で参照画像に非対応
-    - standard は 720p と 1080p が同額のため 1080p を既定にしている
+必要なもの:
+    veo   → GEMINI_API_KEY(有料課金の設定が必要。無料枠では使えない)
+    kling → FAL_KEY(https://fal.ai でキーを発行し残高を入れる)
+    いずれもリポジトリ直下の .env でも可。必ず --dry-run と1シーンの試し生成から始める。
+
+各プロバイダの制約(スクリプト側で自動調整・検証する):
+    veo   - クリップは4/6/8秒。ただし参照画像あり・1080p では8秒のみ(自動で8秒に調整)
+          - lite は 720p 専用で参照画像に非対応
+          - standard は 720p と 1080p が同額なので 1080p が既定
+    kling - クリップは5秒か10秒。参照画像は4枚まで
+          - 参照画像は elements として渡し、プロンプト内で @Element1.. として参照される
+          - シーンごとに `ref:` を書けば、人物が変わる作品でもシーン単位で切り替わる
 
 詳しい手順は Skill `drama-video-liveaction` / `drama-video-anime` を参照。
 """
@@ -40,17 +50,39 @@ import urllib.error
 import urllib.request
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+FAL_QUEUE_BASE = "https://queue.fal.run"
 
-# ティア別のモデルIDと料金(USD/出力秒・音声込み。2026年7月時点)。
-# 料金は見積もり表示にのみ使う。Standardは720pと1080pが同額なので1080pが既定。
-TIERS = {
-    "standard": {"model": "veo-3.1-generate-preview",
-                 "cost": {"720p": 0.40, "1080p": 0.40}, "default_res": "1080p"},
-    "fast": {"model": "veo-3.1-fast-generate-preview",
-             "cost": {"720p": 0.10, "1080p": 0.12}, "default_res": "720p"},
-    # Lite は最安だが 720p 専用で参照画像に非対応(下でチェックする)
-    "lite": {"model": "veo-3.1-lite-generate-preview",
-             "cost": {"720p": 0.05}, "default_res": "720p"},
+# プロバイダ別のティア定義。cost は USD/出力秒(音声込み・2026年7月時点)で見積もり表示のみに使う。
+#
+# veo:   セリフのリップシンクが要る作品向け。standardは720pと1080pが同額なので1080pが既定
+# kling: 単価が安く、複数ショットにまたがる人物の一貫性(elements)が強い。
+#        セリフが無い作品なら kling の方が費用対効果が高い
+PROVIDERS = {
+    "veo": {
+        "env": "GEMINI_API_KEY",
+        "durations": [4, 6, 8],
+        "max_refs": 3,
+        "tiers": {
+            "standard": {"model": "veo-3.1-generate-preview",
+                         "cost": {"720p": 0.40, "1080p": 0.40}, "default_res": "1080p"},
+            "fast": {"model": "veo-3.1-fast-generate-preview",
+                     "cost": {"720p": 0.10, "1080p": 0.12}, "default_res": "720p"},
+            # Lite は最安だが 720p 専用で参照画像に非対応(下でチェックする)
+            "lite": {"model": "veo-3.1-lite-generate-preview",
+                     "cost": {"720p": 0.05}, "default_res": "720p"},
+        },
+    },
+    "kling": {
+        "env": "FAL_KEY",
+        "durations": [5, 10],
+        "max_refs": 4,
+        "tiers": {
+            "standard": {"model": "fal-ai/kling-video/v3/standard/image-to-video",
+                         "cost": {"1080p": 0.084}, "default_res": "1080p"},
+            "pro": {"model": "fal-ai/kling-video/v3/pro/image-to-video",
+                    "cost": {"1080p": 0.168}, "default_res": "1080p"},
+        },
+    },
 }
 
 MIME_BY_EXT = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
@@ -64,8 +96,8 @@ POLL_INTERVAL_SEC = 15
 POLL_TIMEOUT_SEC = 15 * 60
 
 
-def load_api_key():
-    key = os.environ.get("GEMINI_API_KEY", "").strip()
+def load_api_key(name):
+    key = os.environ.get(name, "").strip()
     if key:
         return key
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -74,9 +106,21 @@ def load_api_key():
         with open(env_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if line.startswith("GEMINI_API_KEY="):
+                if line.startswith(f"{name}="):
                     return line.split("=", 1)[1].strip().strip('"').strip("'")
     return ""
+
+
+def data_uri(path):
+    """fal はローカルファイルを受け取れないので data URI にして渡す。"""
+    ext = os.path.splitext(path)[1].lower()
+    mime = MIME_BY_EXT.get(ext)
+    if not mime:
+        sys.exit(f"エラー: 対応していない画像形式です: {path}(JPG/PNG/WebPのみ)")
+    if not os.path.exists(path):
+        sys.exit(f"エラー: 画像が見つかりません: {path}")
+    with open(path, "rb") as f:
+        return f"data:{mime};base64," + base64.b64encode(f.read()).decode("ascii")
 
 
 def image_payload(path):
@@ -150,6 +194,92 @@ def wait_for_video(api_key, op_name):
     return None, f"タイムアウト({POLL_TIMEOUT_SEC // 60}分)。時間を置いて再実行してください"
 
 
+# --------------------------------------------------------------------------
+# Kling (fal.ai の queue API)
+# --------------------------------------------------------------------------
+def fal_request(url, api_key, body=None, method="GET"):
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8") if body is not None else None,
+        headers={"Content-Type": "application/json", "Authorization": f"Key {api_key}"},
+        method=method,
+    )
+    with urllib.request.urlopen(req, timeout=120) as res:
+        return json.loads(res.read().decode("utf-8"))
+
+
+def kling_start(api_key, model, scene, refs, aspect, negative):
+    """生成を投入し、状態確認用のURLを返す。"""
+    prompt = scene["prompt"]
+    payload = {
+        "prompt": prompt,
+        "duration": str(scene["duration"]),
+        "aspect_ratio": aspect,
+    }
+    if negative:
+        payload["negative_prompt"] = negative
+    if scene.get("image"):
+        # 開始フレーム(この絵から動き出す)
+        payload["image_url"] = data_uri(scene["image"])
+    if refs:
+        # elements に入れた画像は、プロンプト内で @Element1.. として参照する仕様
+        payload["elements"] = [{"image_url": data_uri(p)} for p in refs]
+        tags = ", ".join(f"@Element{i + 1}" for i in range(len(refs)))
+        payload["prompt"] = (f"{prompt}\nKeep the appearance of {tags} exactly consistent "
+                             f"with the reference image(s).")
+    try:
+        res = fal_request(f"{FAL_QUEUE_BASE}/{model}", api_key, payload, method="POST")
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        hint = ""
+        if e.code in (401, 403):
+            hint = "\nヒント: FAL_KEY が正しいか、fal.ai の残高があるか確認してください"
+        elif e.code == 404:
+            hint = (f"\nヒント: モデルID '{model}' が変わった可能性があります。"
+                    "\n  https://fal.ai/models で現在のIDを確認し --model で指定してください")
+        elif e.code == 422:
+            hint = ("\nヒント: 入力の形式が想定と違う可能性があります(上のJSONに詳細)。"
+                    "\n  fal のモデルページのスキーマを確認し、必要なら --model を変えてください")
+        sys.exit(f"エラー: 生成リクエストが失敗しました(HTTP {e.code})\n{detail[:2000]}{hint}")
+    return res.get("status_url"), res.get("response_url")
+
+
+def kling_wait(api_key, status_url, response_url):
+    """完了を待ち、動画のURLを返す。"""
+    deadline = time.time() + POLL_TIMEOUT_SEC
+    while time.time() < deadline:
+        time.sleep(POLL_INTERVAL_SEC)
+        try:
+            st = fal_request(status_url, api_key)
+        except urllib.error.HTTPError as e:
+            return None, f"状態の取得に失敗しました(HTTP {e.code})"
+        status = st.get("status", "")
+        if status in ("IN_QUEUE", "IN_PROGRESS"):
+            print(f"  生成中...({status})")
+            continue
+        if status != "COMPLETED":
+            return None, f"生成が失敗しました(status={status}): {json.dumps(st, ensure_ascii=False)[:400]}"
+        try:
+            result = fal_request(response_url, api_key)
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", errors="replace")
+            return None, f"結果の取得に失敗しました(HTTP {e.code}): {detail[:400]}"
+        url = (result.get("video") or {}).get("url")
+        if url:
+            return url, None
+        return None, f"動画が返されませんでした: {json.dumps(result, ensure_ascii=False)[:400]}"
+    return None, f"タイムアウト({POLL_TIMEOUT_SEC // 60}分)。時間を置いて再実行してください"
+
+
+def download_plain(url, out_path):
+    with urllib.request.urlopen(url, timeout=300) as res, open(out_path, "wb") as f:
+        while True:
+            chunk = res.read(1024 * 256)
+            if not chunk:
+                break
+            f.write(chunk)
+
+
 def download_video(api_key, uri, out_path):
     req = urllib.request.Request(uri, headers={"x-goog-api-key": api_key})
     with urllib.request.urlopen(req, timeout=300) as res, open(out_path, "wb") as f:
@@ -174,7 +304,7 @@ def load_scenes_yaml(path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Veo 3.1 でドラマ用クリップ(人物が動き・話す)を生成する",
+        description="ドラマ用クリップ(人物が動き・話す)を生成する(Veo 3.1 / Kling 3.0)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--prompt", default="", help="シーンの指示(演技・カメラ・セリフは「」で)。--scenes と排他")
@@ -190,11 +320,13 @@ def main():
                         help="16:9=横型 / 9:16=縦型(既定: 16:9)")
     parser.add_argument("--resolution", choices=RESOLUTIONS, default="",
                         help="解像度(既定: standardは1080p=720pと同額 / fast・liteは720p)")
-    parser.add_argument("--duration", type=int, choices=DURATIONS, default=8,
-                        help="クリップ秒数(参照画像あり・1080p では8秒に自動調整される)")
-    parser.add_argument("--tier", choices=sorted(TIERS), default="",
-                        help="standard=高品質($0.40/秒) / fast=下見向き($0.10) / "
-                             "lite=最安($0.05・720p専用・参照画像不可)")
+    parser.add_argument("--duration", type=int, default=0,
+                        help="クリップ秒数(veo: 4/6/8、kling: 5/10。既定 veo=8 / kling=10)")
+    parser.add_argument("--provider", choices=sorted(PROVIDERS), default="",
+                        help="veo=セリフのリップシンク対応(高め) / kling=安く人物の一貫性が強い")
+    parser.add_argument("--tier", default="",
+                        help="veo: standard($0.40/秒) / fast($0.10) / lite($0.05・参照画像不可)。"
+                             "kling: standard($0.084) / pro($0.168)")
     parser.add_argument("--fast", action="store_true", help="--tier fast の別名(下位互換)")
     parser.add_argument("--model", default="", help="モデルIDの上書き(既定: ティアに応じたVeo 3.1)")
     parser.add_argument("--overwrite", action="store_true", help="出力が既にあっても生成し直す(既定はスキップ=課金防止)")
@@ -203,10 +335,14 @@ def main():
 
     if bool(args.prompt) == bool(args.scenes):
         sys.exit("エラー: --prompt(1クリップ)か --scenes(脚本YAML)のどちらか一方を指定してください")
-    if len(args.refs) > 3:
-        sys.exit("エラー: 参照画像は3枚までです")
 
-    # シーン一覧に正規化。脚本YAMLの値は既定値として使い、CLI指定があればそちらを優先する
+    # シーン一覧に正規化。脚本YAMLの値は既定値として使い、CLI指定があればそちらを優先する。
+    # 画像パス(image / ref)はYAMLからの相対で書けるようにする
+    base_dir = os.path.dirname(os.path.abspath(args.scenes)) if args.scenes else os.getcwd()
+
+    def resolve(p):
+        return p if not p or os.path.isabs(p) else os.path.join(base_dir, p)
+
     if args.scenes:
         doc = load_scenes_yaml(args.scenes)
         style = args.style or doc.get("style", "")
@@ -214,7 +350,8 @@ def main():
         refs = args.refs or doc.get("refs", [])
         aspect = args.aspect or doc.get("aspect", "")
         resolution = args.resolution or doc.get("resolution", "")
-        tier = args.tier or ("fast" if args.fast else doc.get("tier", "standard"))
+        provider = args.provider or doc.get("provider", "veo")
+        tier = args.tier or ("fast" if args.fast else doc.get("tier", ""))
         scenes = []
         for i, s in enumerate(doc["scenes"], 1):
             if not s.get("prompt"):
@@ -222,43 +359,61 @@ def main():
             scenes.append({
                 "id": s.get("id", i),
                 "prompt": s["prompt"],
-                "image": s.get("image", ""),
-                "duration": int(s.get("duration", doc.get("duration", args.duration))),
+                "image": resolve(s.get("image", "")),
+                # ref: はそのシーンだけの参照画像(人物が変わる作品ではこちらを使う)
+                "ref": resolve(s.get("ref", "")),
+                "duration": int(s.get("duration", doc.get("duration", 0)) or 0),
             })
         out_paths = [os.path.join(args.out_dir, f"scene{s['id']}.mp4") for s in scenes]
     else:
         style, refs, negative = args.style, args.refs, args.negative
         aspect, resolution = args.aspect, args.resolution
-        tier = args.tier or ("fast" if args.fast else "standard")
-        scenes = [{"id": 1, "prompt": args.prompt, "image": args.image, "duration": args.duration}]
+        provider = args.provider or "veo"
+        tier = args.tier or ("fast" if args.fast else "")
+        scenes = [{"id": 1, "prompt": args.prompt, "image": args.image, "ref": "",
+                   "duration": args.duration}]
         out_paths = [args.out]
 
-    if tier not in TIERS:
-        sys.exit(f"エラー: tier は {sorted(TIERS)} から選んでください(指定: {tier})")
-    spec = TIERS[tier]
+    if provider not in PROVIDERS:
+        sys.exit(f"エラー: provider は {sorted(PROVIDERS)} から選んでください(指定: {provider})")
+    pspec = PROVIDERS[provider]
+    tier = tier or ("standard" if provider == "veo" else "standard")
+    if tier not in pspec["tiers"]:
+        sys.exit(f"エラー: {provider} の tier は {sorted(pspec['tiers'])} から選んでください(指定: {tier})")
+    refs = [resolve(p) for p in refs]
+    if len(refs) > pspec["max_refs"]:
+        sys.exit(f"エラー: {provider} の参照画像は{pspec['max_refs']}枚までです")
+    default_dur = 8 if provider == "veo" else 10
+    for s in scenes:
+        s["duration"] = s["duration"] or args.duration or default_dur
+
+    spec = pspec["tiers"][tier]
     aspect = aspect or "16:9"
     resolution = resolution or spec["default_res"]
     if resolution not in spec["cost"]:
-        sys.exit(f"エラー: {tier} は {resolution} に対応していません"
+        sys.exit(f"エラー: {provider}/{tier} は {resolution} に対応していません"
                  f"(対応: {', '.join(spec['cost'])})")
-    if refs and tier == "lite":
-        sys.exit("エラー: lite は参照画像に対応していません。\n"
-                 "  人物の一貫性が要るシーンは --tier fast か standard を使ってください")
-    if len(refs) > 3:
-        sys.exit("エラー: 参照画像は3枚までです")
+    if refs and provider == "veo" and tier == "lite":
+        sys.exit("エラー: veo の lite は参照画像に対応していません。\n"
+                 "  人物の一貫性が要るシーンは --tier fast か standard、または --provider kling を使ってください")
 
-    # 参照画像あり・1080p では8秒クリップしか返らない。指定を先に合わせておかないと、
+    # veo は「参照画像あり・1080p では8秒クリップしか返らない」。指定を先に合わせておかないと、
     # 課金後に実尺が食い違って assemble の尺チェックで落ちる
-    force_reason = ("参照画像あり" if refs else "1080p") if (refs or resolution == "1080p") else ""
+    force_reason = ""
+    if provider == "veo" and (refs or resolution == "1080p"):
+        force_reason = "参照画像あり" if refs else "1080p"
     for s in scenes:
-        if s["duration"] not in DURATIONS:
-            sys.exit(f"エラー: scene{s['id']} の duration は {DURATIONS} から選んでください")
+        if s["duration"] not in pspec["durations"]:
+            sys.exit(f"エラー: scene{s['id']} の duration は {provider} では "
+                     f"{pspec['durations']} から選んでください(指定: {s['duration']})")
         if force_reason and s["duration"] != FORCED_8S_DURATION:
             print(f"注意: scene{s['id']} の {s['duration']}秒 → {FORCED_8S_DURATION}秒 に調整"
                   f"({force_reason}のときは8秒クリップのみ生成できるため)")
             s["duration"] = FORCED_8S_DURATION
         if style:
             s["prompt"] = f"{style.strip()}\n{s['prompt'].strip()}"
+        # kling はシーンごとの ref を使える(人物が変わる作品向け)。無ければ全体の refs
+        s["refs"] = ([s["ref"]] if s["ref"] else list(refs))[:pspec["max_refs"]]
 
     model = args.model or spec["model"]
     rate = spec["cost"][resolution]
@@ -266,12 +421,13 @@ def main():
     est = total_sec * rate
 
     negative = " ".join(negative.split())
-    print(f"モデル: {model}(tier={tier}) / {aspect} / {resolution} / 参照画像{len(refs)}枚")
+    print(f"プロバイダ: {provider} / モデル: {model}(tier={tier}) / {aspect} / {resolution}")
     if negative:
         print(f"除外指定(negativePrompt): {negative}")
     for s, out in zip(scenes, out_paths):
-        start = f" / 開始フレーム: {s['image']}" if s["image"] else ""
-        print(f"  scene{s['id']} ({s['duration']}秒{start}) → {out}")
+        start = f" / 開始フレーム: {os.path.basename(s['image'])}" if s["image"] else ""
+        ref_note = f" / 参照{len(s['refs'])}枚" if s["refs"] else ""
+        print(f"  scene{s['id']} ({s['duration']}秒{start}{ref_note}) → {out}")
         print(f"    {s['prompt'][:200]}")
     print(f"概算費用: 約${est:.2f}({total_sec}秒 × ${rate}/秒・目安)")
 
@@ -289,34 +445,44 @@ def main():
         print("全シーンが出力済みです(生成なし)")
         return
 
-    api_key = load_api_key()
+    key_env = pspec["env"]
+    api_key = load_api_key(key_env)
     if not api_key:
+        hint = ("  ※Veo は有料課金の設定があるキーでのみ使えます"
+                if provider == "veo" else
+                "  ※fal.ai (https://fal.ai) でキーを発行し、残高を入れておいてください")
         sys.exit(
-            "エラー: GEMINI_API_KEY が設定されていません。\n"
-            "  環境変数か、リポジトリ直下の .env に設定してください。\n"
-            "  ※Veo は有料課金の設定があるキーでのみ使えます"
+            f"エラー: {key_env} が設定されていません。\n"
+            "  環境変数か、リポジトリ直下の .env に設定してください。\n" + hint
         )
 
     ok, failed = [], []
     for s, out_path in pending:
         os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
         print(f"scene{s['id']}: 生成を開始(完了まで数分かかる)")
-        params = {
-            "aspectRatio": aspect,
-            "resolution": resolution,
-            "durationSeconds": s["duration"],
-            "personGeneration": "allow_adult",
-            "sampleCount": 1,
-        }
-        if negative:
-            params["negativePrompt"] = negative
-        op_name = start_generation(api_key, model, s, refs, params)
-        uri, error = wait_for_video(api_key, op_name)
+        if provider == "veo":
+            params = {
+                "aspectRatio": aspect,
+                "resolution": resolution,
+                "durationSeconds": s["duration"],
+                "personGeneration": "allow_adult",
+                "sampleCount": 1,
+            }
+            if negative:
+                params["negativePrompt"] = negative
+            op_name = start_generation(api_key, model, s, s["refs"], params)
+            uri, error = wait_for_video(api_key, op_name)
+            if uri:
+                download_video(api_key, uri, out_path)
+        else:
+            status_url, response_url = kling_start(api_key, model, s, s["refs"], aspect, negative)
+            uri, error = kling_wait(api_key, status_url, response_url)
+            if uri:
+                download_plain(uri, out_path)
         if not uri:
             print(f"  失敗: {error}")
             failed.append(s["id"])
             continue
-        download_video(api_key, uri, out_path)
         print(f"  保存: {out_path} ({os.path.getsize(out_path) / 1024 / 1024:.1f} MB)")
         ok.append(out_path)
 

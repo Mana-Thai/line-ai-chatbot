@@ -102,6 +102,7 @@ npm start              # http://localhost:3000
 | `ALLOW_INSECURE_DEV` | - | `1`でLINEログインを省略(ローカル開発専用) |
 | `DATABASE_SSL` | - | `false` でDB接続のSSLを無効化。SSL無しのローカルPostgreSQL用で、**本番(Supabase等)では設定しない**(未設定=SSL有効) |
 | `GEMINI_API_KEY` | - | AI制作ツール(`artwork/tools/stylize.py`・`gift-video/scripts/drama_clip.py`)と旧チャットボット用。**手元のPC専用でRenderには設定しない** |
+| `FAL_KEY` | - | fal.ai 経由で Kling を使う場合(`drama_clip.py --provider kling`)。**手元のPC専用** |
 | `LINE_CHANNEL_ACCESS_TOKEN` | - | 旧チャットボット(`npm run chatbot`)専用 |
 | `LINE_CHANNEL_SECRET` | - | 旧チャットボット(`npm run chatbot`)専用 |
 
