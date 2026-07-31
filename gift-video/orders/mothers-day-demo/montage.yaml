@@ -1,12 +1,19 @@
-# 母親向け「あなたが私にしてくれたこと」の標準構成(デモ)。
-# 子どもの頃から現在までを時間順に並べる。写真は photos/ に時系列順の名前で置く。
-#
-# caption は画面下に出る文字(空にすれば出ない)。年号を入れると時間の流れが伝わる。
-# duration は表示秒数。preset でカメラワークを指定できる。
+# 母親向け「あなたが私にしてくれたこと」— Etsy系人気商品を参考にした3部構成(デモ)。
+#   ①冒頭の手紙カード → ②時系列の写真 → ③結びの手紙カード → 締め(order.yaml)
+# 手紙(文章)が商品価値の中心。映像は派手に動かさず、ゆっくりした上品な演出にする。
 
 default_duration: 5
 
 photos:
+  # ── ① 冒頭: 宛名と書き出し ──
+  - letter: |-
+      お母さんへ
+
+      あなたが私にしてくれたことを
+      ひとつずつ、思い出してみました
+    duration: 7
+
+  # ── ② 時系列の写真(子どもの頃 → 現在) ──
   - file: "01-baby.jpg"
     caption: "1996年 — わたしを抱いてくれた日"
     preset: zoom-in
@@ -18,12 +25,20 @@ photos:
     preset: zoom-out
   - file: "04-trip.jpg"
     caption: "はじめての家族旅行"
-    preset: pan-right
+    preset: zoom-in
   - file: "05-laughing.jpg"
     caption: "その笑い声が、家じゅうを明るくした"
-    duration: 6
-    preset: zoom-in
+    preset: sway
   - file: "06-grandchild.jpg"
     caption: "そして今、孫たちに同じ愛を"
     duration: 6
-    preset: sway
+    preset: zoom-in
+
+  # ── ③ 結び: いちばん伝えたい言葉 ──
+  - letter: |-
+      言葉にしなかっただけで
+      ぜんぶ、覚えています
+
+      今度はわたしが
+      あなたを大切にする番です
+    duration: 8
