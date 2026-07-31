@@ -54,6 +54,7 @@ MESSAGE_FADE = 3.0      # メッセージのゆっくりフェードイン
 NAMES_LEAD = 2.0        # ラスト2秒
 NAMES_FADE = 0.5
 AUDIO_FADE = 2.0        # BGM末尾フェードアウト
+MIX_BGM_VOL = 0.3       # mix_scene_audio 時にBGMを下げる倍率 (セリフを立たせる)
 
 
 class PipelineError(RuntimeError):
@@ -125,6 +126,20 @@ Noto Sans JP を以下からダウンロードして、
   ("Get font" → "Download all" → zip 内の NotoSansJP-Regular.ttf をコピー)
 """
 
+FONT_INSTALL_HELP_TH = f"""\
+タイ語対応フォントが見つかりませんでした。
+
+**日本語フォント(Noto Sans CJK等)にタイ文字は入っていません。**
+そのまま使うと文字がすべて □ になります。
+
+Noto Sans Thai を以下からダウンロードして、
+  {FONTS_DIR}
+に .ttf を配置してください。
+
+  https://fonts.google.com/noto/specimen/Noto+Sans+Thai
+  Linux なら: sudo apt install fonts-noto-core
+"""
+
 _SYSTEM_FONT_CANDIDATES = [
     # Linux (fonts-noto-cjk)
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -140,19 +155,120 @@ _SYSTEM_FONT_CANDIDATES = [
     "/Library/Fonts/NotoSansJP-Regular.ttf",
 ]
 
+# タイ文字を持つフォント。CJKフォントにタイ文字は含まれないので完全に別系統。
+#
+# 【重要】NotoSansThai / NotoSerifThai は**タイ文字だけのサブセット**で、
+# 数字・ピリオド・カンマ・ラテン文字を持たない。「พ.ศ. 2026」のような実際の文面で
+# □ になるため、ラテン文字と約物まで揃っている Loma / Tahoma を優先する。
+# (下の check_font_coverage が実際に描画前に検査する)
+_THAI_FONT_CANDIDATES = [
+    # Linux (fonts-thai-tlwg) — タイ文字+ラテン+約物が揃っている
+    "/usr/share/fonts/opentype/tlwg/Loma.otf",
+    "/usr/share/fonts/truetype/tlwg/Loma.ttf",
+    "/usr/share/fonts/opentype/tlwg/Garuda.otf",
+    "/usr/share/fonts/opentype/tlwg/Sarabun.otf",
+    # Windows
+    "C:/Windows/Fonts/tahoma.ttf",          # Windows標準でタイ文字を持つ
+    "C:/Windows/Fonts/leelawui.ttf",
+    # macOS
+    "/System/Library/Fonts/Thonburi.ttc",
+    # Noto Thai は最後(タイ文字のみのサブセットの場合がある)
+    "/usr/share/fonts/truetype/noto/NotoLoopedThai-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
+]
 
-def find_font() -> Path:
-    """assets/fonts を優先し、なければOSのシステムフォントから日本語フォントを探す。"""
+# タイ文字のコードブロック
+_THAI_RANGE = ("\u0e00", "\u0e7f")
+
+
+def has_thai(text: str) -> bool:
+    return any(_THAI_RANGE[0] <= ch <= _THAI_RANGE[1] for ch in str(text))
+
+
+# タイ語の結合文字(上下に付く母音記号・声調記号)。基底文字から切り離すと表示が壊れる
+THAI_COMBINING = "ัิ-ฺ็-๎"
+
+
+def wrap_tokens(text: str) -> list[str]:
+    """折り返しの最小単位に分割する。
+
+    欧文の単語は途中で切らず、タイ語の結合文字は基底文字にくっつけて1単位にする
+    (文字数で機械的に切ると ก + ่ が分かれて別々に描画されてしまう)。
+    """
+    return re.findall(rf"[!-~]+\s*|.[{THAI_COMBINING}]*", text)
+
+
+def missing_glyphs(font: Path, text: str) -> set[str] | None:
+    """フォントに無い文字を返す。判定できない環境では None。
+
+    ffmpeg の drawtext はフォントを1つしか使わず、字体の自動フォールバックをしない。
+    無い文字は黙って □ になり、完成品を再生するまで気づけないため事前に検査する。
+    """
+    try:
+        from fontTools.ttLib import TTCollection, TTFont
+    except ImportError:
+        return None
+    try:
+        fonts = (TTCollection(str(font)).fonts if font.suffix.lower() == ".ttc"
+                 else [TTFont(str(font), fontNumber=0)])
+        codepoints: set[int] = set()
+        for f in fonts:
+            for table in f["cmap"].tables:
+                codepoints |= set(table.cmap.keys())
+    except Exception:
+        return None
+    # 改行・タブは描画対象外
+    return {ch for ch in set(text) if ch not in "\n\r\t" and ord(ch) not in codepoints}
+
+
+def find_font(text: str | None = None) -> Path:
+    """描画する文字に合ったフォントを返す。
+
+    text にタイ文字が含まれる場合はタイ語フォントを探す。日本語フォント
+    (Noto Sans CJK 等)にタイ文字は入っておらず、そのまま描画すると全部 □ に
+    なるため、言語ごとに別のフォントを選ぶ必要がある。
+
+    さらに、候補のうち **text の全文字を持つもの** を優先する。タイ語フォントには
+    数字やピリオドを含まないサブセット(NotoSansThai 等)があり、「พ.ศ. 2026」の
+    ような文面で約物だけが □ になる事故を防ぐ。
+    """
+    thai = text is not None and has_thai(text)
+    candidates: list[Path] = []
     if FONTS_DIR.is_dir():
+        hits: list[Path] = []
         for ext in ("*.ttf", "*.otf", "*.ttc"):
-            hits = sorted(FONTS_DIR.glob(ext))
-            if hits:
-                return hits[0]
-    for cand in _SYSTEM_FONT_CANDIDATES:
-        p = Path(cand)
-        if p.is_file():
+            hits += sorted(FONTS_DIR.glob(ext))
+        # 手動配置したフォントを最優先(タイ語なら名前で絞る)
+        if thai:
+            candidates += [p for p in hits
+                           if any(k in p.name.lower()
+                                  for k in ("thai", "loma", "garuda", "sarabun", "tahoma"))]
+        else:
+            candidates += hits
+    candidates += [Path(c) for c in
+                   (_THAI_FONT_CANDIDATES if thai else _SYSTEM_FONT_CANDIDATES)]
+    candidates = [p for p in candidates if p.is_file()]
+    if not candidates:
+        raise PipelineError(FONT_INSTALL_HELP_TH if thai else FONT_INSTALL_HELP)
+
+    if not text:
+        return candidates[0]
+
+    fallback = None
+    for p in candidates:
+        missing = missing_glyphs(p, text)
+        if missing is None:          # fontTools が無い環境。順番どおりに使う
             return p
-    raise PipelineError(FONT_INSTALL_HELP)
+        if not missing:
+            return p
+        if fallback is None:
+            fallback = (p, missing)
+    p, missing = fallback
+    shown = " ".join(sorted(missing))
+    print(f"警告: フォント {p.name} に無い文字があります → 完成品で □ になります: {shown}\n"
+          f"  対処: その文字を使わない文面にするか、全文字を持つフォントを "
+          f"{FONTS_DIR} に置いてください")
+    return p
 
 
 def ff_quote(value: str | Path) -> str:
@@ -174,6 +290,16 @@ ORDER_DEFAULTS = {
     "output_formats": ["portrait", "landscape"],
     "portrait_mode": "crop",   # crop: センタークロップ / pad: 余白パディング
     "text_color": "white",
+    # true にするとシーン動画自体の音声(セリフ・環境音)を残し、BGMを下げて重ねる。
+    # ドラマ動画(drama_clip.py のクリップ)用。全シーンに音声トラックが必要
+    "mix_scene_audio": False,
+    # false にするとラストの名前・日付テロップを出さない。映像に文字を入れない
+    # 作品(シネマティックな短編等)用。既定 true はギフト動画の従来どおりの見た目
+    "show_names": True,
+    # シーン(写真)ごとのキャプション。写真アルバム動画で「1995年 初めての運動会」の
+    # ように1枚ずつ言葉を添えるためのもの。シーン数と同じ数だけ並べる(空文字は非表示)。
+    # 表示タイミングは各シーンの尺から自動計算されるので、秒数の指定は不要
+    "scene_captions": [],
 }
 
 
@@ -198,6 +324,13 @@ def load_order(order_id: str) -> dict:
             raise PipelineError(f"未知の output_format: {fmt} (portrait / landscape のみ対応)")
     if merged["portrait_mode"] not in ("crop", "pad"):
         raise PipelineError("portrait_mode は crop か pad を指定してください")
+    if not isinstance(merged["mix_scene_audio"], bool):
+        raise PipelineError("mix_scene_audio は true か false を指定してください")
+    if not isinstance(merged["show_names"], bool):
+        raise PipelineError("show_names は true か false を指定してください")
+    if not isinstance(merged["scene_captions"], list):
+        raise PipelineError("scene_captions は文字列のリストで指定してください")
+    merged["scene_captions"] = [str(c) if c is not None else "" for c in merged["scene_captions"]]
     merged["message_start_sec"] = float(merged["message_start_sec"])
     merged["target_duration"] = float(merged["target_duration"])
     if not 10 <= merged["target_duration"] <= 300:

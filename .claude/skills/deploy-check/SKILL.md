@@ -17,7 +17,7 @@ description: Render/Supabase/LINE(LIFF)で動く注文アプリのデプロイ�
 grep -rhoE "process\.env\.[A-Z_]+" server.js lib/ shared/ index.js | sort -u
 ```
 
-新しい環境変数を1つでも追加したら、**必ず次の4箇所すべて**に反映する:
+新しい環境変数を1つでも追加したら、**必ず次の5箇所すべて**に反映する:
 
 | 場所 | 内容 |
 |---|---|
@@ -25,9 +25,23 @@ grep -rhoE "process\.env\.[A-Z_]+" server.js lib/ shared/ index.js | sort -u
 | `render.yaml` | `envVars` に `- key: XXX` + `sync: false`(手入力)or `generateValue: true`(乱数) |
 | `.env.example` | コメント付きでサンプル行を追加 |
 | `SETUP.md` | STEP 3 の環境変数テーブルに行を追加 |
+| `README.md` | 「環境変数一覧」の表に行を追加(**全変数の正本**。ローカル専用のものもここには必ず載せる) |
 
-注意:
+下の例外に当たる変数(本番で使わないもの)は render.yaml と SETUP.md を飛ばすが、
+**`.env.example` と `README.md` の2つは必ず書く**。過去にこの2つが漏れて、
+どこにも記載のない環境変数(`DATABASE_SSL`)が生まれている。
+
+注意(render.yaml / SETUP.md の対象外にする例外):
 - `ALLOW_INSECURE_DEV` は開発専用。**render.yaml には絶対に追加しない**
+- `DATABASE_SSL` はSSL無しのローカルPostgreSQL用の逃げ道(`false` で無効化)。
+  本番のSupabaseはSSLが要るので**未設定が正しい**。render.yaml には追加しない
+- `GEMINI_API_KEY` は**ローカルのAI制作ツール専用**(`artwork/tools/stylize.py`・
+  `gift-video/scripts/drama_clip.py`・休止中の `index.js`)。注文アプリ本体は使わないので
+  **render.yaml と SETUP.md STEP 3 の表には追加しない**(`.env.example` にのみ記載)
+- `LINE_CHANNEL_ACCESS_TOKEN` / `LINE_CHANNEL_SECRET` は**休止中のチャットボット
+  (`index.js`)専用**。同じく render.yaml には追加しない。
+  上の grep は `index.js` も見るためこれらが出るが、想定どおり(注文アプリの
+  LINEログインで使うのは `LINE_LOGIN_CHANNEL_ID` の方)
 - 秘密値(パスコード・接続文字列)は `sync: false`、`SESSION_SECRET` のような乱数は
   `generateValue: true` が使える
 

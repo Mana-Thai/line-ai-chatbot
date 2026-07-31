@@ -9,6 +9,9 @@ gift-video/
 ├── scripts/
 │   ├── new_order.py      # 新規注文フォルダを生成 (--dummy でテスト素材も生成)
 │   ├── animate.py        # イラスト(静止画)からシーン動画を生成 (ズーム/パン/揺れ/パラパラ)
+│   ├── drama_clip.py     # 人物が動くクリップを生成 (Veo 3.1 / Kling 3.0・有料)
+│   ├── build_animatic.py # 脚本から無料の絵コンテ動画を生成 (課金前の構成確認)
+│   ├── build_montage.py  # 実写真から思い出アルバム動画を組み立て (AI生成不要)
 │   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
 │   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
@@ -46,12 +49,19 @@ Linux は `sudo apt install ffmpeg`。
 pip install -r requirements.txt
 ```
 
-### フォント (日英両対応)
+### フォント (日本語・タイ語・英語)
 
 Windows では `assets/fonts/` に **Noto Sans JP** (.ttf) を置くのが確実です
 (手順は [assets/fonts/README.md](assets/fonts/README.md))。置かない場合は
 游ゴシック・メイリオなどのシステムフォントに自動フォールバックします。
 Linux は `sudo apt install fonts-noto-cjk` でもOK。
+
+**タイ語の動画を作る場合は別途タイ語フォントが必要です**
+(`sudo apt install fonts-thai-tlwg`、Windowsは Tahoma が標準で使えます)。
+日本語フォントにタイ文字は含まれておらず、そのままでは全部 □ になります。
+描画する文字に応じて自動で選ばれますが、**NotoSansThai は数字・約物を持たない
+サブセット**のため優先度を下げてあります。フォントに無い文字があると警告が出ます
+(判定には `fonttools` が要ります。無い場合は候補順で選ばれます)。
 
 各スクリプトは起動時に ffmpeg / フォントを自動チェックし、
 足りなければインストール手順を表示して止まります。
@@ -127,6 +137,12 @@ message_start_sec: 22               # メッセージのフェードイン開始
 target_duration: 30                 # 完成動画の目標秒数 (許容 -2/+5秒。60で約1分)
 output_formats: ["portrait", "landscape"]  # 1080x1920 / 1920x1080
 portrait_mode: "crop"               # 縦型変換: crop=センタークロップ / pad=余白パディング
+mix_scene_audio: false              # true: シーン動画の音声(セリフ等)を残しBGMを下げて重ねる
+                                    # (drama_clip.py のドラマ動画用。全シーンに音声トラック必須)
+show_names: true                    # false: ラストの名前・日付テロップを出さない
+                                    # (映像に文字を入れない作品用)
+scene_captions: []                  # シーン(写真)ごとの下部キャプション。シーン数と同数
+                                    # 並べる (写真アルバム動画用。空文字はそのシーンで非表示)
 ```
 
 ## 4. 組み立ての内容 (assemble.py)
@@ -139,6 +155,7 @@ portrait_mode: "crop"               # 縦型変換: crop=センタークロッ�
   - `message`: 画面中央に `message_start_sec` から3秒かけてゆっくりフェードイン
     (画面幅に収まらない長文は行頭禁則を考慮して自動折り返し。yaml内の改行もそのまま反映)
   - ラスト2秒: `couple_names` と `anniversary_date` を下部中央に表示
+    (`show_names: false` で非表示。文字を一切入れない作品向け)
 - BGM: `loudnorm` で -14 LUFS にノーマライズ → 全体の長さに合わせてトリム → 末尾2秒フェードアウト
   (シーン素材側の音声は使用しない)
 - 出力: H.264 (CRF 18) + AAC 192kbps、`+faststart`。縦型は order.yaml の `portrait_mode` で

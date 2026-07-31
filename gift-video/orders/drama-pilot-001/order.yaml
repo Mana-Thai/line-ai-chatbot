@@ -1,0 +1,10 @@
+order_id: "drama-pilot-001"
+couple_names: "『平凡な妻』"        # ラスト2秒に出るタイトル表示に流用
+anniversary_date: "第1話"           # タイトルの下の小さい文字
+scene1_caption: "第1話「用済みの妻」"
+message: ""                         # セリフで語るドラマなので中央メッセージは使わない
+message_start_sec: 22
+target_duration: 60                 # 8秒×8シーン=64秒 (許容 58〜65秒)
+output_formats: ["portrait"]        # 縦型ショートドラマ (1080x1920)
+portrait_mode: "crop"
+mix_scene_audio: true               # シーンのセリフ音声を残し、BGMを下げて重ねる

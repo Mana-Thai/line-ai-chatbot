@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common
 from common import (AUDIO_FADE, CAPTION_END, CAPTION_FADE, CAPTION_START, FORMATS,
                     FPS, LOUDNORM_I, LOUDNORM_LRA, LOUDNORM_TP, MESSAGE_FADE,
-                    NAMES_FADE, NAMES_LEAD, PAPER_HOLD, XFADE_DUR,
+                    MIX_BGM_VOL, NAMES_FADE, NAMES_LEAD, PAPER_HOLD, XFADE_DUR,
                     PipelineError, ff_quote)
 
 
@@ -69,8 +69,8 @@ def wrap_text(text: str, fontsize: int, max_width: float) -> str:
     """欧文単語は分割せず、行頭禁則(、。など)を避けつつ greedy に折り返す。"""
     lines: list[str] = []
     for para in text.split("\n"):
-        # 半角の連続(欧文単語+続く空白)は1トークン、それ以外は1文字ずつ
-        tokens = re.findall(r"[!-~]+\s*|.", para)
+        # 半角の連続(欧文単語+続く空白)は1トークン、タイ語は結合文字を基底に付けて1トークン
+        tokens = common.wrap_tokens(para)
         cur = ""
         for tok in tokens:
             if not cur or _est_width(cur + tok, fontsize) <= max_width \
@@ -173,32 +173,90 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         timing["message"] = {"text": order["message"],
                              "start": msg_start, "fade": MESSAGE_FADE}
 
-    names_start = round(total - NAMES_LEAD, 3)
-    names_txt = work / "names.txt"
-    names_txt.write_text(order["couple_names"], encoding="utf-8")
-    date_txt = work / "date.txt"
-    date_txt.write_text(order["anniversary_date"], encoding="utf-8")
-    names_alpha = alpha_fade_in(names_start, NAMES_FADE)
-    texts.append(drawtext(font, names_txt, fontsize=int(H * 0.042), color=color,
-                          x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.135)}",
-                          alpha=names_alpha, enable_from=names_start, enable_to=total))
-    texts.append(drawtext(font, date_txt, fontsize=int(H * 0.028), color=color,
-                          x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.09)}",
-                          alpha=names_alpha, enable_from=names_start, enable_to=total))
-    timing["names"] = {"start": names_start, "fade": NAMES_FADE,
-                       "couple_names": order["couple_names"],
-                       "anniversary_date": order["anniversary_date"]}
+    # --- シーンごとのキャプション(写真アルバム動画用) ---
+    # 各シーンが画面に出ている区間を xfade の積み上げから逆算し、その内側に収める。
+    # 転換(紙テクスチャ)にかぶらないよう、前後を CAPTION_FADE ぶん余裕を取る
+    if order["scene_captions"]:
+        caps = order["scene_captions"]
+        if len(caps) != len(scene_durs):
+            raise PipelineError(
+                f"scene_captions が {len(caps)} 個ですが、シーンは {len(scene_durs)} 本あります。\n"
+                f"  シーン数と同じ数だけ並べてください(出さないシーンは空文字 \"\" にする)")
+        cap_size = int(H * 0.034)
+        cap_timing = []
+        scene_start = 0.0
+        # 締めの名前表示と同時に出ると文字が重なるので、その手前で終わらせる
+        cap_limit = (total - NAMES_LEAD - CAPTION_FADE) if order["show_names"] else total
+        for i, (text, dur) in enumerate(zip(caps, scene_durs)):
+            if i:
+                # 直前のシーン尺 + 転換ぶんを足すと、このシーンの開始位置になる
+                scene_start += scene_durs[i - 1] + PAPER_HOLD - 2 * XFADE_DUR
+            if not text.strip():
+                continue
+            start = round(scene_start + CAPTION_FADE, 3)
+            end = round(min(scene_start + dur - CAPTION_FADE, cap_limit), 3)
+            if end - start < CAPTION_FADE * 2:
+                raise PipelineError(
+                    f"scene{i + 1} は {dur:.1f}s と短すぎてキャプションを表示できません"
+                    f"(最低 {CAPTION_FADE * 4:.1f}s 必要)")
+            cap_file = work / f"scene_caption{i + 1}.txt"
+            cap_file.write_text(wrap_text(text, cap_size, W * 0.86), encoding="utf-8")
+            texts.append(drawtext(
+                font, cap_file, fontsize=cap_size, color=color,
+                x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.08)}",
+                alpha=alpha_fade_in_out(start, end, CAPTION_FADE),
+                enable_from=start, enable_to=end,
+                line_spacing=int(cap_size * 0.4)))
+            cap_timing.append({"scene": i + 1, "text": text, "start": start, "end": end})
+        timing["scene_captions"] = cap_timing
 
-    parts.append(f"[{cur}]{','.join(texts)}[vout]")
+    if order["show_names"]:
+        names_start = round(total - NAMES_LEAD, 3)
+        names_txt = work / "names.txt"
+        names_txt.write_text(order["couple_names"], encoding="utf-8")
+        date_txt = work / "date.txt"
+        date_txt.write_text(order["anniversary_date"], encoding="utf-8")
+        names_alpha = alpha_fade_in(names_start, NAMES_FADE)
+        texts.append(drawtext(font, names_txt, fontsize=int(H * 0.042), color=color,
+                              x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.135)}",
+                              alpha=names_alpha, enable_from=names_start, enable_to=total))
+        texts.append(drawtext(font, date_txt, fontsize=int(H * 0.028), color=color,
+                              x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.09)}",
+                              alpha=names_alpha, enable_from=names_start, enable_to=total))
+        timing["names"] = {"start": names_start, "fade": NAMES_FADE,
+                           "couple_names": order["couple_names"],
+                           "anniversary_date": order["anniversary_date"]}
 
-    # --- BGM: loudnorm → 長さ合わせ → 末尾フェードアウト ---
+    # テキストを一切出さない設定でも filtergraph が途切れないよう null を通す
+    parts.append(f"[{cur}]{','.join(texts) if texts else 'null'}[vout]")
+
+    # --- 音声 ---
     bgm_idx = n + 1 if n >= 2 else 1
     fade_start = round(total - AUDIO_FADE, 3)
-    parts.append(
-        f"[{bgm_idx}:a]loudnorm=I={LOUDNORM_I}:TP={LOUDNORM_TP}:LRA={LOUDNORM_LRA},"
-        f"aresample=48000,atrim=0:{total},asetpts=PTS-STARTPTS,"
-        f"apad=whole_dur={total},afade=t=out:st={fade_start}:d={AUDIO_FADE}[aout]")
+    if order["mix_scene_audio"]:
+        # ドラマ動画向け: シーン音声(セリフ・環境音)を連結して残し、BGMを下げて重ねる。
+        # 既定の転換設定(PAPER_HOLD=2*XFADE_DUR)では総尺=シーン合計なので、
+        # 音声の単純連結で映像とズレない。最後に loudnorm でミックス全体を目標音量に揃える
+        fmt_a = "aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo"
+        for i in range(n):
+            parts.append(f"[{i}:a]{fmt_a}[sa{i}]")
+        ins = "".join(f"[sa{i}]" for i in range(n))
+        parts.append(f"{ins}concat=n={n}:v=0:a=1,"
+                     f"apad=whole_dur={total},atrim=0:{total},asetpts=PTS-STARTPTS[dlg]")
+        parts.append(f"[{bgm_idx}:a]{fmt_a},atrim=0:{total},asetpts=PTS-STARTPTS,"
+                     f"apad=whole_dur={total},volume={MIX_BGM_VOL}[bgmq]")
+        parts.append(
+            f"[dlg][bgmq]amix=inputs=2:duration=first:normalize=0,"
+            f"loudnorm=I={LOUDNORM_I}:TP={LOUDNORM_TP}:LRA={LOUDNORM_LRA},"
+            f"aresample=48000,afade=t=out:st={fade_start}:d={AUDIO_FADE}[aout]")
+    else:
+        # 既定: BGMのみ (loudnorm → 長さ合わせ → 末尾フェードアウト)
+        parts.append(
+            f"[{bgm_idx}:a]loudnorm=I={LOUDNORM_I}:TP={LOUDNORM_TP}:LRA={LOUDNORM_LRA},"
+            f"aresample=48000,atrim=0:{total},asetpts=PTS-STARTPTS,"
+            f"apad=whole_dur={total},afade=t=out:st={fade_start}:d={AUDIO_FADE}[aout]")
     timing["audio"] = {"loudnorm_target_i": LOUDNORM_I,
+                       "mix_scene_audio": order["mix_scene_audio"],
                        "fade_out_start": fade_start, "fade_out_dur": AUDIO_FADE}
 
     return ";\n".join(parts), total, timing
@@ -211,7 +269,12 @@ def assemble(order_id: str, keep_work: bool) -> None:
     ffmpeg = common.find_tool("ffmpeg")
     order = common.load_order(order_id)
     scenes = common.discover_scenes(order_id)
-    font = common.find_font()
+    # 画面に出すすべての文字を渡して、その言語に合うフォントを選ばせる
+    # (日本語フォントにタイ文字は無く、混ざると □ になるため)
+    all_text = " ".join([order["couple_names"], order["anniversary_date"],
+                         order["message"], order["scene1_caption"],
+                         *order["scene_captions"]])
+    font = common.find_font(all_text)
     paper = common.ensure_transition_png()
 
     odir = common.order_dir(order_id)
@@ -227,6 +290,18 @@ def assemble(order_id: str, keep_work: bool) -> None:
     scene_durs = [common.probe_duration(p) for p in scenes]
     print(f"[probe] scenes={len(scenes)} " +
           " ".join(f"{p.name}={d:.2f}s" for p, d in zip(scenes, scene_durs)))
+
+    if order["mix_scene_audio"]:
+        # セリフを重ねる場合は全シーンに音声トラックが必須 (エンコード後に無音で気づくのを防ぐ)
+        silent = [p.name for p in scenes
+                  if not any(s.get("codec_type") == "audio"
+                             for s in common.ffprobe_json(p).get("streams", []))]
+        if silent:
+            raise PipelineError(
+                f"mix_scene_audio: true ですが音声トラックの無いシーンがあります: {', '.join(silent)}\n"
+                f"  - drama_clip.py で生成したクリップは音声付きです\n"
+                f"  - animate.py 等の無音素材を混ぜる場合は mix_scene_audio を false にするか、"
+                f"該当シーンに無音音声を付けてください")
 
     # エンコード前に総再生時間を検算する (時間のかかるエンコード後に QC で落ちるのを防ぐ)
     target = order["target_duration"]

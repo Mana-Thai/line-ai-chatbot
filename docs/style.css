@@ -1,0 +1,208 @@
+/* วิดีโอความทรงจำ — สไตล์ชีต
+   สร้างจากมือถือเป็นหลัก (ฐาน 375px) แล้วขยายสำหรับจอใหญ่
+   ไม่ใช้เว็บฟอนต์/CDN เพื่อให้โหลดเร็วและไม่พังเมื่อเน็ตช้า */
+
+:root {
+  --ink: #3f3630;          /* ตัวอักษรหลัก น้ำตาลอุ่น ไม่ใช้ดำสนิท */
+  --ink-soft: #6d625a;
+  --cream: #faf6f0;
+  --rose: #e8d5cf;
+  --rose-deep: #b98d80;
+  --line-green: #06c755;   /* สีแบรนด์ LINE */
+  --border: #e6ddd4;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: "Noto Sans Thai", "Loma", "Hiragino Sans", "Noto Sans JP",
+               "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: #fff;
+  line-height: 1.85;          /* ภาษาไทยมีสระบน-ล่าง ต้องเว้นบรรทัดมากกว่าปกติ */
+  font-size: 16px;
+}
+
+h1, h2, h3 { line-height: 1.5; margin: 0 0 .6em; font-weight: 700; }
+p { margin: 0 0 1em; }
+a { color: var(--rose-deep); }
+
+/* ---------- ส่วนหัว ---------- */
+.hero {
+  padding: 3rem 1.25rem 2.75rem;
+  text-align: center;
+  background: linear-gradient(160deg, var(--cream) 0%, var(--rose) 100%);
+}
+.hero-kicker {
+  font-size: .875rem;
+  letter-spacing: .08em;
+  color: var(--ink-soft);
+  margin-bottom: .75rem;
+}
+.hero h1 { font-size: 1.75rem; margin-bottom: 1rem; }
+.hero-lead { max-width: 34rem; margin: 0 auto 1.75rem; }
+.hero-note { font-size: .8125rem; color: var(--ink-soft); margin: .9rem 0 0; }
+
+/* ---------- โครงหน้า ---------- */
+.section { padding: 3rem 1.25rem; max-width: 60rem; margin: 0 auto; }
+.section-alt { background: var(--cream); max-width: none; }
+.section-alt > * { max-width: 60rem; margin-left: auto; margin-right: auto; }
+.section h2 { font-size: 1.375rem; text-align: center; }
+.lead { text-align: center; color: var(--ink-soft); max-width: 34rem; margin: 0 auto 2rem; }
+.note { font-size: .8125rem; color: var(--ink-soft); margin-top: 1rem; }
+.section > .note { text-align: center; }
+
+/* ---------- ปุ่ม ---------- */
+.btn {
+  display: inline-block;
+  padding: .9rem 2rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  min-height: 44px;          /* ขนาดขั้นต่ำที่นิ้วกดได้สบาย */
+}
+.btn-primary { background: var(--line-green); color: #fff; }
+.btn-large { padding: 1.1rem 2.75rem; font-size: 1.0625rem; }
+
+/* ---------- วิดีโอตัวอย่าง ---------- */
+.sample {
+  width: 100%;
+  border-radius: .75rem;
+  background: #000;
+  display: block;
+}
+.sample-portrait { max-width: 20rem; margin: 1rem auto 0; }
+
+/* ---------- ขั้นตอน ---------- */
+.steps { list-style: none; counter-reset: step; padding: 0; margin: 0; }
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 1.5rem 3.25rem;
+  border-left: 2px solid var(--rose);
+  margin-left: 1rem;
+}
+.steps li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: -1.15rem;
+  top: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--rose-deep);
+  color: #fff;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.steps h3 { font-size: 1.0625rem; margin-bottom: .25rem; }
+.steps p { margin: 0; color: var(--ink-soft); }
+
+/* ---------- ราคา ---------- */
+.plans { display: grid; gap: 1.25rem; }
+.plan {
+  border: 1px solid var(--border);
+  border-radius: .875rem;
+  padding: 1.5rem 1.25rem;
+  background: #fff;
+  position: relative;
+}
+.plan-featured { border-color: var(--rose-deep); border-width: 2px; }
+.plan-badge {
+  position: absolute;
+  top: -.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--rose-deep);
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 700;
+  padding: .2rem 1rem;
+  border-radius: 999px;
+  margin: 0;
+  white-space: nowrap;
+}
+.plan h3 { font-size: 1.0625rem; text-align: center; }
+.price {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 1rem;
+  color: var(--rose-deep);
+}
+.price span { font-size: 1.125rem; }
+.plan ul { margin: 0; padding-left: 1.2rem; color: var(--ink-soft); }
+.plan li { margin-bottom: .4rem; }
+
+/* ---------- คำสัญญาเรื่องความเป็นส่วนตัว ---------- */
+.promises { list-style: none; padding: 0; margin: 0; }
+.promises li {
+  background: #fff;
+  border-radius: .75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: .75rem;
+  border-left: 4px solid var(--rose-deep);
+}
+
+/* ---------- แท็กโอกาส ---------- */
+.tags { list-style: none; padding: 0; margin: 0; display: flex;
+        flex-wrap: wrap; gap: .625rem; justify-content: center; }
+.tags li {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: .45rem 1.1rem;
+  font-size: .9375rem;
+}
+
+/* ---------- คำถามที่พบบ่อย / ส่วนที่พับได้ ---------- */
+.details {
+  border-bottom: 1px solid var(--border);
+  padding: .35rem 0;
+}
+.details summary {
+  cursor: pointer;
+  padding: .85rem .25rem;
+  font-weight: 700;
+  list-style-position: inside;
+  min-height: 44px;
+}
+.details p { color: var(--ink-soft); padding: 0 .25rem .5rem; margin: 0; }
+
+/* ---------- ส่วนเรียกให้ติดต่อ ---------- */
+.section-cta {
+  background: linear-gradient(160deg, var(--rose) 0%, var(--cream) 100%);
+  text-align: center;
+  max-width: none;
+}
+.section-cta > * { max-width: 34rem; margin-left: auto; margin-right: auto; }
+
+/* ---------- ท้ายหน้า ---------- */
+.footer {
+  padding: 2.5rem 1.25rem 3rem;
+  text-align: center;
+  font-size: .875rem;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--border);
+}
+.footer p { margin: 0 0 .4rem; }
+.footer-name { font-weight: 700; color: var(--ink); font-size: 1rem; }
+.footer-jp { margin-top: 1rem; font-size: .8125rem; }
+.footer-small { margin-top: 1.25rem; font-size: .75rem; }
+
+/* ---------- จอใหญ่ ---------- */
+@media (min-width: 768px) {
+  body { font-size: 17px; }
+  .hero { padding: 5rem 2rem 4.5rem; }
+  .hero h1 { font-size: 2.5rem; }
+  .section { padding: 4.5rem 2rem; }
+  .section h2 { font-size: 1.75rem; margin-bottom: 1rem; }
+  .plans { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  .sample { max-width: 48rem; margin: 0 auto; }
+}
