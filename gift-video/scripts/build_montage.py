@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""お客様の写真から思い出アルバム動画(モンタージュ)を組み立てる。
+
+母の日・誕生日・還暦などの「あなたが私にしてくれたこと」型の動画カード用。
+**AI生成を使わない**ので1本あたりの生成コストはゼロ。実写真をそのまま使う。
+
+写真1枚 = 1シーン。カメラワーク(ゆっくりズーム/パン)を付けて動画にし、
+キャプションと合わせて order.yaml に反映する。あとは通常の assemble → qc に乗る。
+
+使い方:
+    # (1) 注文フォルダを作り、写真を photos/ に時系列順の名前で入れる
+    #     例: 01-baby.jpg, 02-family.jpg, 03-school.jpg ...
+    python3 scripts/new_order.py mom-001
+    mkdir orders/mom-001/photos
+
+    # (2) 写真リストの雛形を作る(キャプションを書き込む)
+    python3 scripts/build_montage.py mom-001 --init
+
+    # (3) montage.yaml のキャプションを埋めてから組み立て
+    python3 scripts/build_montage.py mom-001
+    python3 scripts/assemble.py mom-001 && python3 scripts/qc.py mom-001
+
+写真の推奨: 出力の1.5倍以上の解像度(1920x1080出力なら3000px幅以上)。
+小さい写真はズームでぼやけるため、スクリプトが警告する。
+"""
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import common
+from common import PipelineError
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+PHOTO_EXTS = (".jpg", ".jpeg", ".png", ".webp")
+DEFAULT_SEC = 4.0
+# 単調にならないよう、カメラワークを順番に変えていく(人物写真はズームが無難)
+PRESET_CYCLE = ["zoom-in", "sway", "zoom-out", "zoom-in", "pan-right", "sway", "pan-left"]
+
+
+def find_photos(order_id):
+    photo_dir = common.order_dir(order_id) / "photos"
+    if not photo_dir.is_dir():
+        raise PipelineError(
+            f"写真フォルダがありません: {photo_dir}\n"
+            f"  作成して、時系列順に並ぶ名前(01-.., 02-.. など)で写真を入れてください")
+    photos = sorted(p for p in photo_dir.iterdir() if p.suffix.lower() in PHOTO_EXTS)
+    if not photos:
+        raise PipelineError(f"写真が見つかりません: {photo_dir}(対応: {', '.join(PHOTO_EXTS)})")
+    return photos
+
+
+def write_template(order_id, photos, sec):
+    path = common.order_dir(order_id) / "montage.yaml"
+    if path.exists():
+        raise PipelineError(f"すでにあります: {path}(作り直すなら削除してから --init)")
+    lines = [
+        "# 写真アルバム動画の構成。photos/ の写真を時系列順に並べたもの。",
+        "# caption は画面下に出る文字(空にすれば出ない)。duration は表示秒数。",
+        "# preset を書けばカメラワークを指定できる",
+        "# (zoom-in / zoom-out / pan-left / pan-right / pan-up / pan-down / sway)。",
+        "",
+        f"default_duration: {sec:g}",
+        "",
+        "photos:",
+    ]
+    for p in photos:
+        lines += [f'  - file: "{p.name}"', '    caption: ""']
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"雛形を作りました: {path}")
+    print(f"  写真{len(photos)}枚。caption を書き込んでから、もう一度このスクリプトを実行してください")
+
+
+def load_montage(order_id, photos, default_sec):
+    """montage.yaml があればそれを、無ければ写真をそのまま使う。"""
+    path = common.order_dir(order_id) / "montage.yaml"
+    if not path.is_file():
+        return [{"file": p.name, "caption": "", "duration": default_sec, "preset": ""}
+                for p in photos], default_sec
+    try:
+        import yaml
+    except ImportError:
+        raise PipelineError("PyYAML が必要です。 pip install pyyaml")
+    with open(path, encoding="utf-8") as f:
+        doc = yaml.safe_load(f) or {}
+    sec = float(doc.get("default_duration", default_sec))
+    items = doc.get("photos") or []
+    if not items:
+        raise PipelineError(f"{path} に photos: がありません")
+    out = []
+    for i, it in enumerate(items, 1):
+        name = it.get("file")
+        if not name:
+            raise PipelineError(f"{path} の photos[{i}] に file がありません")
+        out.append({
+            "file": name,
+            "caption": str(it.get("caption") or ""),
+            "duration": float(it.get("duration", sec)),
+            "preset": it.get("preset") or "",
+        })
+    return out, sec
+
+
+def check_resolution(ffprobe_json, path, out_w):
+    info = ffprobe_json(path)
+    for s in info.get("streams", []):
+        if s.get("codec_type") == "video":
+            w = int(s.get("width", 0))
+            if w < out_w * 1.4:
+                print(f"  注意: {path.name} は幅{w}px。ズームでぼやける可能性がある"
+                      f"(推奨 {int(out_w * 1.5)}px 以上)")
+            return
+
+
+def main():
+    ap = argparse.ArgumentParser(description="写真から思い出アルバム動画を組み立てる")
+    ap.add_argument("order_id")
+    ap.add_argument("--init", action="store_true", help="montage.yaml の雛形を作って終了")
+    ap.add_argument("--seconds", type=float, default=DEFAULT_SEC, help="1枚あたりの既定表示秒数")
+    ap.add_argument("--size", default="1920x1080", help="出力解像度(縦型は 1080x1920)")
+    args = ap.parse_args()
+
+    photos = find_photos(args.order_id)
+    if args.init:
+        write_template(args.order_id, photos, args.seconds)
+        return
+
+    items, _ = load_montage(args.order_id, photos, args.seconds)
+    photo_dir = common.order_dir(args.order_id) / "photos"
+    input_dir = common.order_dir(args.order_id) / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+    out_w = int(args.size.split("x")[0])
+
+    total = 0.0
+    captions = []
+    for i, it in enumerate(items, 1):
+        src = photo_dir / it["file"]
+        if not src.is_file():
+            raise PipelineError(f"写真がありません: {src}")
+        check_resolution(common.ffprobe_json, src, out_w)
+        preset = it["preset"] or PRESET_CYCLE[(i - 1) % len(PRESET_CYCLE)]
+        out_mp4 = input_dir / f"scene{i}.mp4"
+        print(f"[montage] {i:2d}. {it['file']} {it['duration']:g}s preset={preset}")
+        subprocess.run(
+            [sys.executable, str(SCRIPTS_DIR / "animate.py"), str(src),
+             "--out", str(out_mp4), "--preset", preset,
+             "--duration", str(it["duration"]), "--size", args.size],
+            check=True)
+        captions.append(it["caption"])
+        total += it["duration"]
+
+    print(f"\n{len(items)}枚 / 合計 {total:g}秒")
+    print("\norder.yaml に次を反映してください:")
+    print(f"  target_duration: {total:g}")
+    print("  scene_captions:")
+    for c in captions:
+        print(f'    - "{c}"')
+    print("\nBGM を input/bgm.mp3 に置いたら:")
+    print(f"  python3 scripts/assemble.py {args.order_id} && python3 scripts/qc.py {args.order_id}")
+
+
+if __name__ == "__main__":
+    main()

@@ -173,6 +173,43 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         timing["message"] = {"text": order["message"],
                              "start": msg_start, "fade": MESSAGE_FADE}
 
+    # --- シーンごとのキャプション(写真アルバム動画用) ---
+    # 各シーンが画面に出ている区間を xfade の積み上げから逆算し、その内側に収める。
+    # 転換(紙テクスチャ)にかぶらないよう、前後を CAPTION_FADE ぶん余裕を取る
+    if order["scene_captions"]:
+        caps = order["scene_captions"]
+        if len(caps) != len(scene_durs):
+            raise PipelineError(
+                f"scene_captions が {len(caps)} 個ですが、シーンは {len(scene_durs)} 本あります。\n"
+                f"  シーン数と同じ数だけ並べてください(出さないシーンは空文字 \"\" にする)")
+        cap_size = int(H * 0.034)
+        cap_timing = []
+        scene_start = 0.0
+        # 締めの名前表示と同時に出ると文字が重なるので、その手前で終わらせる
+        cap_limit = (total - NAMES_LEAD - CAPTION_FADE) if order["show_names"] else total
+        for i, (text, dur) in enumerate(zip(caps, scene_durs)):
+            if i:
+                # 直前のシーン尺 + 転換ぶんを足すと、このシーンの開始位置になる
+                scene_start += scene_durs[i - 1] + PAPER_HOLD - 2 * XFADE_DUR
+            if not text.strip():
+                continue
+            start = round(scene_start + CAPTION_FADE, 3)
+            end = round(min(scene_start + dur - CAPTION_FADE, cap_limit), 3)
+            if end - start < CAPTION_FADE * 2:
+                raise PipelineError(
+                    f"scene{i + 1} は {dur:.1f}s と短すぎてキャプションを表示できません"
+                    f"(最低 {CAPTION_FADE * 4:.1f}s 必要)")
+            cap_file = work / f"scene_caption{i + 1}.txt"
+            cap_file.write_text(wrap_text(text, cap_size, W * 0.86), encoding="utf-8")
+            texts.append(drawtext(
+                font, cap_file, fontsize=cap_size, color=color,
+                x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.08)}",
+                alpha=alpha_fade_in_out(start, end, CAPTION_FADE),
+                enable_from=start, enable_to=end,
+                line_spacing=int(cap_size * 0.4)))
+            cap_timing.append({"scene": i + 1, "text": text, "start": start, "end": end})
+        timing["scene_captions"] = cap_timing
+
     if order["show_names"]:
         names_start = round(total - NAMES_LEAD, 3)
         names_txt = work / "names.txt"

@@ -181,6 +181,10 @@ ORDER_DEFAULTS = {
     # false にするとラストの名前・日付テロップを出さない。映像に文字を入れない
     # 作品(シネマティックな短編等)用。既定 true はギフト動画の従来どおりの見た目
     "show_names": True,
+    # シーン(写真)ごとのキャプション。写真アルバム動画で「1995年 初めての運動会」の
+    # ように1枚ずつ言葉を添えるためのもの。シーン数と同じ数だけ並べる(空文字は非表示)。
+    # 表示タイミングは各シーンの尺から自動計算されるので、秒数の指定は不要
+    "scene_captions": [],
 }
 
 
@@ -209,6 +213,9 @@ def load_order(order_id: str) -> dict:
         raise PipelineError("mix_scene_audio は true か false を指定してください")
     if not isinstance(merged["show_names"], bool):
         raise PipelineError("show_names は true か false を指定してください")
+    if not isinstance(merged["scene_captions"], list):
+        raise PipelineError("scene_captions は文字列のリストで指定してください")
+    merged["scene_captions"] = [str(c) if c is not None else "" for c in merged["scene_captions"]]
     merged["message_start_sec"] = float(merged["message_start_sec"])
     merged["target_duration"] = float(merged["target_duration"])
     if not 10 <= merged["target_duration"] <= 300:

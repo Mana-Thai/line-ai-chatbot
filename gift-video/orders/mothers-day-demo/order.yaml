@@ -1,0 +1,20 @@
+order_id: "mothers-day-demo"
+couple_names: "お母さん、ありがとう"   # ラスト2秒に大きく出る(この商品では締めの言葉に使う)
+anniversary_date: "2026 母の日"
+scene1_caption: ""                  # 写真ごとの文字は scene_captions で入れるので未使用
+message: ""                          # 画面中央の長文メッセージ(使うならここ)
+message_start_sec: 0
+target_duration: 32                 # 写真6枚(5,5,5,5,6,6秒)= 32秒
+output_formats: ["landscape", "portrait"]  # 横型と縦型(スマホ・SNS用)の両方を書き出す
+portrait_mode: "crop"
+mix_scene_audio: false              # 写真素材に音声は無いのでBGMのみ
+show_names: true                    # ラストの「お母さん、ありがとう」を表示する
+
+# 写真1枚ごとのキャプション(build_montage.py が出力したものを貼る)
+scene_captions:
+  - "1996年 — わたしを抱いてくれた日"
+  - "いつも、家族の真ん中にいた"
+  - "運動会も卒業式も、必ず来てくれた"
+  - "はじめての家族旅行"
+  - "その笑い声が、家じゅうを明るくした"
+  - "そして今、孫たちに同じ愛を"

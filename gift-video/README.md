@@ -11,6 +11,7 @@ gift-video/
 │   ├── animate.py        # イラスト(静止画)からシーン動画を生成 (ズーム/パン/揺れ/パラパラ)
 │   ├── drama_clip.py     # 人物が動くクリップを生成 (Veo 3.1 / Kling 3.0・有料)
 │   ├── build_animatic.py # 脚本から無料の絵コンテ動画を生成 (課金前の構成確認)
+│   ├── build_montage.py  # 実写真から思い出アルバム動画を組み立て (AI生成不要)
 │   ├── make_orders.py    # 注文リスト(CSV)から注文フォルダを一括生成
 │   ├── precheck.py       # 組み立て前の素材チェック (尺・解像度・BGM・設定値)
 │   ├── assemble.py       # 動画を組み立て (縦型/横型を output/ に書き出し)
@@ -133,6 +134,8 @@ mix_scene_audio: false              # true: シーン動画の音声(セリフ�
                                     # (drama_clip.py のドラマ動画用。全シーンに音声トラック必須)
 show_names: true                    # false: ラストの名前・日付テロップを出さない
                                     # (映像に文字を入れない作品用)
+scene_captions: []                  # シーン(写真)ごとの下部キャプション。シーン数と同数
+                                    # 並べる (写真アルバム動画用。空文字はそのシーンで非表示)
 ```
 
 ## 4. 組み立ての内容 (assemble.py)
