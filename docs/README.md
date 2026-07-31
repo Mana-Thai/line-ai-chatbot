@@ -47,30 +47,12 @@ grep -nE "LINE_URL_HERE|EMAIL_HERE|SHOP_NAME_HERE" index.html || echo "置換完
 - パスの `line-ai-chatbot` が商品と無関係で、お客様には意味不明(不信感につながる)
 - `github.io` は開発者の実験場という印象で、店舗として見てもらいにくい
 
-年1,000〜1,500円程度で解決できるので、費用対効果は高い。
+**候補・空き状況・取得手順は `domain-setup.md` にまとめてある**(調査済みの推奨は
+`maligift.com`)。
 
-### 手順
-
-1. ドメインを取る(お名前.com / Cloudflare Registrar / Namecheap 等)。
-   `xxx.com` が理想。タイ向けなら `.co.th` も信頼されるが法人登記が要るので `.com` でよい
-2. DNSに以下を設定:
-
-   | 種別 | 名前 | 値 |
-   |---|---|---|
-   | CNAME | `www` | `mana-thai.github.io` |
-   | A | `@` | `185.199.108.153` |
-   | A | `@` | `185.199.109.153` |
-   | A | `@` | `185.199.110.153` |
-   | A | `@` | `185.199.111.153` |
-
-3. GitHub → Settings → Pages → Custom domain に取得したドメインを入力 → Save
-   (`docs/CNAME` というファイルが自動で作られる。手で作ってもよい)
-4. **Enforce HTTPS を必ずONにする**(証明書の発行に数分〜1時間かかる)
-5. **`index.html` の OGP の絶対URLを新ドメインに書き換える**(忘れるとプレビュー画像が出ない):
-
-   ```bash
-   sed -i 's|https://mana-thai.github.io/line-ai-chatbot/|https://新ドメイン/|g' docs/index.html
-   ```
+`docs/CNAME` はあえて置いていない。中身が実在しないドメインだと Pages が配信を止めて
+しまい、独自ドメインを使わない間は github.io のURLまで見られなくなるため。
+GitHub の Settings → Pages で Custom domain を設定すると自動で作られる。
 
 ## 公開後の確認
 
