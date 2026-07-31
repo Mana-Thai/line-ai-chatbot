@@ -47,8 +47,8 @@ grep -nE "LINE_URL_HERE|EMAIL_HERE|SHOP_NAME_HERE" index.html || echo "置換完
 - パスの `line-ai-chatbot` が商品と無関係で、お客様には意味不明(不信感につながる)
 - `github.io` は開発者の実験場という印象で、店舗として見てもらいにくい
 
-**候補・空き状況・取得手順は `domain-setup.md` にまとめてある**(調査済みの推奨は
-`maligift.com`)。
+**取得予定は `aniostea.com`。取得手順・DNS設定・購入後の書き換えは `domain-setup.md`
+にまとめてある**(2026-07-31 時点で未登録を確認済み)。
 
 `docs/CNAME` はあえて置いていない。中身が実在しないドメインだと Pages が配信を止めて
 しまい、独自ドメインを使わない間は github.io のURLまで見られなくなるため。
