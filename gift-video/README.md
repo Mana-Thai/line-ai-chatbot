@@ -49,12 +49,19 @@ Linux は `sudo apt install ffmpeg`。
 pip install -r requirements.txt
 ```
 
-### フォント (日英両対応)
+### フォント (日本語・タイ語・英語)
 
 Windows では `assets/fonts/` に **Noto Sans JP** (.ttf) を置くのが確実です
 (手順は [assets/fonts/README.md](assets/fonts/README.md))。置かない場合は
 游ゴシック・メイリオなどのシステムフォントに自動フォールバックします。
 Linux は `sudo apt install fonts-noto-cjk` でもOK。
+
+**タイ語の動画を作る場合は別途タイ語フォントが必要です**
+(`sudo apt install fonts-thai-tlwg`、Windowsは Tahoma が標準で使えます)。
+日本語フォントにタイ文字は含まれておらず、そのままでは全部 □ になります。
+描画する文字に応じて自動で選ばれますが、**NotoSansThai は数字・約物を持たない
+サブセット**のため優先度を下げてあります。フォントに無い文字があると警告が出ます
+(判定には `fonttools` が要ります。無い場合は候補順で選ばれます)。
 
 各スクリプトは起動時に ffmpeg / フォントを自動チェックし、
 足りなければインストール手順を表示して止まります。

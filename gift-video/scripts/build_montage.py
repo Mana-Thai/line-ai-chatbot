@@ -149,10 +149,12 @@ def load_montage(order_id, photos, default_sec):
 
 
 def wrap_letter(text, max_chars):
-    """手紙の改行を保ちつつ、長すぎる行だけ折り返す(日本語は空白が無いため文字数で切る)。
+    """手紙の改行を保ちつつ、長すぎる行だけ折り返す。
 
-    先頭から max_chars で切ると「を」「た」だけの行(ぶら下がり)ができて見苦しいので、
-    行を均等な長さに分割する。
+    日本語・タイ語は単語間に空白が無いので文字数で折り返すが、先頭から max_chars で
+    切ると「を」だけの行(ぶら下がり)ができるため、行を均等な長さに分割する。
+    タイ語の結合文字は基底文字から切り離さない(common.wrap_tokens が1単位にする)。
+    空白があればそこを優先して切る。
     """
     import math
     lines = []
@@ -161,19 +163,25 @@ def wrap_letter(text, max_chars):
         if not raw:
             lines.append("")
             continue
-        n_chunks = math.ceil(len(raw) / max_chars)
-        size = math.ceil(len(raw) / n_chunks)
-        for k in range(0, len(raw), size):
-            lines.append(raw[k:k + size])
+        toks = common.wrap_tokens(raw)
+        if len(toks) <= max_chars:
+            lines.append(raw)
+            continue
+        n_chunks = math.ceil(len(toks) / max_chars)
+        size = math.ceil(len(toks) / n_chunks)
+        for k in range(0, len(toks), size):
+            lines.append("".join(toks[k:k + size]).strip())
     return lines
 
 
-def build_letter_card(ffmpeg, font, text, out_png, card_w, card_h):
+def build_letter_card(ffmpeg, text, out_png, card_w, card_h):
     """手紙カード(水彩調の淡い背景+全画面テキスト)を作る。
 
     カメラは sway(1.12倍ズーム+微小な揺れ)を付けるので、文字は中央の
     セーフエリア(片側約13%を除いた範囲)に収める。
+    フォントは手紙の言語に合わせて選ぶ(タイ語の手紙に日本語フォントを使うと □ になる)。
     """
+    font = common.find_font(text)
     # フォントは短辺基準(縦型で高さ基準にすると巨大になり数文字で折り返してしまう)
     fontsize = int(min(card_w, card_h) * 0.052)
     line_spacing = int(fontsize * 0.75)
@@ -240,7 +248,6 @@ def main():
               f"多すぎると間延びするので、良い写真に絞ることを推奨")
 
     ffmpeg = common.find_tool("ffmpeg")
-    font = common.find_font()
 
     total = 0.0
     captions = []
@@ -250,7 +257,7 @@ def main():
             # 手紙カード: 生成してから sway でゆっくり漂わせる(固定だと写真との落差が出る)
             work.mkdir(exist_ok=True)
             card = work / f"letter{i}.png"
-            build_letter_card(ffmpeg, font, it["letter"], card, card_w, card_h)
+            build_letter_card(ffmpeg, it["letter"], card, card_w, card_h)
             src, preset = card, (it["preset"] or "sway")
             label = f"letter({it['letter'].splitlines()[0][:12]}…)"
         else:

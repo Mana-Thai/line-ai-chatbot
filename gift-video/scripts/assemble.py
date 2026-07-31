@@ -69,8 +69,8 @@ def wrap_text(text: str, fontsize: int, max_width: float) -> str:
     """欧文単語は分割せず、行頭禁則(、。など)を避けつつ greedy に折り返す。"""
     lines: list[str] = []
     for para in text.split("\n"):
-        # 半角の連続(欧文単語+続く空白)は1トークン、それ以外は1文字ずつ
-        tokens = re.findall(r"[!-~]+\s*|.", para)
+        # 半角の連続(欧文単語+続く空白)は1トークン、タイ語は結合文字を基底に付けて1トークン
+        tokens = common.wrap_tokens(para)
         cur = ""
         for tok in tokens:
             if not cur or _est_width(cur + tok, fontsize) <= max_width \
@@ -269,7 +269,12 @@ def assemble(order_id: str, keep_work: bool) -> None:
     ffmpeg = common.find_tool("ffmpeg")
     order = common.load_order(order_id)
     scenes = common.discover_scenes(order_id)
-    font = common.find_font()
+    # 画面に出すすべての文字を渡して、その言語に合うフォントを選ばせる
+    # (日本語フォントにタイ文字は無く、混ざると □ になるため)
+    all_text = " ".join([order["couple_names"], order["anniversary_date"],
+                         order["message"], order["scene1_caption"],
+                         *order["scene_captions"]])
+    font = common.find_font(all_text)
     paper = common.ensure_transition_png()
 
     odir = common.order_dir(order_id)
