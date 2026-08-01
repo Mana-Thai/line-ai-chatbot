@@ -20,9 +20,11 @@ import glob
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
+import zlib
 from pathlib import Path
 
 _BROWSER_CANDIDATES = [
@@ -65,6 +67,84 @@ def svg_aspect(svg: str) -> float:
     if mw and mh and float(mw.group(1)) > 0:
         return float(mh.group(1)) / float(mw.group(1))
     return 1.0
+
+
+def viewport_gap(browser: str, probe_h: int = 1000) -> int:
+    """--window-size で指定した高さと、実際のビューポート高さの差を測る。
+
+    ヘッドレスChromeは --window-size=W,H を指定しても、ビューポートが H より
+    数十px低くなる(この環境では87px)。スクリーンショットは H px で出力されるため、
+    差のぶんだけページが描かれない帯が下端に残る。SVGは 100vh に合わせて
+    縮むので**縦横比まで狂う**。ここで実測して補正する。
+
+    追加ライブラリを増やさないよう、画像を読まずに --dump-dom で innerHeight を拾う。
+    測れなければ 0 を返す(従来どおりの挙動になるだけで、壊れはしない)。
+    """
+    probe = ('<!doctype html><meta charset="utf-8"><body><script>'
+             'document.body.textContent="VPH="+window.innerHeight</script></body>')
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "probe.html"
+        p.write_text(probe, encoding="utf-8")
+        try:
+            proc = subprocess.run(
+                [browser, "--headless", "--disable-gpu", "--no-sandbox",
+                 "--hide-scrollbars", "--force-device-scale-factor=1",
+                 "--dump-dom", f"--window-size=800,{probe_h}", p.resolve().as_uri()],
+                capture_output=True, text=True, timeout=60)
+        except (subprocess.SubprocessError, OSError):
+            return 0
+    m = re.search(r"VPH=(\d+)", proc.stdout or "")
+    if not m:
+        return 0
+    gap = probe_h - int(m.group(1))
+    return gap if 0 <= gap < probe_h // 2 else 0
+
+
+def _png_chunk(tag: bytes, data: bytes) -> bytes:
+    return (struct.pack(">I", len(data)) + tag + data
+            + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
+
+
+def crop_png_bottom(path: Path, keep_h: int) -> bool:
+    """PNGの下端を切り落として高さを keep_h にする(標準ライブラリのみ)。
+
+    PNGの各行は「フィルタ種別1バイト + 画素データ」で、フィルタは自分より上の行しか
+    参照しない。よって**末尾の行を捨てるだけ**なら再フィルタ不要で安全に切れる。
+    8bitの非インターレースPNGのみ対応(Chromeの出力はこれ)。それ以外は False。
+    """
+    raw = path.read_bytes()
+    if raw[:8] != b"\x89PNG\r\n\x1a\n":
+        return False
+    pos, ihdr, idat = 8, None, bytearray()
+    while pos + 8 <= len(raw):
+        ln = struct.unpack(">I", raw[pos:pos + 4])[0]
+        tag = raw[pos + 4:pos + 8]
+        body = raw[pos + 8:pos + 8 + ln]
+        if tag == b"IHDR":
+            ihdr = body
+        elif tag == b"IDAT":
+            idat += body
+        elif tag == b"IEND":
+            break
+        pos += 12 + ln
+    if not ihdr:
+        return False
+    w, h, depth, color, _, _, interlace = struct.unpack(">IIBBBBB", ihdr[:13])
+    if depth != 8 or interlace != 0 or keep_h >= h:
+        return False
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(color)
+    if not channels:
+        return False
+    stride = 1 + w * channels
+    rows = zlib.decompress(bytes(idat))[:stride * keep_h]
+    if len(rows) < stride * keep_h:
+        return False
+    new_ihdr = struct.pack(">II", w, keep_h) + ihdr[8:13]
+    path.write_bytes(b"\x89PNG\r\n\x1a\n"
+                     + _png_chunk(b"IHDR", new_ihdr)
+                     + _png_chunk(b"IDAT", zlib.compress(rows, 9))
+                     + _png_chunk(b"IEND", b""))
+    return True
 
 
 def main() -> None:
@@ -113,15 +193,22 @@ def main() -> None:
             page_file = Path(td) / "page.html"
             page_file.write_text(page, encoding="utf-8")
             page_uri = page_file.resolve().as_uri()
+        # ビューポートが要求より低い分だけ窓を高くして描かせ、あとで下端を切る。
+        # (補正しないと下端に未描画の帯が残り、SVGは 100vh に潰されて縦横比が狂う)
+        gap = viewport_gap(browser)
+        win_h = H + gap
         cmd = [browser, "--headless", "--disable-gpu", "--no-sandbox",
                "--hide-scrollbars", "--force-device-scale-factor=1",
                "--default-background-color=00000000",
-               f"--screenshot={out}", f"--window-size={W},{H}",
+               f"--screenshot={out}", f"--window-size={W},{win_h}",
                page_uri]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0 or not out.is_file():
             tail = "\n".join((proc.stderr or "").splitlines()[-10:])
             sys.exit(f"ERROR: ラスタライズに失敗しました\n{tail}")
+
+    if gap and not crop_png_bottom(out, H):
+        print(f"注意: 下端 {gap}px を切れませんでした。出力は {W}x{H + gap}px です")
 
     kb = out.stat().st_size / 1024
     print(f"[done] {out}  {W}x{H}px / {kb:.0f}KB / 背景: {bg_css}")

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>LINEリッチメニュー</title>
+<!--
+  公式LINEのリッチメニュー画像(大・6分割 2500x1686px)。
+  各マスに割り当てるアクションは business/line-oa-setup.md の表を見ること。
+
+  生成:
+    python3 artwork/tools/rasterize.py business/templates/line-richmenu.html \
+        --out business/line-richmenu.png --width 2500 --height 1686
+
+  配色はサイト(docs/style.css)と手紙カードに合わせたクリーム→ローズ。
+  右下の「สั่งทำเลย(注文する)」だけLINEグリーンにして、視線と指をそこへ集める。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 2500px; height: 1686px; overflow: hidden; }
+  body {
+    font-family: "Noto Sans Thai", "Loma", "Noto Sans CJK JP", sans-serif;
+    display: grid;
+    /* 6マスは端数なく敷き詰める(1fr だと丸め誤差で下端に帯が出る)。
+       2500 = 832+4+832+4+828 / 1686 = 841+4+841 */
+    grid-template-columns: 832px 832px 828px;
+    grid-template-rows: 841px 841px;
+    /* 枠線は背景色で作る(gapを線に見せる) */
+    gap: 4px;
+    background-color: #e0cfc6;
+  }
+  .cell {
+    background: radial-gradient(ellipse at 50% 30%, #faf6ef 0%, #f3e9e0 70%, #eddfd6 100%);
+    color: #5a4a3f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 46px;
+    text-align: center;
+    padding: 40px;
+  }
+  .icon { font-size: 190px; line-height: 1; opacity: .9; }
+  .label { font-size: 96px; font-weight: 600; letter-spacing: .01em; }
+  .sub { font-size: 54px; opacity: .62; letter-spacing: .02em; }
+  /* 注文ボタン: LINEグリーン。ここだけ明度・彩度を上げて最優先に見せる */
+  .cta {
+    background: linear-gradient(160deg, #06C755 0%, #04a948 100%);
+    color: #fff;
+  }
+  .cta .sub { opacity: .9; }
+</style>
+</head>
+<body>
+  <div class="cell">
+    <div class="icon">🎬</div>
+    <div class="label">ดูตัวอย่างงาน</div>
+    <div class="sub">วิดีโอจริง 45 วินาที</div>
+  </div>
+  <div class="cell">
+    <div class="icon">💛</div>
+    <div class="label">ราคา</div>
+    <div class="sub">เริ่มต้น ฿590</div>
+  </div>
+  <div class="cell">
+    <div class="icon">📝</div>
+    <div class="label">ขั้นตอนการสั่ง</div>
+    <div class="sub">ง่ายๆ 4 ขั้น</div>
+  </div>
+  <div class="cell">
+    <div class="icon">🌸</div>
+    <div class="label">โอกาสพิเศษ</div>
+    <div class="sub">วันแม่ · วันเกิด · เกษียณ</div>
+  </div>
+  <div class="cell">
+    <div class="icon">💬</div>
+    <div class="label">คำถามที่พบบ่อย</div>
+    <div class="sub">รูปเก่า · เขียนไม่เก่ง</div>
+  </div>
+  <div class="cell cta">
+    <div class="icon">✨</div>
+    <div class="label">สั่งทำเลย</div>
+    <div class="sub">ตอบกลับใน 24 ชม.</div>
+  </div>
+</body>
+</html>
