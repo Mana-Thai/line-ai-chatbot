@@ -196,6 +196,14 @@ a { color: var(--rose-deep); }
 .footer-jp { margin-top: 1rem; font-size: .8125rem; }
 .footer-small { margin-top: 1.25rem; font-size: .75rem; }
 
+/* ---------- จอแคบ ---------- */
+/* 375px以下だと見出しが3行に折れて「ได้」だけが孤立し、
+   「เคลื่อนไหวได้(動かせる)」が語の途中で切れてしまうため少しだけ縮める。
+   390px以上は2行に収まるので、ここだけを対象にする */
+@media (max-width: 24rem) {
+  .hero h1 { font-size: 1.5rem; }
+}
+
 /* ---------- จอใหญ่ ---------- */
 @media (min-width: 768px) {
   body { font-size: 17px; }

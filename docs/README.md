@@ -36,23 +36,27 @@ grep -nE "LINE_URL_HERE|EMAIL_HERE|SHOP_NAME_HERE" index.html || echo "置換完
 
 ## GitHub Pages で公開する
 
+**先にプレースホルダー(上記3種)を埋めること。** 未記入のまま公開すると、
+リンク切れのLINEボタンと `EMAIL_HERE` の文字列がそのままお客様に見える。
+
 1. GitHub → Settings → Pages
 2. Source: `Deploy from a branch` / Branch: `main` / フォルダ: **`/docs`** → Save
-3. 数分待つと `https://mana-thai.github.io/line-ai-chatbot/` で公開される
+3. Custom domain に `aniostea.com` を入力 → Save
+4. DNSチェックが通ったら **Enforce HTTPS をON**
 
-## 独自ドメインにする(推奨)
+## 独自ドメイン `aniostea.com`(取得済み)
 
-**有料サービスのサイトとしては独自ドメインを強く推奨する。** 現在のURLには2つ問題がある:
+**2026-08-01 に Cloudflare Registrar で取得済み**(Active / 自動更新ON /
+2027-08-01 まで)。ネームサーバーは `desiree.ns.cloudflare.com` /
+`lynn.ns.cloudflare.com`。
 
-- パスの `line-ai-chatbot` が商品と無関係で、お客様には意味不明(不信感につながる)
-- `github.io` は開発者の実験場という印象で、店舗として見てもらいにくい
+`index.html` のOGP絶対URLは `https://aniostea.com/` に書き換え済み。
 
-**取得予定は `aniostea.com`。取得手順・DNS設定・購入後の書き換えは `domain-setup.md`
-にまとめてある**(2026-07-31 時点で未登録を確認済み)。
+**DNSレコードと、Cloudflare特有のSSL設定(ここを外すとサイトが開かない)は
+`domain-setup.md` を参照すること。**
 
 `docs/CNAME` はあえて置いていない。中身が実在しないドメインだと Pages が配信を止めて
-しまい、独自ドメインを使わない間は github.io のURLまで見られなくなるため。
-GitHub の Settings → Pages で Custom domain を設定すると自動で作られる。
+しまうため。GitHub の Settings → Pages で Custom domain を設定すると自動で作られる。
 
 ## 公開後の確認
 
