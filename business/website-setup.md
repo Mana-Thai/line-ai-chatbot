@@ -1,31 +1,26 @@
 # サイトの設定・公開手順
 
 タイ人のお客様向けの「思い出アルバム動画」サービス紹介サイト(タイ語)。
-`docs/` の中身がそのまま GitHub Pages で公開される。
+`docs/` の中身が**そのまま** GitHub Pages で公開される。
 
 ```
 docs/
+├── .nojekyll    # Jekyll処理を止める(素のHTMLをそのまま配信させる)
 ├── index.html   # 本文(1ページ完結)
 ├── style.css
 ├── images/ogp.jpg      # LINE等でURLを共有したときのプレビュー画像
-└── media/              # サンプル動画(Web用に軽量化済み・各2.2MB)
+└── media/              # サンプル動画(Web用に軽量化済み)+ poster.jpg
 ```
 
-## 公開前に必ず差し替える(3箇所)
+**`docs/` に内部向けのファイルを置かないこと。** この手順書と `domain-setup.md` は
+もともと `docs/` にあったが、公開すると `https://aniostea.com/README.md` として
+誰でも読めてしまうため `business/` に移した(価格が仮設定であることや、
+ドメインの契約情報が外から見える状態だった)。作業メモは必ず `business/` 側に置く。
 
-`index.html` の以下のプレースホルダーは**そのままだと機能しない**。公開前に置換する:
+## 差し替え済みの項目(記録)
 
-| 置換前 | 置換内容 | 場所 |
-|---|---|---|
-| `LINE_URL_HERE` | LINE公式アカウントの友だち追加URL(`https://lin.ee/xxxxx`) | 「ทักทาง LINE」ボタン(2箇所) |
-| `EMAIL_HERE` | 連絡用メールアドレス | 問い合わせ欄 |
-| `SHOP_NAME_HERE` | 屋号(タイ語表記も検討) | フッター(3箇所) |
-
-```bash
-cd docs
-sed -i 's|LINE_URL_HERE|https://lin.ee/実際のID|g; s|EMAIL_HERE|実際のアドレス|g; s|SHOP_NAME_HERE|屋号|g' index.html
-grep -nE "LINE_URL_HERE|EMAIL_HERE|SHOP_NAME_HERE" index.html || echo "置換完了"
-```
+`index.html` にあったプレースホルダーは**すべて置換済み**(残存0件):
+LINE友だち追加URL / 連絡用メール `hello@aniostea.com` / 屋号 `aniostea อนิโอซเตีย`。
 
 ## 内容の確認(公開前に決めること)
 
@@ -36,13 +31,13 @@ grep -nE "LINE_URL_HERE|EMAIL_HERE|SHOP_NAME_HERE" index.html || echo "置換完
 
 ## GitHub Pages で公開する
 
-**先にプレースホルダー(上記3種)を埋めること。** 未記入のまま公開すると、
-リンク切れのLINEボタンと `EMAIL_HERE` の文字列がそのままお客様に見える。
-
 1. GitHub → Settings → Pages
 2. Source: `Deploy from a branch` / Branch: `main` / フォルダ: **`/docs`** → Save
 3. Custom domain に `aniostea.com` を入力 → Save
-4. DNSチェックが通ったら **Enforce HTTPS をON**
+4. **先に Cloudflare 側を DNS only(プロキシOFF)にしておく**。ONのままだと
+   証明書が発行されず Enforce HTTPS がグレーアウトしたままになる → `domain-setup.md`
+5. DNSチェックが通ったら **Enforce HTTPS をON**、その後 Cloudflare の
+   SSL/TLS を **Full (Strict)** にする(Flexible のままだとリダイレクトループ)
 
 ## 独自ドメイン `aniostea.com`(取得済み)
 
@@ -69,14 +64,27 @@ grep -nE "LINE_URL_HERE|EMAIL_HERE|SHOP_NAME_HERE" index.html || echo "置換完
 
 ## サンプル動画の差し替え
 
-実際のお客様の作品(**掲載許可を得たもののみ**)に差し替えると説得力が上がる。
-Web用の軽量化:
+いまのサンプルは `gift-video/orders/sample-site-th`(タイ語・50秒・両画角)。
+作り直したら次のコマンドでWeb用に軽量化して差し替える:
 
 ```bash
-ffmpeg -i 元動画.mp4 -vf scale=1280:720 -c:v libx264 -crf 28 -preset slow \
+O=gift-video/orders/sample-site-th/output
+ffmpeg -y -i $O/sample-site-th_landscape_1920x1080.mp4 -vf scale=1280:720 \
+  -c:v libx264 -preset slow -crf 27 -pix_fmt yuv420p \
   -c:a aac -b:a 96k -movflags +faststart docs/media/sample-landscape.mp4
-ffmpeg -ss 12 -i 元動画.mp4 -frames:v 1 -vf scale=1280:-2 -q:v 4 docs/media/poster.jpg
+ffmpeg -y -i $O/sample-site-th_portrait_1080x1920.mp4 -vf scale=608:1080 \
+  -c:v libx264 -preset slow -crf 27 -pix_fmt yuv420p \
+  -c:a aac -b:a 96k -movflags +faststart docs/media/sample-portrait.mp4
+# ポスター画像は必ず「人が写っている場面」から取る
+ffmpeg -y -ss 35 -i $O/sample-site-th_landscape_1920x1080.mp4 -frames:v 1 \
+  -vf scale=1280:-1 -q:v 3 docs/media/poster.jpg
 ```
 
+**poster.jpg は手紙カードの場面から取らないこと。** 淡い背景だけが写り、
+動画枠が「読み込み失敗」に見える(実際に一度その状態で公開しかけた)。
+
+実際のお客様の作品(**掲載許可を得たもののみ**)に差し替えると説得力が上がる。
 許可が取れない間は、いまのデモ(写真は素材)を使い、
 「※ ตัวอย่างนี้ใช้รูปสาธิต(サンプル素材です)」の注記を消さないこと。
+
+サイトに書いてある尺(`ประมาณ 50 วินาที`)は動画を差し替えたら合わせて直す。

@@ -25,7 +25,9 @@
    作品は `artwork/works/<作品名>/` に置く
 4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)、
    見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)、
-   公式LINEの設定と文面 `line-oa-setup.md`、BGM調達の段階方針 `music-policy.md`
+   公式LINEの設定と文面 `line-oa-setup.md`、BGM調達の段階方針 `music-policy.md`、
+   サイトの公開手順 `website-setup.md` とドメイン設定 `domain-setup.md`
+   (**`docs/` は丸ごと公開されるので、内部メモは必ず `business/` 側に置く**)
 5. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
 
 ## 重要な仕様・約束事
