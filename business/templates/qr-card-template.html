@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>QRギフトカード</title>
+<!--
+  QRギフトカードのテンプレート(A6縦 105×148mm)。使い方は Skill `qr-video-gift` 参照。
+
+  1. このファイルを案件フォルダにコピーし、同じ場所に qr.png を置く
+     (qr.png は artwork/tools/qr_gift.py で作る)
+  2. 下の「編集する場所」の文言を書き替える(日タイの文例は Skill にある)
+  3. PNG化: python3 artwork/tools/rasterize.py card.html - -out card.png - -width 1240 - -height 1748
+     (↑実行時は --out --width --height。HTMLコメント内に -- が書けないため空白を入れている)
+
+  デザインは思い出アルバム動画の手紙カードと同じ配色(クリーム→ローズ・焦げ茶の文字)。
+  受け取った実物と動画の世界観が揃う。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1240px; height: 1748px; }
+  body {
+    /* 手紙カードと同じ水彩調の配色 (build_montage.py の LETTER_BG / LETTER_INK) */
+    background: radial-gradient(ellipse at 50% 35%, #f7f1e8 0%, #efe2da 60%, #e9d8d2 100%);
+    color: #5a4a3f;
+    font-family: "Noto Sans CJK JP", "Noto Sans Thai", "Loma", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 90px 100px;
+  }
+  /* 細い二重罫の飾り枠(上品さ優先。派手な飾りは入れない) */
+  .frame {
+    width: 100%; height: 100%;
+    border: 3px solid rgba(90, 74, 63, .35);
+    outline: 1px solid rgba(90, 74, 63, .25);
+    outline-offset: 10px;
+    border-radius: 6px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    padding: 100px 60px 80px;
+  }
+  .ornament { font-size: 44px; letter-spacing: 18px; opacity: .55; }
+  h1 { font-size: 92px; font-weight: 600; letter-spacing: .04em; line-height: 1.4; }
+  .lead { font-size: 44px; line-height: 1.9; opacity: .9; }
+  .qr-wrap {
+    background: #fff;
+    padding: 36px;                 /* QRの余白(クワイエットゾーン)を白で確保する */
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(90, 74, 63, .18);
+  }
+  .qr-wrap img { display: block; width: 480px; height: 480px; image-rendering: pixelated; }
+  .scan { font-size: 40px; line-height: 1.8; opacity: .85; }
+  .from { font-size: 36px; opacity: .7; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div>
+      <div class="ornament">✿ ✿ ✿</div>
+      <!-- ▼▼ 編集する場所: 宛名(行事に合わせて) ▼▼ -->
+      <h1>お母さんへ<br>ถึงแม่ที่รัก</h1>
+    </div>
+
+    <!-- ▼▼ 編集する場所: ひとこと ▼▼ -->
+    <p class="lead">あなたへの「ありがとう」を<br>1本の動画にしました</p>
+
+    <div class="qr-wrap">
+      <!-- qr.png をこのHTMLと同じフォルダに置く -->
+      <img src="qr.png" alt="QR">
+    </div>
+
+    <!-- ▼▼ 編集する場所: 読み取りの案内(日タイ併記) ▼▼ -->
+    <p class="scan">スマホのカメラをかざしてください<br>สแกนด้วยกล้องมือถือเพื่อดูวิดีโอ</p>
+
+    <!-- ▼▼ 編集する場所: 差出人 ▼▼ -->
+    <p class="from">— あなたの娘より —</p>
+  </div>
+</body>
+</html>

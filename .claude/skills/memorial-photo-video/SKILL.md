@@ -54,6 +54,9 @@ description: お客様の実写真から思い出アルバム動画(母の日・
 
 ## 作り方
 
+**同型の注文が2件以上あるときは `memorial-video-batch` Skill を使う**
+(CSVから行事別プリセット入りで一括生成→一括ビルド+QC)。以下は1本だけ作る手順:
+
 ```bash
 cd gift-video
 
@@ -101,9 +104,9 @@ python3 scripts/assemble.py mom-001 && python3 scripts/qc.py mom-001
 | 制作代行 | ヒアリング→写真選定→手紙の代筆→BGM選定 | 数千円(海外は$150前後) |
 | **QRギフトセット** | 動画+**QRコード付きの実物**(カード・写真立て・花束タグ・ぬいぐるみ) | 実物の原価+制作費 |
 
-QRギフトの作り方: 動画をYouTube(限定公開)かGoogle Driveに上げ、そのURLをQRコード化して
-カード等に印刷する。「読み取ると動画が始まる」体験が差別化になり、実物とセットで
-単価を上げられる。デザインは `apparel-graphic-design` / `gimmick-art` Skillが流用できる。
+QRギフトの実制作は **`qr-video-gift` Skill** にまとめてある(URL化の選び方 →
+`artwork/tools/qr_gift.py` でQR生成 → カードテンプレのPNG化 → 実機検証 → 印刷)。
+「読み取ると動画が始まる」体験が差別化になり、実物とセットで単価を上げられる。
 
 見積もりは `biz-quote`、受注記録は `biz-order-ledger`、納品は `biz-delivery`
 (透かしプレビュー → 入金 → 本納品)。
