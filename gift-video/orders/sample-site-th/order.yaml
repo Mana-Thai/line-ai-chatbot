@@ -1,0 +1,23 @@
+order_id: "sample-site-th"
+couple_names: "ขอบคุณนะแม่"          # ラスト2秒に大きく出る(締めの言葉)
+anniversary_date: "วันแม่ 2569"      # タイの母の日・仏暦(2026年 = พ.ศ. 2569)
+scene1_caption: ""                  # 写真ごとの文字は scene_captions で入れる
+message: ""                         # 手紙は letter カードで見せるので未使用
+message_start_sec: 0
+target_duration: 50   # --sync で montage.yaml から自動反映される
+output_formats: ["landscape"]   # 縦型は2パス目(--size 1080x1920)で作る
+portrait_mode: "crop"
+mix_scene_audio: false              # 写真素材に音声は無いのでBGMのみ
+show_names: true                    # ラストの「ขอบคุณนะแม่」を表示する
+
+# シーンごとのキャプション(--sync で montage.yaml から自動反映される)
+scene_captions:
+  - ""
+  - "หนูเคยวิ่งกลับบ้าน เพื่อเอาดอกไม้มาให้แม่"
+  - "ทุกเช้า แม่ถักผมให้หนูก่อนไปโรงเรียน"
+  - "บนรถสายนั้น หนูหลับบนไหล่แม่เสมอ"
+  - "เค้กก้อนเล็กๆ ที่แม่ทำให้ทุกปี"
+  - "วันนี้หนูโตแล้ว ได้ยืนทำกับข้าวข้างๆ แม่"
+  - "และหนูอยากอยู่ข้างๆ แม่แบบนี้ ไปนานๆ"
+  - ""
+  - ""

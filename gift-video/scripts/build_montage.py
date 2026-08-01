@@ -156,21 +156,35 @@ def wrap_letter(text, max_chars):
     タイ語の結合文字は基底文字から切り離さない(common.wrap_tokens が1単位にする)。
     空白があればそこを優先して切る。
     """
-    import math
     lines = []
     for raw in text.splitlines():
         raw = raw.rstrip()
         if not raw:
             lines.append("")
             continue
-        toks = common.wrap_tokens(raw)
-        if len(toks) <= max_chars:
+        if len(common.wrap_tokens(raw)) <= max_chars:
             lines.append(raw)
             continue
-        n_chunks = math.ceil(len(toks) / max_chars)
-        size = math.ceil(len(toks) / n_chunks)
-        for k in range(0, len(toks), size):
-            lines.append("".join(toks[k:k + size]).strip())
+        # 空白区切りのまとまりで詰める。1つが長すぎる行だけ文字単位に落とす
+        cur: list[str] = []
+        for unit in common.wrap_units(raw):
+            toks = common.wrap_tokens(unit)
+            if len(toks) > max_chars:
+                # そもそも1行に収まらないまとまり(空白の無い長い語)は文字単位で詰める
+                for tok in toks:
+                    if len(cur) < max_chars:
+                        cur.append(tok)
+                    else:
+                        lines.append("".join(cur).strip())
+                        cur = [tok]
+                continue
+            if not cur or len(cur) + len(toks) <= max_chars:
+                cur += toks
+                continue
+            lines.append("".join(cur).strip())
+            cur = toks
+        if cur:
+            lines.append("".join(cur).strip())
     return lines
 
 

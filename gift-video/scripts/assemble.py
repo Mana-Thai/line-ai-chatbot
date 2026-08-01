@@ -66,19 +66,31 @@ _NO_LINE_START = set("、。,.!?」』)〉》…!?ー")
 
 
 def wrap_text(text: str, fontsize: int, max_width: float) -> str:
-    """欧文単語は分割せず、行頭禁則(、。など)を避けつつ greedy に折り返す。"""
+    """欧文単語は分割せず、行頭禁則(、。など)を避けつつ greedy に折り返す。
+
+    まず空白区切りのまとまりで折り返す(タイ語は文節の切れ目に空白を置くため、
+    ここで切らないと単語の途中で改行されてしまう)。1つのまとまりが1行に
+    収まらないときだけ、そのまとまりを文字単位に分解して詰める。
+    """
     lines: list[str] = []
     for para in text.split("\n"):
-        # 半角の連続(欧文単語+続く空白)は1トークン、タイ語は結合文字を基底に付けて1トークン
-        tokens = common.wrap_tokens(para)
         cur = ""
-        for tok in tokens:
-            if not cur or _est_width(cur + tok, fontsize) <= max_width \
-                    or tok.strip() in _NO_LINE_START:
-                cur += tok
-            else:
-                lines.append(cur.rstrip())
-                cur = tok.lstrip()
+        for unit in common.wrap_units(para):
+            # 単体で1行に収まらないまとまり(空白の無い長い語)は文字単位に落として詰める
+            if _est_width(unit, fontsize) > max_width:
+                for tok in common.wrap_tokens(unit):
+                    if not cur or _est_width(cur + tok, fontsize) <= max_width \
+                            or tok.strip() in _NO_LINE_START:
+                        cur += tok
+                    else:
+                        lines.append(cur.rstrip())
+                        cur = tok.lstrip()
+                continue
+            if not cur or _est_width(cur + unit, fontsize) <= max_width:
+                cur += unit
+                continue
+            lines.append(cur.rstrip())
+            cur = unit.lstrip()
         lines.append(cur.rstrip())
     return "\n".join(lines)
 
@@ -86,9 +98,12 @@ def wrap_text(text: str, fontsize: int, max_width: float) -> str:
 def drawtext(font: Path, textfile: Path, fontsize: int, color: str,
              x: str, y: str, alpha: str, enable_from: float, enable_to: float,
              line_spacing: int = 0) -> str:
+    # 明るい写真(逆光・白い壁・料理の湯気など)の上でも白文字が消えないよう、
+    # 影に加えて細い縁取りを入れる。濃くしすぎると上品さが崩れるので最小限にする
     return (f"drawtext=fontfile={ff_quote(font)}:textfile={ff_quote(textfile)}:"
             f"fontsize={fontsize}:fontcolor={color}:line_spacing={line_spacing}:"
-            f"shadowcolor=black@0.35:shadowx=2:shadowy=2:"
+            f"shadowcolor=black@0.55:shadowx=2:shadowy=2:"
+            f"borderw=2:bordercolor=black@0.3:"
             f"x={x}:y={y}:alpha='{alpha}':"
             f"enable='between(t,{enable_from},{enable_to})'")
 

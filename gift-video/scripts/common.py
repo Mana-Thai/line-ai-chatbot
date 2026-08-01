@@ -198,6 +198,17 @@ def wrap_tokens(text: str) -> list[str]:
     return re.findall(rf"[!-~]+\s*|.[{THAI_COMBINING}]*", text)
 
 
+def wrap_units(text: str) -> list[str]:
+    """空白で区切ったまとまり(後続の空白を含む)に分割する。
+
+    タイ語は単語間に空白を置かないが、**文節の切れ目には空白を入れる**書き方が普通。
+    そこを無視して文字数で折り返すと「เพื่อเอ / า」のように母音字が基底から離れ、
+    タイ語話者には壊れて見える(結合文字ではないので wrap_tokens では防げない)。
+    折り返しはまずこの単位で行い、1つが長すぎて入らないときだけ文字単位に落とす。
+    """
+    return re.findall(r"\S+\s*", text)
+
+
 def missing_glyphs(font: Path, text: str) -> set[str] | None:
     """フォントに無い文字を返す。判定できない環境では None。
 
