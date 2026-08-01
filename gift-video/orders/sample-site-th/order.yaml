@@ -5,7 +5,7 @@ scene1_caption: ""                  # 写真ごとの文字は scene_captions �
 message: ""                         # 手紙は letter カードで見せるので未使用
 message_start_sec: 0
 target_duration: 50   # --sync で montage.yaml から自動反映される
-output_formats: ["landscape"]   # 縦型は2パス目(--size 1080x1920)で作る
+output_formats: ["portrait"]   # 縦型は2パス目(--size 1080x1920)で作る
 portrait_mode: "crop"
 mix_scene_audio: false              # 写真素材に音声は無いのでBGMのみ
 show_names: true                    # ラストの「ขอบคุณนะแม่」を表示する

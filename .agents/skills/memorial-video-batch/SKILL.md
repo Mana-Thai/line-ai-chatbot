@@ -86,7 +86,14 @@ python3 scripts/batch.py mom-001 mom-002
 - **お客様確認は一括で先に**: 全注文の手紙・キャプションを文字だけ先に送って
   確認を取ってから⑥に進む。1件ずつ「作る→直す」を繰り返すと件数分の手戻りになる
 - **BGMの使い回しに注意**: 全注文が同じ曲だと「テンプレ感」が出る。2〜3曲を
-  ローテーションし、台帳にどの曲を使ったか記録する
+  ローテーションし、台帳にどの曲を使ったか記録する。`make_bgm.py` なら
+  `--mood` `--key` `--tempo` の組み合わせで**注文ごとに違う曲を作れる**(権利の心配なし):
+  ```bash
+  for id in mom-001 mom-002 bday-001; do
+    sec=$(python3 -c "import yaml;print(yaml.safe_load(open('orders/$id/order.yaml'))['target_duration'])")
+    python3 scripts/make_bgm.py --seconds $sec --mood warm --out orders/$id/input/bgm.mp3
+  done
+  ```
 - **納期順に処理する**: batch.py に渡す順は台帳の納期順。母の日(タイは8月12日)の
   直前は駆け込みが来るので、締切を「2日前受付終了」と先に案内する
 - **長時間コマンドはバックグラウンドで**: ⑥⑦は件数×数十秒〜数分かかる。
