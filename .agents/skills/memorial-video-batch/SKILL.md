@@ -94,6 +94,8 @@ python3 scripts/batch.py mom-001 mom-002
     python3 scripts/make_bgm.py --seconds $sec --mood warm --out orders/$id/input/bgm.mp3
   done
   ```
+  どの曲を使ったかは台帳のメモ欄に残す。有料音源に切り替える基準は
+  `business/music-policy.md`(**月15本を超えたら検討**)
 - **納期順に処理する**: batch.py に渡す順は台帳の納期順。母の日(タイは8月12日)の
   直前は駆け込みが来るので、締切を「2日前受付終了」と先に案内する
 - **長時間コマンドはバックグラウンドで**: ⑥⑦は件数×数十秒〜数分かかる。

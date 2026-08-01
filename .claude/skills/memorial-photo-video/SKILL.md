@@ -98,7 +98,8 @@ python3 scripts/assemble.py mom-001 && python3 scripts/qc.py mom-001
   python3 scripts/make_bgm.py --seconds <target_duration> --mood warm \
       --out orders/<注文ID>/input/bgm.mp3
   ```
-  `--mood warm`(温かい)/ `tender`(しみじみ)/ `hopeful`(前向き)、`--key` `--tempo` で表情を変える
+  `--mood warm`(温かい)/ `tender`(しみじみ)/ `hopeful`(前向き)、`--key` `--tempo` で表情を変える。
+  有料音源に切り替える基準とライセンス確認は `business/music-policy.md`
 - **「いつでも繰り返し見られる」を訴求**する(離れて暮らす家族向けに刺さる)
 - 納期を売りにするなら「24時間納品」(参考商品の訴求。実作業は1〜2時間)
 

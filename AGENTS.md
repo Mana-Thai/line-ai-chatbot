@@ -23,8 +23,9 @@
    (ヘッドレスChrome利用・透過/生地色プレビュー対応)と、テキストグリッド→ドット絵SVGの
    `pixel2svg.py`、写真→映画風/アニメ風画像のAI生成 `stylize.py`(要 `GEMINI_API_KEY`)。
    作品は `artwork/works/<作品名>/` に置く
-4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)と
-   見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)
+4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)、
+   見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)、
+   公式LINEの設定と文面 `line-oa-setup.md`、BGM調達の段階方針 `music-policy.md`
 5. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
 
 ## 重要な仕様・約束事
