@@ -196,7 +196,9 @@ def build_letter_card(ffmpeg, text, out_png, card_w, card_h):
     フォントは手紙の言語に合わせて選ぶ(タイ語の手紙に日本語フォントを使うと □ になる)。
     """
     font = common.find_font(text)
-    # フォントは短辺基準(縦型で高さ基準にすると巨大になり数文字で折り返してしまう)
+    # フォントは短辺基準(縦型で高さ基準にすると巨大になり数文字で折り返してしまう)。
+    # ここは全画面に数行だけなので元から十分大きい。タイ語向けの拡大(THAI_SIZE_FACTOR)は
+    # かけない — 縦型で1行に入る文字数が減り、単語の途中で折り返す原因になるため
     fontsize = int(min(card_w, card_h) * 0.052)
     line_spacing = int(fontsize * 0.75)
     safe_w = card_w * 0.76

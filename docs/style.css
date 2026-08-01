@@ -23,7 +23,8 @@ body {
   color: var(--ink);
   background: #fff;
   line-height: 1.85;          /* ภาษาไทยมีสระบน-ล่าง ต้องเว้นบรรทัดมากกว่าปกติ */
-  font-size: 16px;
+  /* ตัวอักษรไทยตัวเล็กกว่าตัวอักษรละติน จึงตั้งขนาดพื้นฐานให้ใหญ่ขึ้น */
+  font-size: 17.5px;
 }
 
 h1, h2, h3 { line-height: 1.5; margin: 0 0 .6em; font-weight: 700; }
@@ -44,7 +45,7 @@ a { color: var(--rose-deep); }
 }
 .hero h1 { font-size: 1.75rem; margin-bottom: 1rem; }
 .hero-lead { max-width: 34rem; margin: 0 auto 1.75rem; }
-.hero-note { font-size: .8125rem; color: var(--ink-soft); margin: .9rem 0 0; }
+.hero-note { font-size: .9375rem; color: var(--ink-soft); margin: .9rem 0 0; }
 
 /* ---------- โครงหน้า ---------- */
 .section { padding: 3rem 1.25rem; max-width: 60rem; margin: 0 auto; }
@@ -52,7 +53,7 @@ a { color: var(--rose-deep); }
 .section-alt > * { max-width: 60rem; margin-left: auto; margin-right: auto; }
 .section h2 { font-size: 1.375rem; text-align: center; }
 .lead { text-align: center; color: var(--ink-soft); max-width: 34rem; margin: 0 auto 2rem; }
-.note { font-size: .8125rem; color: var(--ink-soft); margin-top: 1rem; }
+.note { font-size: .9375rem; color: var(--ink-soft); margin-top: 1rem; }
 .section > .note { text-align: center; }
 
 /* ---------- ปุ่ม ---------- */
@@ -121,7 +122,7 @@ a { color: var(--rose-deep); }
   transform: translateX(-50%);
   background: var(--rose-deep);
   color: #fff;
-  font-size: .75rem;
+  font-size: .875rem;
   font-weight: 700;
   padding: .2rem 1rem;
   border-radius: 999px;
@@ -158,7 +159,7 @@ a { color: var(--rose-deep); }
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: .45rem 1.1rem;
-  font-size: .9375rem;
+  font-size: 1rem;
 }
 
 /* ---------- คำถามที่พบบ่อย / ส่วนที่พับได้ ---------- */
@@ -187,14 +188,14 @@ a { color: var(--rose-deep); }
 .footer {
   padding: 2.5rem 1.25rem 3rem;
   text-align: center;
-  font-size: .875rem;
+  font-size: .9375rem;
   color: var(--ink-soft);
   border-top: 1px solid var(--border);
 }
 .footer p { margin: 0 0 .4rem; }
 .footer-name { font-weight: 700; color: var(--ink); font-size: 1rem; }
-.footer-jp { margin-top: 1rem; font-size: .8125rem; }
-.footer-small { margin-top: 1.25rem; font-size: .75rem; }
+.footer-jp { margin-top: 1rem; font-size: .9375rem; }
+.footer-small { margin-top: 1.25rem; font-size: .875rem; }
 
 /* ---------- จอแคบ ---------- */
 /* 375px以下だと見出しが3行に折れて「ได้」だけが孤立し、
@@ -206,7 +207,7 @@ a { color: var(--rose-deep); }
 
 /* ---------- จอใหญ่ ---------- */
 @media (min-width: 768px) {
-  body { font-size: 17px; }
+  body { font-size: 19px; }
   .hero { padding: 5rem 2rem 4.5rem; }
   .hero h1 { font-size: 2.5rem; }
   .section { padding: 4.5rem 2rem; }

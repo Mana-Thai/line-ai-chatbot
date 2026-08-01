@@ -100,16 +100,43 @@ def viewport_gap(browser: str, probe_h: int = 1000) -> int:
     return gap if 0 <= gap < probe_h // 2 else 0
 
 
+def min_viewport_width(browser: str, probe_w: int = 200) -> int:
+    """ヘッドレスChromeが実際に描画できる最小のビューポート幅を測る。
+
+    --window-size に小さい幅を渡してもウィンドウの最小幅(この環境では485px)で
+    止まる。指定より広く描画された画像の左側だけが切り出されるため、
+    **スマホ幅(390px等)の確認が黙って嘘になる**。実測して、狭いときは
+    iframe に入れて本物の狭いビューポートを作る。
+    """
+    probe = ('<!doctype html><meta charset="utf-8"><body><script>'
+             'document.body.textContent="VPW="+document.documentElement.clientWidth'
+             '</script></body>')
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "probew.html"
+        p.write_text(probe, encoding="utf-8")
+        try:
+            proc = subprocess.run(
+                [browser, "--headless", "--disable-gpu", "--no-sandbox",
+                 "--hide-scrollbars", "--force-device-scale-factor=1",
+                 "--dump-dom", f"--window-size={probe_w},600", p.resolve().as_uri()],
+                capture_output=True, text=True, timeout=60)
+        except (subprocess.SubprocessError, OSError):
+            return probe_w
+    m = re.search(r"VPW=(\d+)", proc.stdout or "")
+    return int(m.group(1)) if m else probe_w
+
+
 def _png_chunk(tag: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + tag + data
             + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
 
 
-def crop_png_bottom(path: Path, keep_h: int) -> bool:
-    """PNGの下端を切り落として高さを keep_h にする(標準ライブラリのみ)。
+def crop_png(path: Path, keep_w: int, keep_h: int) -> bool:
+    """PNGの右端・下端を切り落として keep_w x keep_h にする(標準ライブラリのみ)。
 
-    PNGの各行は「フィルタ種別1バイト + 画素データ」で、フィルタは自分より上の行しか
-    参照しない。よって**末尾の行を捨てるだけ**なら再フィルタ不要で安全に切れる。
+    PNGの各行は「フィルタ種別1バイト + 画素データ」。フィルタが参照するのは
+    **上の行と左の画素**だけなので、末尾の行と各行の右側を捨てる分には
+    再フィルタ不要で安全に切れる。
     8bitの非インターレースPNGのみ対応(Chromeの出力はこれ)。それ以外は False。
     """
     raw = path.read_bytes()
@@ -130,16 +157,23 @@ def crop_png_bottom(path: Path, keep_h: int) -> bool:
     if not ihdr:
         return False
     w, h, depth, color, _, _, interlace = struct.unpack(">IIBBBBB", ihdr[:13])
-    if depth != 8 or interlace != 0 or keep_h >= h:
+    if depth != 8 or interlace != 0 or keep_w > w or keep_h > h:
         return False
+    if keep_w == w and keep_h == h:
+        return True
     channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(color)
     if not channels:
         return False
     stride = 1 + w * channels
-    rows = zlib.decompress(bytes(idat))[:stride * keep_h]
-    if len(rows) < stride * keep_h:
+    raw_rows = zlib.decompress(bytes(idat))
+    if len(raw_rows) < stride * keep_h:
         return False
-    new_ihdr = struct.pack(">II", w, keep_h) + ihdr[8:13]
+    if keep_w == w:
+        rows = raw_rows[:stride * keep_h]
+    else:
+        keep = 1 + keep_w * channels
+        rows = b"".join(raw_rows[i * stride:i * stride + keep] for i in range(keep_h))
+    new_ihdr = struct.pack(">II", keep_w, keep_h) + ihdr[8:13]
     path.write_bytes(b"\x89PNG\r\n\x1a\n"
                      + _png_chunk(b"IHDR", new_ihdr)
                      + _png_chunk(b"IDAT", zlib.compress(rows, 9))
@@ -197,18 +231,33 @@ def main() -> None:
         # (補正しないと下端に未描画の帯が残り、SVGは 100vh に潰されて縦横比が狂う)
         gap = viewport_gap(browser)
         win_h = H + gap
+        win_w = W
+        min_w = min_viewport_width(browser)
+        if W < min_w:
+            # 窓はこれ以上狭くできないので、指定幅の iframe に入れて本物の狭い
+            # ビューポートを作る(スマホ表示の確認が実機と一致するようにする)。
+            # 余った右側は撮影後に切り落とす
+            frame = Path(td) / "frame.html"
+            frame.write_text(
+                '<!doctype html><meta charset="utf-8">'
+                '<style>*{margin:0;padding:0}html,body{overflow:hidden;background:'
+                f'{bg_css}}}iframe{{border:0;display:block;width:{W}px;height:{H}px}}</style>'
+                f'<iframe src="{page_uri}"></iframe>', encoding="utf-8")
+            page_uri = frame.resolve().as_uri()
+            win_w = min_w
         cmd = [browser, "--headless", "--disable-gpu", "--no-sandbox",
                "--hide-scrollbars", "--force-device-scale-factor=1",
+               "--virtual-time-budget=8000",
                "--default-background-color=00000000",
-               f"--screenshot={out}", f"--window-size={W},{win_h}",
+               f"--screenshot={out}", f"--window-size={win_w},{win_h}",
                page_uri]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0 or not out.is_file():
             tail = "\n".join((proc.stderr or "").splitlines()[-10:])
             sys.exit(f"ERROR: ラスタライズに失敗しました\n{tail}")
 
-    if gap and not crop_png_bottom(out, H):
-        print(f"注意: 下端 {gap}px を切れませんでした。出力は {W}x{H + gap}px です")
+    if (gap or win_w != W) and not crop_png(out, W, H):
+        print(f"注意: 余白を切れませんでした。出力は {win_w}x{H + gap}px です")
 
     kb = out.stat().st_size / 1024
     print(f"[done] {out}  {W}x{H}px / {kb:.0f}KB / 背景: {bg_css}")

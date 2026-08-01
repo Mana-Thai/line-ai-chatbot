@@ -50,11 +50,20 @@ def alpha_fade_in_out(start: float, end: float, fade: float) -> str:
 # メッセージの自動折り返し (drawtext は折り返さないため事前に改行を入れる)
 # ---------------------------------------------------------------------------
 def _est_width(text: str, fontsize: int) -> float:
-    """全角≈1.0em / 半角≈0.55em / 空白≈0.3em の概算で描画幅を見積もる。"""
+    """全角≈1.0em / 半角≈0.55em / 空白≈0.3em の概算で描画幅を見積もる。
+
+    タイ語の声調記号・上下の母音記号は**文字送りが0**(基底文字の上下に重なる)。
+    ここを1文字分として数えると幅を2〜3割過大に見積もり、入るはずの行が
+    折り返されて単語の途中で切れる原因になる。
+    """
     w = 0.0
     for c in text:
+        if c in common.THAI_COMBINING:
+            continue            # 上下に重なるだけで横幅を持たない
         if c == " ":
             w += 0.30
+        elif "฀" <= c <= "๿":
+            w += 0.62           # タイ文字は欧文よりやや広い程度
         elif ord(c) > 0x2E7F:   # CJK・かな・全角記号
             w += 1.00
         else:
@@ -76,8 +85,24 @@ def wrap_text(text: str, fontsize: int, max_width: float) -> str:
     for para in text.split("\n"):
         cur = ""
         for unit in common.wrap_units(para):
+            # タイ語のまとまりは途中で割らない。正しく割るには辞書による分かち書きが要り、
+            # 機械的に切ると「เพื่อเอ / า」のように母音が基底から離れて壊れて見える。
+            # 少しはみ出す行のほうが、単語が割れるよりはるかにましなので1行に収める
+            # (安全域を大きく超えるときだけ最後の手段として文字単位に落とす)
+            if common.has_thai(unit) and _est_width(unit, fontsize) <= max_width * 1.15:
+                if cur and _est_width(cur + unit, fontsize) > max_width:
+                    lines.append(cur.rstrip())
+                    cur = ""
+                cur += unit
+                continue
             # 単体で1行に収まらないまとまり(空白の無い長い語)は文字単位に落として詰める
             if _est_width(unit, fontsize) > max_width:
+                if common.has_thai(unit):
+                    # ここに来ると単語の途中で改行され、タイ語話者には壊れて見える。
+                    # 直し方は文面側 — 文節の切れ目に半角スペースを1つ入れる
+                    print(f"  注意: タイ語が長すぎて途中で改行されます: 「{unit.strip()}」\n"
+                          f"        文節の切れ目にスペースを入れてください"
+                          f"(例: 「...ให้หนู ก่อนไป...」)")
                 for tok in common.wrap_tokens(unit):
                     if not cur or _est_width(cur + tok, fontsize) <= max_width \
                             or tok.strip() in _NO_LINE_START:
@@ -154,6 +179,13 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
     total = round(cur_dur, 3)
     color = order["text_color"]
     timing: dict = {"total_duration": total}
+    # 文字サイズは**短辺基準**にする。高さ基準だと縦型(H=1920)だけ約8割大きくなり、
+    # 横型は逆に小さすぎた(同じ作品なのに画角で見え方が変わっていた)
+    base = min(W, H)
+    # タイ語は同じptだと本体が潰れて読めないため、文字サイズを一律で上げる
+    tscale = common.text_size_scale(
+        " ".join([order["couple_names"], order["anniversary_date"], order["message"],
+                  order["scene1_caption"], *order["scene_captions"]]))
 
     # --- テキストオーバーレイ ---
     texts: list[str] = []
@@ -163,7 +195,7 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         cap_txt.write_text(order["scene1_caption"], encoding="utf-8")
         cap_end = min(CAPTION_END, scene_durs[0] - 1.0)
         texts.append(drawtext(
-            font, cap_txt, fontsize=int(H * 0.030), color=color,
+            font, cap_txt, fontsize=int(base * 0.040 * tscale), color=color,
             x=str(int(W * 0.05)), y=f"h-text_h-{int(H * 0.05)}",
             alpha=alpha_fade_in_out(CAPTION_START, cap_end, CAPTION_FADE),
             enable_from=CAPTION_START, enable_to=cap_end))
@@ -175,7 +207,7 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         if not 0 <= msg_start < total - 1:
             raise PipelineError(
                 f"message_start_sec={msg_start} が総再生時間 {total:.1f}s の範囲外です")
-        msg_size = int(H * 0.048)
+        msg_size = int(base * 0.063 * tscale)
         wrapped = wrap_text(order["message"], msg_size, W * 0.86)
         msg_txt = work / "message.txt"
         msg_txt.write_text(wrapped, encoding="utf-8")
@@ -197,7 +229,7 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
             raise PipelineError(
                 f"scene_captions が {len(caps)} 個ですが、シーンは {len(scene_durs)} 本あります。\n"
                 f"  シーン数と同じ数だけ並べてください(出さないシーンは空文字 \"\" にする)")
-        cap_size = int(H * 0.034)
+        cap_size = int(base * 0.045 * tscale)
         cap_timing = []
         scene_start = 0.0
         # 締めの名前表示と同時に出ると文字が重なるので、その手前で終わらせる
@@ -232,10 +264,10 @@ def build_filtergraph(order: dict, scene_durs: list[float], fmt: str,
         date_txt = work / "date.txt"
         date_txt.write_text(order["anniversary_date"], encoding="utf-8")
         names_alpha = alpha_fade_in(names_start, NAMES_FADE)
-        texts.append(drawtext(font, names_txt, fontsize=int(H * 0.042), color=color,
+        texts.append(drawtext(font, names_txt, fontsize=int(base * 0.055 * tscale), color=color,
                               x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.135)}",
                               alpha=names_alpha, enable_from=names_start, enable_to=total))
-        texts.append(drawtext(font, date_txt, fontsize=int(H * 0.028), color=color,
+        texts.append(drawtext(font, date_txt, fontsize=int(base * 0.037 * tscale), color=color,
                               x="(w-text_w)/2", y=f"h-text_h-{int(H * 0.09)}",
                               alpha=names_alpha, enable_from=names_start, enable_to=total))
         timing["names"] = {"start": names_start, "fade": NAMES_FADE,

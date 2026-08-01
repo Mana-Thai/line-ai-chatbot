@@ -185,6 +185,17 @@ def has_thai(text: str) -> bool:
     return any(_THAI_RANGE[0] <= ch <= _THAI_RANGE[1] for ch in str(text))
 
 
+# タイ文字は字面(文字の本体)が em に対して小さく、さらに声調記号・母音記号が
+# 上下に付く。日本語や欧文と同じ pt で組むと本体が潰れて読めない、という指摘が
+# ネイティブチェックで出たため、タイ語の描画だけ一律で大きくする。
+THAI_SIZE_FACTOR = 1.35
+
+
+def text_size_scale(text: str) -> float:
+    """描画する文字に応じた文字サイズの倍率を返す(タイ語だけ大きくする)。"""
+    return THAI_SIZE_FACTOR if has_thai(text) else 1.0
+
+
 # タイ語の結合文字(上下に付く母音記号・声調記号)。基底文字から切り離すと表示が壊れる
 THAI_COMBINING = "ัิ-ฺ็-๎"
 
