@@ -26,6 +26,10 @@
 4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)と
    見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)
 5. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+6. **ローカルPCエージェント** — `local-agent/`。自分のWindows PCの中で動かすCLIエージェント。
+   Claude APIを呼び、返ってきた指示を**ローカルで実行**する(ファイル検索・閲覧・編集、PowerShell、
+   `--gui` で画面操作)。`--root` で許可フォルダを限定し、書き込み・実行は既定で都度確認。
+   このリポジトリでは開発するだけで、実行は各自のPC上。詳細は `local-agent/README.md`
 
 ## 重要な仕様・約束事
 

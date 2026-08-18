@@ -7,3 +7,6 @@ __pycache__/
 # ギフト動画の生成物(素材・完成品はリポジトリに入れない)
 gift-video/orders/*/input/
 gift-video/orders/*/output/
+
+# ローカルPCエージェントの仮想環境
+local-agent/.venv/
