@@ -1,5 +1,11 @@
+# 必須
 anthropic>=0.116.0
 
-# --gui(画面のクリック・キー入力)を使うときだけ必要
+# 文書ファイルの読み取り (read_document)。無い場合はその形式だけ使えない
+openpyxl>=3.1          # Excel (.xlsx/.xlsm)
+python-docx>=1.1       # Word (.docx)
+pypdf>=4.0             # PDF
+pillow>=10.0           # 画像の読み取り・縮小
+
+# 画面操作 (--gui) を使うときだけ必要
 pyautogui>=0.9.54
-pillow>=10.0.0

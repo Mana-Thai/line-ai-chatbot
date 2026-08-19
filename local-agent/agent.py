@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import base64
 import io
+import json
 import os
 import re
 import shutil
@@ -41,6 +42,7 @@ import anthropic
 DEFAULT_MODEL = "claude-opus-5"
 GUI_TOOL_TYPE = "computer_20251124"
 GUI_BETA = "computer-use-2025-11-24"
+COMPACT_BETA = "compact-2026-01-12"
 
 MAX_SCREEN_W, MAX_SCREEN_H = 1920, 1080   # スクショはこのサイズ以下に縮小して送る
 KEEP_SCREENSHOTS = 3                      # 直近何枚のスクショを履歴に残すか
@@ -280,7 +282,156 @@ def tool_search(inp: dict[str, Any], guard: Guard) -> str:
 
 
 # --------------------------------------------------------------------------
-# ツール3: シェル (Windows は PowerShell)
+# ツール3: 文書ファイル (Excel / Word / PDF / 画像) の読み取り
+# --------------------------------------------------------------------------
+IMAGE_MEDIA = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+               ".gif": "image/gif", ".webp": "image/webp"}
+CONVERTIBLE_IMAGES = {".bmp", ".tif", ".tiff"}
+MAX_IMAGE_EDGE = 2000        # 画像はこの長辺以下に縮小して送る
+DEFAULT_DOC_ROWS = 200       # Excel の既定読み取り行数
+DEFAULT_PDF_PAGES = 20
+
+
+def parse_pages(spec: str | None, total: int) -> list[int]:
+    """"3" や "1-5" を 0 始まりのページ番号リストにする。"""
+    if not spec:
+        return list(range(min(total, DEFAULT_PDF_PAGES)))
+    out: list[int] = []
+    for part in str(spec).split(","):
+        part = part.strip()
+        try:
+            if "-" in part:
+                a, b = part.split("-", 1)
+                out.extend(range(int(a) - 1, min(int(b), total)))
+            else:
+                out.append(int(part) - 1)
+        except ValueError:
+            raise ToolError(f"pages の指定が不正です: {spec}(例: 1-5, 3)") from None
+    return [i for i in out if 0 <= i < total]
+
+
+def read_excel(path: Path, inp: dict[str, Any]) -> str:
+    try:
+        import openpyxl
+    except ImportError:
+        raise ToolError("Excelを読むには openpyxl が必要です: pip install openpyxl") from None
+    try:
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    except Exception as e:
+        raise ToolError(f"{path} を開けません: {e}") from e
+    want = inp.get("sheet")
+    if want and want not in wb.sheetnames:
+        raise ToolError(f"シート '{want}' がありません。存在するシート: {', '.join(wb.sheetnames)}")
+    names = [want] if want else wb.sheetnames
+    limit = int(inp.get("max_rows") or DEFAULT_DOC_ROWS)
+    chunks = []
+    for name in names:
+        ws = wb[name]
+        rows = []
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i >= limit:
+                rows.append(f"...(全 {ws.max_row} 行。続きは max_rows / sheet で指定)")
+                break
+            cells = ["" if c is None else str(c) for c in row]
+            if any(cells):
+                rows.append("\t".join(cells).rstrip())
+        chunks.append(f"=== シート: {name} ({ws.max_row} 行 x {ws.max_column} 列) ===\n" + "\n".join(rows))
+    wb.close()
+    body = "\n\n".join(chunks)
+    if not body.strip():
+        return "中身が空、または数式の計算結果が保存されていません(一度Excelで開いて保存すると読めます)。"
+    return clip(body)
+
+
+def read_word(path: Path) -> str:
+    try:
+        import docx
+    except ImportError:
+        raise ToolError("Wordを読むには python-docx が必要です: pip install python-docx") from None
+    try:
+        doc = docx.Document(str(path))
+    except Exception as e:
+        raise ToolError(f"{path} を開けません: {e}") from e
+    parts = [p.text for p in doc.paragraphs if p.text.strip()]
+    for t_i, table in enumerate(doc.tables, 1):
+        parts.append(f"=== 表 {t_i} ===")
+        for row in table.rows:
+            parts.append(" | ".join(c.text.strip() for c in row.cells))
+    return clip("\n".join(parts) or "(テキストがありません)")
+
+
+def read_pdf(path: Path, inp: dict[str, Any]) -> str:
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        raise ToolError("PDFを読むには pypdf が必要です: pip install pypdf") from None
+    try:
+        reader = PdfReader(str(path))
+    except Exception as e:
+        raise ToolError(f"{path} を開けません: {e}") from e
+    pages = parse_pages(inp.get("pages"), len(reader.pages))
+    parts = [f"(全 {len(reader.pages)} ページ中 {len(pages)} ページを表示)"]
+    for i in pages:
+        try:
+            text = reader.pages[i].extract_text() or ""
+        except Exception as e:
+            text = f"(このページを読めません: {e})"
+        parts.append(f"=== {i + 1} ページ ===\n{text.strip()}")
+    body = "\n\n".join(parts)
+    if len("".join(parts[1:]).strip()) < 20:
+        body += "\n\n※テキストが取れません。スキャン画像のPDFの可能性があります。"
+    return clip(body)
+
+
+def read_image(path: Path) -> list[dict[str, Any]]:
+    suffix = path.suffix.lower()
+    try:
+        from PIL import Image
+    except ImportError:
+        if suffix in CONVERTIBLE_IMAGES:
+            raise ToolError(f"{suffix} を読むには pillow が必要です: pip install pillow") from None
+        data = path.read_bytes()
+        if len(data) > 3_500_000:
+            raise ToolError("画像が大きすぎます。縮小には pillow が必要です: pip install pillow") from None
+        return [{"type": "image", "source": {"type": "base64",
+                 "media_type": IMAGE_MEDIA[suffix], "data": base64.b64encode(data).decode()}}]
+    try:
+        img = Image.open(path)
+        img.load()
+    except Exception as e:
+        raise ToolError(f"{path} を画像として開けません: {e}") from e
+    scale = min(1.0, MAX_IMAGE_EDGE / max(img.size))
+    if scale < 1.0:
+        img = img.resize((int(img.width * scale), int(img.height * scale)))
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, format="PNG")
+    return [{"type": "text", "text": f"{path.name} ({img.width}x{img.height})"},
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                                         "data": base64.b64encode(buf.getvalue()).decode()}}]
+
+
+def tool_read_document(inp: dict[str, Any], guard: Guard) -> Any:
+    path = guard.resolve(inp.get("path", ""))
+    if not path.is_file():
+        raise ToolError(f"{path} が見つかりません(ファイルではありません)。")
+    suffix = path.suffix.lower()
+    if suffix in (".xlsx", ".xlsm", ".xltx"):
+        return read_excel(path, inp)
+    if suffix == ".docx":
+        return read_word(path)
+    if suffix == ".pdf":
+        return read_pdf(path, inp)
+    if suffix in IMAGE_MEDIA or suffix in CONVERTIBLE_IMAGES:
+        return read_image(path)
+    if suffix in (".xls", ".doc", ".ppt"):
+        raise ToolError(f"{suffix} は旧形式で直接読めません。Excel/Wordで開いて .xlsx/.docx で保存し直すか、"
+                        "shell から変換してください。")
+    raise ToolError(f"{suffix} には対応していません。テキストファイルなら "
+                    "str_replace_based_edit_tool の view を使ってください。")
+
+
+# --------------------------------------------------------------------------
+# ツール4: シェル (Windows は PowerShell)
 # --------------------------------------------------------------------------
 def shell_argv(command: str) -> list[str]:
     if os.name == "nt" or shutil.which("powershell") or shutil.which("pwsh"):
@@ -311,7 +462,7 @@ def tool_shell(inp: dict[str, Any], guard: Guard) -> str:
 
 
 # --------------------------------------------------------------------------
-# ツール4: 画面操作 (--gui のときだけ)
+# ツール5: 画面操作 (--gui のときだけ)
 # --------------------------------------------------------------------------
 KEY_ALIASES = {
     "return": "enter", "kp_enter": "enter", "escape": "esc", "super": "win",
@@ -454,8 +605,10 @@ SYSTEM_TEMPLATE = """あなたはユーザー本人のWindows PC上で動いて�
 
 ## ツールの使い分け
 - ファイルを探す: search_files(名前は glob、中身は pattern)。まず探してから開くこと。
-- 中身を見る/直す: str_replace_based_edit_tool の view / create / str_replace / insert。
-- それ以外の処理: shell(PowerShell)。Excel等の一括処理、コピー、圧縮、起動など。
+- テキストを見る/直す: str_replace_based_edit_tool の view / create / str_replace / insert。
+- Excel(.xlsx) / Word(.docx) / PDF / 画像の中身: read_document。
+  画像は実際に見えるので、写真やスクショの内容を読み取れる。
+- それ以外の処理: shell(PowerShell)。コピー、圧縮、アプリ起動、一括処理など。
 - computer(画面操作)は最後の手段。ファイルやコマンドで済むことを画面クリックでやらないこと。
   GUIしか手段がないアプリを操作するときだけ使い、操作前に必ず screenshot で現状を確認する。
 
@@ -489,10 +642,29 @@ def build_tools(screen: Screen | None) -> list[dict[str, Any]]:
             },
         },
         {
+            "name": "read_document",
+            "description": (
+                "Excel(.xlsx/.xlsm)、Word(.docx)、PDF、画像(.png/.jpg/.gif/.webp/.bmp/.tif)の中身を読む。"
+                "Excelはシートごとにタブ区切りで、PDFはページごとにテキストで返す。画像はそのまま閲覧できるので、"
+                "写真・スクリーンショット・スキャンした書類の内容を読み取れる。"
+                "テキストファイル(.txt/.csv/.md など)には使わず str_replace_based_edit_tool の view を使うこと。"
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "読むファイルのパス"},
+                    "sheet": {"type": "string", "description": "Excel: シート名(省略時は全シート)"},
+                    "max_rows": {"type": "integer", "description": "Excel: 1シートあたりの最大行数(既定200)"},
+                    "pages": {"type": "string", "description": "PDF: ページ指定。例 1-5, 3(省略時は先頭20ページ)"},
+                },
+                "required": ["path"],
+            },
+        },
+        {
             "name": "shell",
             "description": (
                 "このPCのシェル(Windows では PowerShell)でコマンドを実行し、標準出力と終了コードを返す。"
-                "ファイルのコピー・移動・圧縮、アプリの起動、Excel/PDF の一括処理などに使う。"
+                "ファイルのコピー・移動・圧縮、アプリの起動、形式変換などに使う。"
                 "対話入力を求めるコマンドは使えない(応答できずタイムアウトする)。"
             ),
             "input_schema": {
@@ -519,6 +691,8 @@ def run_tool(name: str, inp: dict[str, Any], guard: Guard, screen: Screen | None
         return tool_text_editor(inp, guard)
     if name == "search_files":
         return tool_search(inp, guard)
+    if name == "read_document":
+        return tool_read_document(inp, guard)
     if name == "shell":
         return tool_shell(inp, guard)
     if name == "computer":
@@ -529,7 +703,7 @@ def run_tool(name: str, inp: dict[str, Any], guard: Guard, screen: Screen | None
 
 
 def prune_screenshots(messages: list[dict[str, Any]], keep: int = KEEP_SCREENSHOTS) -> None:
-    """古いスクリーンショットを差し替えて、コンテキストの肥大を抑える。"""
+    """古い画像を差し替えて、コンテキストの肥大を抑える。"""
     images: list[dict[str, Any]] = []
     for msg in messages:
         content = msg.get("content") if isinstance(msg, dict) else None
@@ -542,68 +716,126 @@ def prune_screenshots(messages: list[dict[str, Any]], keep: int = KEEP_SCREENSHO
                         images.append(sub)
     for img in images[:-keep] if keep else images:
         img.clear()
-        img.update({"type": "text", "text": "(古いスクリーンショットは省略されました)"})
+        img.update({"type": "text", "text": "(古い画像は履歴から省略されました)"})
 
 
-def agent_turn(client: anthropic.Anthropic, args, guard: Guard, screen: Screen | None,
-               tools: list[dict[str, Any]], messages: list[Any], system: str) -> None:
-    for step in range(args.max_steps):
-        kwargs: dict[str, Any] = {
-            "model": args.model,
-            "max_tokens": 16000,
-            "system": system,
-            "tools": tools,
-            "messages": messages,
-            "output_config": {"effort": args.effort},
+class Agent:
+    """1つのPCセッション。モデル呼び出し・ツール実行・記録をまとめて持つ。"""
+
+    def __init__(self, client: anthropic.Anthropic, args, guard: Guard,
+                 screen: Screen | None, system: str, log_path: Path | None) -> None:
+        self.client = client
+        self.args = args
+        self.guard = guard
+        self.screen = screen
+        self.system = system
+        self.tools = build_tools(screen)
+        self.log_path = log_path
+        self.compaction = not args.no_compact   # 長い会話の自動要約(400なら自動でオフ)
+
+    # ---- 記録 -------------------------------------------------------------
+    def log(self, tool: str, inp: dict[str, Any], status: str, detail: str = "") -> None:
+        """何をしたかだけ残す。ファイルの中身そのものは記録しない。"""
+        if not self.log_path:
+            return
+        keys = ("path", "command", "action", "pattern", "glob", "cwd", "sheet", "pages")
+        record = {
+            "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "tool": tool,
+            "status": status,
+            "input": {k: str(v)[:300] for k, v in inp.items() if k in keys},
+            "detail": detail[:300],
         }
-        if screen:
-            kwargs["betas"] = [GUI_BETA]
         try:
-            with client.beta.messages.stream(**kwargs) as stream:
-                for event in stream:
-                    if event.type == "content_block_delta" and event.delta.type == "text_delta":
-                        print(event.delta.text, end="", flush=True)
-                message = stream.get_final_message()
-        except anthropic.APIStatusError as e:
-            print(f"\n\033[31mAPIエラー ({e.status_code}): {e.message}\033[0m")
-            if screen and "computer" in str(e.message):
-                print("  → --model claude-sonnet-5 で試してください。")
-            return
-        except anthropic.APIConnectionError as e:
-            print(f"\n\033[31m接続できません: {e}\033[0m")
-            return
-        print()
-        messages.append({"role": "assistant", "content": message.content})
+            with self.log_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except OSError:
+            self.log_path = None   # 書けないなら以後あきらめる(本処理は止めない)
 
-        if message.stop_reason == "refusal":
-            print("\033[31m(このリクエストは拒否されました)\033[0m")
-            return
-        if message.stop_reason == "max_tokens":
-            print("\033[33m(出力上限に達しました。作業を分けて依頼してください)\033[0m")
-            return
-        if message.stop_reason != "tool_use":
-            return
-
-        results = []
-        for block in message.content:
-            if block.type != "tool_use":
-                continue
-            print(f"\033[90m  → {block.name}\033[0m")
+    # ---- モデル呼び出し ---------------------------------------------------
+    def call_model(self, messages: list[Any]):
+        while True:
+            kwargs: dict[str, Any] = {
+                "model": self.args.model,
+                "max_tokens": 16000,
+                "system": self.system,
+                "tools": self.tools,
+                "messages": messages,
+                "output_config": {"effort": self.args.effort},
+            }
+            betas = []
+            if self.screen:
+                betas.append(GUI_BETA)
+            if self.compaction:
+                betas.append(COMPACT_BETA)
+                kwargs["context_management"] = {"edits": [{"type": "compact_20260112"}]}
+            if betas:
+                kwargs["betas"] = betas
             try:
-                output = run_tool(block.name, dict(block.input), guard, screen)
-                content = output if isinstance(output, list) else [{"type": "text", "text": str(output)}]
-                results.append({"type": "tool_result", "tool_use_id": block.id, "content": content})
-            except ToolError as e:
-                print(f"\033[31m     {e}\033[0m")
-                results.append({"type": "tool_result", "tool_use_id": block.id,
-                                "content": [{"type": "text", "text": str(e)}], "is_error": True})
-            except Exception as e:  # ツールの想定外エラーでループを止めない
-                print(f"\033[31m     予期しないエラー: {e}\033[0m")
-                results.append({"type": "tool_result", "tool_use_id": block.id,
-                                "content": [{"type": "text", "text": f"予期しないエラー: {e}"}], "is_error": True})
-        messages.append({"role": "user", "content": results})
-        prune_screenshots(messages)
-    print(f"\033[33m(ステップ上限 {args.max_steps} に達しました。--max-steps で増やせます)\033[0m")
+                with self.client.beta.messages.stream(**kwargs) as stream:
+                    for event in stream:
+                        if event.type == "content_block_delta" and event.delta.type == "text_delta":
+                            print(event.delta.text, end="", flush=True)
+                    return stream.get_final_message()
+            except anthropic.RateLimitError:
+                print("\n\033[31mレート上限に達しました。少し待って再実行してください。\033[0m")
+                return None
+            except anthropic.APIStatusError as e:
+                detail = str(getattr(e, "message", "") or e)
+                if e.status_code == 400 and self.compaction and ("compact" in detail or "context_management" in detail):
+                    self.compaction = False
+                    print("\n\033[33m(このモデルは自動要約に非対応でした。オフにして再試行します)\033[0m")
+                    continue
+                print(f"\n\033[31mAPIエラー ({e.status_code}): {detail}\033[0m")
+                if e.status_code == 400 and self.screen and "computer" in detail:
+                    print("  → --model claude-sonnet-5 で試してください。")
+                return None
+            except anthropic.APIConnectionError as e:
+                print(f"\n\033[31m接続できません: {e}\033[0m")
+                return None
+
+    # ---- 1指示ぶんの処理 --------------------------------------------------
+    def run(self, messages: list[Any]) -> None:
+        for _ in range(self.args.max_steps):
+            message = self.call_model(messages)
+            if message is None:
+                return
+            print()
+            messages.append({"role": "assistant", "content": message.content})
+
+            if message.stop_reason == "refusal":
+                print("\033[31m(このリクエストは拒否されました)\033[0m")
+                return
+            if message.stop_reason == "max_tokens":
+                print("\033[33m(出力上限に達しました。作業を分けて依頼してください)\033[0m")
+                return
+            if message.stop_reason != "tool_use":
+                return
+
+            results = []
+            for block in message.content:
+                if block.type != "tool_use":
+                    continue
+                inp = dict(block.input)
+                print(f"\033[90m  → {block.name}\033[0m")
+                try:
+                    output = run_tool(block.name, inp, self.guard, self.screen)
+                    content = output if isinstance(output, list) else [{"type": "text", "text": str(output)}]
+                    results.append({"type": "tool_result", "tool_use_id": block.id, "content": content})
+                    self.log(block.name, inp, "ok")
+                except ToolError as e:
+                    print(f"\033[31m     {e}\033[0m")
+                    results.append({"type": "tool_result", "tool_use_id": block.id,
+                                    "content": [{"type": "text", "text": str(e)}], "is_error": True})
+                    self.log(block.name, inp, "denied_or_error", str(e))
+                except Exception as e:   # ツールの想定外エラーでループを止めない
+                    print(f"\033[31m     予期しないエラー: {e}\033[0m")
+                    results.append({"type": "tool_result", "tool_use_id": block.id,
+                                    "content": [{"type": "text", "text": f"予期しないエラー: {e}"}], "is_error": True})
+                    self.log(block.name, inp, "crash", str(e))
+            messages.append({"role": "user", "content": results})
+            prune_screenshots(messages)
+        print(f"\033[33m(ステップ上限 {self.args.max_steps} に達しました。--max-steps で増やせます)\033[0m")
 
 
 def main() -> int:
@@ -620,6 +852,8 @@ def main() -> int:
     ap.add_argument("--model", default=os.environ.get("AGENT_MODEL", DEFAULT_MODEL))
     ap.add_argument("--effort", default="high", choices=["low", "medium", "high", "xhigh", "max"])
     ap.add_argument("--max-steps", type=int, default=40, help="1つの指示あたりのツール実行回数の上限")
+    ap.add_argument("--no-log", action="store_true", help="操作ログ(logs/*.jsonl)を残さない")
+    ap.add_argument("--no-compact", action="store_true", help="長い会話の自動要約を使わない")
     args = ap.parse_args()
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -635,9 +869,17 @@ def main() -> int:
             return 1
         roots.append(p.resolve())
 
+    log_path = None
+    if not args.no_log:
+        log_dir = Path(__file__).resolve().parent / "logs"
+        try:
+            log_dir.mkdir(exist_ok=True)
+            log_path = log_dir / f"{time.strftime('%Y-%m-%d')}.jsonl"
+        except OSError as e:
+            print(f"\033[33m(ログを作成できないため記録なしで続行します: {e})\033[0m")
+
     screen = Screen() if args.gui else None
     guard = Guard(roots, args.auto_approve, args.read_only)
-    tools = build_tools(screen)
     client = anthropic.Anthropic()
     system = SYSTEM_TEMPLATE.format(
         osname=f"{os.name} ({sys.platform})",
@@ -646,15 +888,17 @@ def main() -> int:
         roots=" / ".join(str(r) for r in roots),
         mode="読み取り専用" if args.read_only else ("自動承認(確認なし)" if args.auto_approve else "変更前に都度確認"),
     )
+    agent = Agent(client, args, guard, screen, system, log_path)
 
     print(f"\033[36mモデル: {args.model} / 許可フォルダ: {' , '.join(str(r) for r in roots)}\033[0m")
     print(f"\033[36m画面操作: {'有効 ' + str(screen.width) + 'x' + str(screen.height) if screen else '無効'}"
-          f" / 承認: {'自動' if args.auto_approve else '都度確認'}\033[0m")
+          f" / 承認: {'自動' if args.auto_approve else '都度確認'}"
+          f" / ログ: {log_path.name if log_path else 'なし'}\033[0m")
 
     messages: list[Any] = []
     if args.task:
         messages.append({"role": "user", "content": args.task})
-        agent_turn(client, args, guard, screen, tools, messages, system)
+        agent.run(messages)
         return 0
 
     print("\033[36m指示を入力してください(exit で終了)\033[0m")
@@ -670,7 +914,7 @@ def main() -> int:
             continue
         messages.append({"role": "user", "content": user_input})
         try:
-            agent_turn(client, args, guard, screen, tools, messages, system)
+            agent.run(messages)
         except KeyboardInterrupt:
             print("\n\033[33m(中断しました)\033[0m")
 

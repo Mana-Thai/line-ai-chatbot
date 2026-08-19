@@ -10,3 +10,4 @@ gift-video/orders/*/output/
 
 # ローカルPCエージェントの仮想環境
 local-agent/.venv/
+local-agent/logs/
