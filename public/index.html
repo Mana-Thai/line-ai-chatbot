@@ -27,16 +27,30 @@
 </div>
 
 <div id="screen-main" class="screen hidden">
-    <header class="app-header">
-        <h1 id="app-title">グッズ注文とりまとめ</h1>
-        <div class="user-chip"><span id="user-name"></span><span id="admin-badge" class="badge hidden">管理者</span></div>
-    </header>
+    <div id="app-sticky-top" class="app-sticky-top">
+        <header class="app-header">
+            <h1 id="app-title">グッズ注文とりまとめ</h1>
+            <div class="user-chip"><span id="user-name"></span><span id="admin-badge" class="badge hidden">管理者</span></div>
+        </header>
 
-    <div id="lock-banner" class="lock-banner hidden">
-        ✏️ <span id="lock-holder"></span>さんが編集中です
+        <nav class="section-nav" aria-label="ページ内の項目">
+            <div class="section-nav-current">表示中: <strong id="current-section-name">注文リスト</strong></div>
+            <div id="section-nav-list" class="section-nav-list">
+                <button type="button" class="section-nav-tab active" data-section-target="orders-section" aria-current="true">注文リスト</button>
+                <button type="button" class="section-nav-tab" data-section-target="person-totals-section">名前別の合計</button>
+                <button type="button" class="section-nav-tab" data-section-target="price-section">単価表</button>
+                <button type="button" class="section-nav-tab" data-section-target="summary-section">集計(発注用)</button>
+                <button type="button" class="section-nav-tab" data-section-target="delivery-section">受け渡しチェック</button>
+                <button type="button" class="section-nav-tab" data-section-target="remaining-section">残数(未受け渡し)</button>
+            </div>
+        </nav>
+
+        <div id="lock-banner" class="lock-banner hidden">
+            ✏️ <span id="lock-holder"></span>さんが編集中です
+        </div>
     </div>
 
-    <section class="section">
+    <section id="orders-section" class="section" data-section-name="注文リスト">
         <div class="section-head">
             <h2>📋 注文リスト</h2>
             <span id="order-count" class="muted"></span>
@@ -45,14 +59,14 @@
         <p id="order-empty" class="muted hidden">まだ注文がありません。「＋ 注文を追加」から入力してください。</p>
     </section>
 
-    <section class="section">
+    <section id="person-totals-section" class="section" data-section-name="名前別の合計">
         <div class="section-head">
             <h2>🧾 名前別の合計</h2>
         </div>
         <div id="person-totals"></div>
     </section>
 
-    <section class="section">
+    <section id="price-section" class="section" data-section-name="単価表">
         <div class="section-head">
             <h2>💰 単価表</h2>
             <button id="pricing-edit-btn" class="btn btn-small hidden">価格を設定</button>
@@ -60,7 +74,7 @@
         <div id="price-table"></div>
     </section>
 
-    <section class="section">
+    <section id="summary-section" class="section" data-section-name="集計(発注用)">
         <div class="section-head">
             <h2>📊 集計(発注用)</h2>
             <span class="section-head-right">
@@ -72,7 +86,7 @@
         <div id="summary"></div>
     </section>
 
-    <section class="section">
+    <section id="delivery-section" class="section" data-section-name="受け渡しチェック">
         <div class="section-head">
             <h2>✅ 受け渡しチェック</h2>
             <span id="delivery-progress" class="muted"></span>
@@ -81,7 +95,7 @@
         <div id="delivery-list"></div>
     </section>
 
-    <section class="section">
+    <section id="remaining-section" class="section" data-section-name="残数(未受け渡し)">
         <div class="section-head">
             <h2>📦 残数(未受け渡し)</h2>
             <span id="remaining-total" class="muted"></span>

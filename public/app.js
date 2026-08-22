@@ -61,6 +61,64 @@
         $('popup').classList.remove('hidden');
     }
 
+    // ---------- ページ内ナビゲーション ----------
+
+    const sectionTabs = [...document.querySelectorAll('[data-section-target]')];
+    const pageSections = sectionTabs
+        .map((tab) => $(tab.dataset.sectionTarget))
+        .filter(Boolean);
+    let sectionScrollTicking = false;
+    let activeSectionId = '';
+
+    function setActiveSection(section) {
+        if (!section || section.id === activeSectionId) return;
+        activeSectionId = section.id;
+        const sectionName = section.dataset.sectionName || '';
+        $('current-section-name').textContent = sectionName;
+        sectionTabs.forEach((tab) => {
+            const active = tab.dataset.sectionTarget === section.id;
+            tab.classList.toggle('active', active);
+            if (active) tab.setAttribute('aria-current', 'true');
+            else tab.removeAttribute('aria-current');
+        });
+
+        const activeTab = sectionTabs.find((tab) => tab.dataset.sectionTarget === section.id);
+        const navList = $('section-nav-list');
+        if (activeTab && navList) {
+            const targetLeft = activeTab.offsetLeft - (navList.clientWidth - activeTab.offsetWidth) / 2;
+            navList.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+        }
+    }
+
+    function updateActiveSectionFromScroll() {
+        sectionScrollTicking = false;
+        if ($('screen-main').classList.contains('hidden')) return;
+        const stickyBottom = $('app-sticky-top').getBoundingClientRect().bottom;
+        const marker = stickyBottom + 18;
+        let activeSection = pageSections[0];
+        for (const section of pageSections) {
+            if (section.getBoundingClientRect().top <= marker) activeSection = section;
+            else break;
+        }
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+            activeSection = pageSections[pageSections.length - 1];
+        }
+        setActiveSection(activeSection);
+    }
+
+    function requestSectionNavUpdate() {
+        if (sectionScrollTicking) return;
+        sectionScrollTicking = true;
+        requestAnimationFrame(updateActiveSectionFromScroll);
+    }
+
+    function scrollToSection(section) {
+        const stickyHeight = $('app-sticky-top').offsetHeight;
+        const top = window.scrollY + section.getBoundingClientRect().top - stickyHeight - 8;
+        setActiveSection(section);
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, (ch) => (
             { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -128,6 +186,7 @@
         renderAll();
         refreshChipImages();
         showScreen('screen-main');
+        requestSectionNavUpdate();
         openStream();
     }
 
@@ -1352,6 +1411,15 @@
 
     $('csv-btn').addEventListener('click', () => downloadCsv('ja'));
     $('csv-th-btn').addEventListener('click', () => downloadCsv('th'));
+
+    sectionTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const section = $(tab.dataset.sectionTarget);
+            if (section) scrollToSection(section);
+        });
+    });
+    window.addEventListener('scroll', requestSectionNavUpdate, { passive: true });
+    window.addEventListener('resize', requestSectionNavUpdate);
 
     $('pricing-edit-btn').addEventListener('click', openPricingModal);
     $('pricing-cancel').addEventListener('click', () => $('pricing-modal').classList.add('hidden'));
