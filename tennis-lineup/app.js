@@ -42,6 +42,24 @@
   const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p) }));
   const byId = (id) => state.players.find((p) => p.id === id);
   const entryOf = (id) => { const p = byId(id); return p ? { player: p, age: age(p) } : null; };
+  // 確認ダイアログ(confirm)が使えない環境もあるので、同じボタンを2回押して確定する方式にする
+  function armed(btn, msg) {
+    if (btn.dataset.armed) return true;
+    const orig = btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = msg;
+    btn.classList.add('armed');
+    setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = orig; btn.classList.remove('armed'); } }, 4000);
+    return false;
+  }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (t.hidden = true), 6000);
+  }
   const label = (p) => (p ? `${p.name}${p.eligibility === 'special' ? '(特)' : ''}` : '');
 
   // ---------- 選手名簿 ----------
@@ -70,6 +88,7 @@
       $('.p-age', el).classList.toggle('invalid', !!p && p.age !== '' && age(p) == null);
     }
     const n = state.players.length;
+    $('#loadSample').hidden = n > 0;
     $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})`;
     const { errors, warnings } = R.checkRoster(state.players);
     $('#rosterCheck').innerHTML = (errors.length || warnings.length)
@@ -111,10 +130,26 @@
     const id = ev.target.closest('.player').dataset.id;
     const p = byId(id);
     const usedIn = state.matches.filter((m) => Object.values(m.lineup).some((pair) => pair.includes(id))).length;
-    if (!confirm(`${p.name || 'この選手'}を削除しますか?${usedIn ? `\n(${usedIn}試合のオーダーからも外れます)` : ''}`)) return;
+    if (!armed(ev.target, usedIn ? `削除(${usedIn}試合から外れます)` : '削除する')) return;
+    toast(`${p.name || '選手'}を削除しました`);
     state.players = state.players.filter((x) => x.id !== id);
     for (const m of state.matches) for (const k in m.lineup) m.lineup[k] = m.lineup[k].map((x) => (x === id ? '' : x));
     renderPlayers();
+  });
+  $('#loadSample').addEventListener('click', () => {
+    const sample = [['佐藤 花子', 'F', 36], ['鈴木 恵子', 'F', 51], ['高橋 由美', 'F', 46], ['田中 健', 'M', 31],
+      ['伊藤 翔', 'M', 28], ['渡辺 誠', 'M', 59], ['山本 茂', 'M', 66], ['中村 浩', 'M', 53],
+      ['小林 大輔', 'M', 48], ['加藤 正', 'M', 61], ['Somchai', 'M', 41]];
+    state.settings.teamName = state.settings.teamName || 'サンプルクラブ';
+    state.players = sample.map(([name, gender, a], i) => ({ id: uid(), name, gender, age: a, eligibility: i === 10 ? 'special' : 'work', note: '' }));
+    state.matches = [1, 2, 3].map((n) => ({ id: uid(), label: `予選${n}`, opponent: ['Sriracha TC', 'Bang Saen', 'Jomtien'][n - 1], lineup: {} }));
+    totals = {};
+    for (const m of state.matches) {
+      const r = R.autoAssign(entries(), {}, loadCount(m.id), {});
+      if (r.ok) m.lineup = r.lineup;
+    }
+    renderAll();
+    toast('サンプルを入れました。「すべて消去」で消せます');
   });
   $('#addPlayer').addEventListener('click', () => {
     state.players.push({ id: uid(), name: '', gender: 'M', age: '', eligibility: '', note: '' });
@@ -238,7 +273,7 @@
     const idx = state.matches.findIndex((x) => x.id === e.target.closest('.match').dataset.id);
     const m = state.matches[idx];
     if (act === 'del') {
-      if (!confirm(`「${m.label || '対戦'}」を削除しますか?`)) return;
+      if (!armed(e.target, 'もう一度押すと削除')) return;
       state.matches.splice(idx, 1);
     }
     if (act === 'clear') m.lineup = {};
@@ -250,7 +285,7 @@
       for (const ev of R.EVENTS) if (issues[ev.id].state === 'ok') fixed[ev.id] = m.lineup[ev.id];
       const r = R.autoAssign(entries(), fixed, loadCount(m.id), { allowRepeat: !state.settings.oneEvent });
       if (!r.ok) {
-        alert('条件を満たす組み合わせが見つかりませんでした。\n名簿の「種目ごとの出場可能な選手」を確認するか、決まっている枠を外してから再実行してください。');
+        toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認するか、決まっている枠を外してから再実行してください。');
         return;
       }
       m.lineup = r.lineup;
@@ -370,7 +405,8 @@
     $('#shareOpen').href = url;
     $('#rosterText').value = rosterText();
     $('#lineupText').value = lineupText();
-    $$('[data-rlang]').forEach((b) => b.classList.toggle('on', b.dataset.rlang === state.settings.rosterLang));
+    $('#previewViewer').addEventListener('click', () => renderViewer(shareData(), true));
+  $$('[data-rlang]').forEach((b) => b.classList.toggle('on', b.dataset.rlang === state.settings.rosterLang));
   }
   $$('[data-rlang]').forEach((b) => b.addEventListener('click', () => { state.settings.rosterLang = b.dataset.rlang; save(); renderExport(); }));
   $$('.copy').forEach((b) => b.addEventListener('click', async () => {
@@ -393,19 +429,20 @@
     try {
       const s = JSON.parse(await file.text());
       if (!Array.isArray(s.players) || !Array.isArray(s.matches)) throw new Error('形式が違います');
-      if (!confirm('今のデータを読み込んだデータで置き換えます。よろしいですか?')) return;
-      state = { ...blank(), ...s, settings: { ...blank().settings, ...s.settings } };
+      state = migrate(s);
       renderAll();
+      toast('ファイルを読み込みました');
     } catch (err) {
-      alert('読み込めませんでした: ' + err.message);
+      toast('読み込めませんでした: ' + err.message);
     } finally {
       e.target.value = '';
     }
   });
-  $('#resetAll').addEventListener('click', () => {
-    if (!confirm('選手と対戦をすべて消去します。よろしいですか?')) return;
+  $('#resetAll').addEventListener('click', (e) => {
+    if (!armed(e.target, 'もう一度押すとすべて消去')) return;
     state = blank();
     renderAll();
+    toast('すべて消去しました');
   });
 
   // ---------- 共通 ----------
@@ -436,7 +473,7 @@
   }
 
   // メンバー用の閲覧画面(読み取り専用・年齢なし)
-  function renderViewer(data) {
+  function renderViewer(data, preview) {
     document.body.classList.add('viewer-mode');
     $('#app').hidden = true;
     $('.tabs').hidden = true;
@@ -456,7 +493,17 @@
     const stats = names.length && ms.length
       ? `<div class="card"><h2>出場回数と参加費の分担</h2>${statsHtml(names, ms.map((m) => ({ label: m.l, pairs: m.p || [] })), data.f ?? R.TOURNAMENT.fee)}</div>` : '';
     v.innerHTML = `${data.t ? `<p class="vteam">${esc(data.t)}</p>` : ''}${matches || '<div class="card muted">オーダーはまだありません</div>'}${stats}
-      <p class="hint">この画面は閲覧専用です。オーダーの変更は管理者が行います。</p>`;
+      <p class="hint">この画面は閲覧専用です。オーダーの変更は管理者が行います。</p>
+      ${preview ? '<div class="previewbar"><span>メンバー画面のプレビュー</span><button id="closePreview">管理画面に戻る</button></div>' : ''}`;
+    if (preview) {
+      window.scrollTo(0, 0);
+      $('#closePreview').addEventListener('click', () => {
+        v.hidden = true;
+        $('#app').hidden = false;
+        $('.tabs').hidden = false;
+        document.body.classList.remove('viewer-mode');
+      });
+    }
   }
 
   const T = R.TOURNAMENT;

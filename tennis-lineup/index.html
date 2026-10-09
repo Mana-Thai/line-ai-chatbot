@@ -35,6 +35,7 @@
       <h2>選手 <span id="rosterCount" class="badge"></span></h2>
       <div id="playerList"></div>
       <button id="addPlayer" class="primary">+ 選手を追加</button>
+      <button id="loadSample" class="ghost">サンプルデータで試す</button>
     </div>
     <div class="card">
       <h2>種目ごとの出場可能な選手</h2>
@@ -68,7 +69,8 @@
         オーダーを変えたら作り直して送り直してください。</p>
       <textarea id="shareUrl" class="short" readonly></textarea>
       <button class="copy" data-copy="shareUrl">コピー</button>
-      <a id="shareOpen" target="_blank" rel="noopener">開いて確認</a>
+      <button id="previewViewer">メンバー画面をプレビュー</button>
+      <a id="shareOpen" target="_blank" rel="noopener">新しいタブで開く</a>
     </div>
     <div class="card">
       <h2>申込用の選手名簿 <span class="badge">管理者用・年齢あり</span></h2>
@@ -105,6 +107,7 @@
   </div>
 </template>
 
+<div id="toast" role="status" hidden></div>
 <script src="rules.js"></script>
 <script src="app.js"></script>
 </body>
