@@ -3,6 +3,7 @@
   --accent: #2f7d4a; --ok: #2f7d4a; --okbg: #eaf6ee; --err: #c0392b; --errbg: #fdecea; --warn: #a86a00; --warnbg: #fff5e0;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.5 "Hiragino Sans", "Noto Sans JP", "Noto Sans Thai", system-ui, sans-serif; }
 .top { position: sticky; top: 0; z-index: 5; background: var(--accent); color: #fff; padding: 10px 16px 0; }
@@ -32,8 +33,10 @@ button.icon { padding: 6px 10px; }
 
 .player { display: grid; grid-template-columns: 1fr 64px; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .player .p-name { grid-column: 1 / 2; }
-.player .p-birth { grid-column: 1 / 2; }
-.player .p-age { text-align: center; font-weight: bold; }
+.player .p-agebox { grid-column: 1 / 2; display: flex; align-items: center; gap: 6px; }
+.player .p-age { width: 80px; }
+.player .p-age.invalid { border-color: var(--err); background: var(--errbg); }
+.player .p-note { grid-column: 1 / -1; font-size: 13px; }
 .player .p-elig { grid-column: 1 / 2; }
 .player .p-del { justify-self: center; }
 #playerList { margin-bottom: 10px; }
@@ -69,7 +72,15 @@ textarea { width: 100%; min-height: 200px; border: 1px solid var(--line); border
 #tab-export .card > button, #tab-export .filebtn { margin: 4px 4px 0 0; }
 
 @media (min-width: 640px) {
-  .player { grid-template-columns: 1.4fr 64px 150px 52px 1.4fr auto; }
-  .player .p-name, .player .p-birth, .player .p-elig { grid-column: auto; }
+  .player { grid-template-columns: 1.4fr 64px 110px 1.4fr auto; }
+  .player .p-name, .player .p-agebox, .player .p-elig { grid-column: auto; }
   .row { flex-direction: row; align-items: center; justify-content: space-between; }
 }
+textarea.short { min-height: 70px; word-break: break-all; }
+#shareOpen { font-size: 13px; margin-left: 4px; }
+.vteam { font-weight: bold; margin: 4px 0 10px; }
+.vs { font-weight: normal; color: var(--muted); }
+.vrow { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+.vev { flex: 1 1 220px; font-size: 13px; }
+.vev small { display: block; color: var(--muted); font-size: 11px; }
+.vnames { flex: 1 1 180px; font-weight: bold; }

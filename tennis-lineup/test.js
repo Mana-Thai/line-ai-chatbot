@@ -4,11 +4,16 @@ const R = require('./rules.js');
 const ev = (id) => R.EVENTS.find((e) => e.id === id);
 const P = (id, gender, ageNow) => ({ player: { id, name: id, gender }, age: ageNow });
 
-assert.strictEqual(R.ageOf('1976-11-14', 'full'), 50);
-assert.strictEqual(R.ageOf('1976-11-15', 'full'), 49);
-assert.strictEqual(R.ageOf('1976-11-15', 'year'), 50);
-assert.strictEqual(R.ageOf('1976', 'full'), 50);
-assert.strictEqual(R.ageOf('', 'full'), null);
+assert.strictEqual(R.toAge('52'), 52);
+assert.strictEqual(R.toAge(''), null);
+assert.strictEqual(R.toAge('5'), null);
+assert.strictEqual(R.toAge('45.5'), null);
+assert.strictEqual(R.ageFromBirth('1976-11-14'), 50);
+assert.strictEqual(R.ageFromBirth('1976-11-15'), 49);
+assert.strictEqual(R.ageFromBirth(''), null);
+// オーダー画面に出るメッセージに実年齢が含まれないこと
+const msgs = R.checkPair(ev('WD80'), P('a', 'F', 29), P('b', 'F', 37)).errors.join(' ');
+assert.ok(!/29|37|66/.test(msgs), msgs);
 
 assert.ok(R.checkPair(ev('WD80'), P('a', 'F', 30), P('b', 'F', 50)).ok);
 assert.ok(!R.checkPair(ev('WD80'), P('a', 'F', 30), P('b', 'F', 49)).ok); // 合計79
@@ -23,7 +28,7 @@ assert.ok(R.checkPair(ev('MD120'), P('a', 'M', 55), P('b', 'M', 65)).ok);
 assert.ok(!R.checkPair(ev('MD100'), P('a', 'M', 39), P('b', 'M', 70)).ok);
 
 // 名簿
-const roster = (n, special) => Array.from({ length: n }, (_, i) => ({ id: 'p' + i, name: 'p' + i, gender: 'M', birth: '1970', eligibility: i < special ? 'special' : 'work' }));
+const roster = (n, special) => Array.from({ length: n }, (_, i) => ({ id: 'p' + i, name: 'p' + i, gender: 'M', age: 56, eligibility: i < special ? 'special' : 'work' }));
 assert.strictEqual(R.checkRoster(roster(9, 0)).errors.length, 1);
 assert.strictEqual(R.checkRoster(roster(10, 2)).errors.length, 0);
 assert.strictEqual(R.checkRoster(roster(21, 3)).errors.length, 2);

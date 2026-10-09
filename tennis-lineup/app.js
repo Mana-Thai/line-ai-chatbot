@@ -8,7 +8,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const blank = () => ({
-    settings: { teamName: '', ageMode: 'full', teams: 8, oneEvent: true, rosterLang: 'ja' },
+    settings: { teamName: '', teams: 8, oneEvent: true, rosterLang: 'ja' },
     players: [],
     matches: [],
   });
@@ -18,15 +18,27 @@
   function load() {
     try {
       const s = JSON.parse(localStorage.getItem(KEY));
-      if (s && Array.isArray(s.players)) return { ...blank(), ...s, settings: { ...blank().settings, ...s.settings } };
+      if (s && Array.isArray(s.players)) return migrate(s);
     } catch (e) { /* 保存領域が使えない環境でも動かす */ }
     return blank();
+  }
+  // 旧形式(生年月日入力)のデータを、年齢入力+備考に移す
+  function migrate(s) {
+    const out = { ...blank(), ...s, settings: { ...blank().settings, ...s.settings } };
+    delete out.settings.ageMode;
+    out.players = s.players.map((p) => {
+      if (!('birth' in p)) return { note: '', ...p };
+      const { birth, ...rest } = p;
+      const a = R.ageFromBirth(birth);
+      return { ...rest, age: rest.age ?? (a == null ? '' : a), note: rest.note || (birth ? `生年月日 ${birth}` : '') };
+    });
+    return out;
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* noop */ }
   }
 
-  const age = (p) => R.ageOf(p.birth, state.settings.ageMode);
+  const age = (p) => R.toAge(p.age);
   const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p) }));
   const byId = (id) => state.players.find((p) => p.id === id);
   const entryOf = (id) => { const p = byId(id); return p ? { player: p, age: age(p) } : null; };
@@ -44,7 +56,8 @@
       for (const e of R.ELIGIBILITY) elig.insertAdjacentHTML('beforeend', `<option value="${e.id}">${esc(e.ja)}</option>`);
       $('.p-name', el).value = p.name;
       $('.p-gender', el).value = p.gender;
-      $('.p-birth', el).value = p.birth;
+      $('.p-age', el).value = p.age ?? '';
+      $('.p-note', el).value = p.note || '';
       elig.value = p.eligibility;
       list.appendChild(el);
     }
@@ -54,8 +67,7 @@
   function refreshDerived() {
     for (const el of $$('#playerList .player')) {
       const p = byId(el.dataset.id);
-      const a = p && age(p);
-      $('.p-age', el).textContent = a == null ? '—' : `${a}歳`;
+      $('.p-age', el).classList.toggle('invalid', !!p && p.age !== '' && age(p) == null);
     }
     const n = state.players.length;
     $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})`;
@@ -88,7 +100,8 @@
     const t = ev.target;
     if (t.classList.contains('p-name')) p.name = t.value.trim();
     if (t.classList.contains('p-gender')) p.gender = t.value;
-    if (t.classList.contains('p-birth')) p.birth = t.value;
+    if (t.classList.contains('p-age')) p.age = t.value === '' ? '' : Number(t.value);
+    if (t.classList.contains('p-note')) p.note = t.value;
     if (t.classList.contains('p-elig')) p.eligibility = t.value;
     refreshDerived();
   });
@@ -104,7 +117,7 @@
     renderPlayers();
   });
   $('#addPlayer').addEventListener('click', () => {
-    state.players.push({ id: uid(), name: '', gender: 'M', birth: '', eligibility: '' });
+    state.players.push({ id: uid(), name: '', gender: 'M', age: '', eligibility: '', note: '' });
     renderPlayers();
     const rows = $$('#playerList .p-name');
     rows[rows.length - 1].focus();
@@ -124,10 +137,10 @@
     const es = entries().filter((e) => {
       if (ev.kind === 'X') return e.player.gender === (slot === 0 ? 'F' : 'M');
       return e.player.gender === (ev.kind === 'W' ? 'F' : 'M');
-    }).sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
+    }).sort((a, b) => Number(R.canEnter(ev, b.player, b.age)) - Number(R.canEnter(ev, a.player, a.age)));
     const opts = es.map((e) => {
       const fit = R.canEnter(ev, e.player, e.age);
-      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))} ${e.age ?? '?'}歳</option>`;
+      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}</option>`;
     });
     const ph = ev.kind === 'X' ? (slot === 0 ? '女子を選択' : '男子を選択') : '選手を選択';
     return `<option value="">${ph}</option>${opts.join('')}`;
@@ -138,7 +151,7 @@
     const seen = {};
     for (const ev of R.EVENTS) {
       const pair = m.lineup[ev.id] || ['', ''];
-      for (const id of pair) if (id) (seen[id] = seen[id] || []).push(ev.no);
+      for (const id of new Set(pair)) if (id) (seen[id] = seen[id] || []).push(ev.no);
     }
     for (const ev of R.EVENTS) {
       const pair = m.lineup[ev.id] || ['', ''];
@@ -149,7 +162,7 @@
       if (state.settings.oneEvent) {
         for (const id of pair) if (id && seen[id].length > 1) warns.push(`${byId(id).name}は種目${seen[id].join('・')}に重複`);
       }
-      out[ev.id] = { state: res.ok ? (warns.length ? 'warn' : 'ok') : 'err', msgs: [...msgs, ...[...new Set(warns)]], sum: res.sum };
+      out[ev.id] = { state: res.ok ? (warns.length ? 'warn' : 'ok') : 'err', msgs: [...msgs, ...[...new Set(warns)]] };
     }
     return out;
   }
@@ -171,7 +184,7 @@
           const pair = m.lineup[ev.id] || ['', ''];
           const is = issues[ev.id];
           return `<div class="ev ${is.state}" data-ev="${ev.id}">
-            <div class="evh"><b>${ev.no}. ${esc(ev.ja)}</b><small>${esc(ev.rule)}</small>${is.sum != null && ev.minSum ? `<span class="sum">計${is.sum}歳</span>` : ''}</div>
+            <div class="evh"><b>${ev.no}. ${esc(ev.ja)}</b><small>${esc(ev.rule)}</small></div>
             <div class="slots">
               <select data-slot="0">${slotOptions(ev, 0, pair[0])}</select>
               <select data-slot="1">${slotOptions(ev, 1, pair[1])}</select>
@@ -244,14 +257,14 @@
   function renderStats() {
     const ms = state.matches;
     if (!state.players.length) { $('#statsTable').innerHTML = '<p class="muted">選手がいません</p>'; return; }
-    const rows = [...state.players].sort((a, b) => (a.gender === b.gender ? (age(b) ?? 0) - (age(a) ?? 0) : a.gender === 'F' ? -1 : 1)).map((p) => {
+    const rows = [...state.players].filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => {
       let total = 0;
       const cells = ms.map((m) => {
         const ev = R.EVENTS.find((e) => (m.lineup[e.id] || []).includes(p.id));
         if (ev) total++;
         return `<td>${ev ? ev.no : ''}</td>`;
       }).join('');
-      return `<tr class="${total ? '' : 'zero'}"><th>${esc(label(p))}<small>${p.gender === 'F' ? '女' : '男'}${age(p) ?? '?'}</small></th>${cells}<td><b>${total}</b></td></tr>`;
+      return `<tr class="${total ? '' : 'zero'}"><th>${esc(label(p))}<small>${p.gender === 'F' ? '女' : '男'}</small></th>${cells}<td><b>${total}</b></td></tr>`;
     }).join('');
     $('#statsTable').innerHTML = `<div class="scroll"><table class="stats">
       <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.label || '対戦')}</th>`).join('')}<th>計</th></tr></thead>
@@ -283,7 +296,34 @@
       return [head, ...lines].join('\n');
     }).join('\n\n') || '(対戦がありません)';
   }
+  // メンバー用閲覧リンク: 名前と種目だけをURLの#以降に入れる(年齢・資格・備考は入れない)
+  function shareData() {
+    return {
+      t: state.settings.teamName,
+      m: state.matches.map((m) => ({
+        l: m.label, o: m.opponent,
+        p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
+      })),
+    };
+  }
+  function encode(obj) {
+    const bytes = new TextEncoder().encode(JSON.stringify(obj));
+    let bin = '';
+    bytes.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(str) {
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+  }
+  function shareUrl() {
+    return `${location.href.split('#')[0]}#view=${encode(shareData())}`;
+  }
+
   function renderExport() {
+    const url = shareUrl();
+    $('#shareUrl').value = url;
+    $('#shareOpen').href = url;
     $('#rosterText').value = rosterText();
     $('#lineupText').value = lineupText();
     $$('[data-rlang]').forEach((b) => b.classList.toggle('on', b.dataset.rlang === state.settings.rosterLang));
@@ -327,12 +367,10 @@
   // ---------- 共通 ----------
   function renderSettings() {
     $('#teamName').value = state.settings.teamName;
-    $('#ageMode').value = state.settings.ageMode;
     $('#teams').value = state.settings.teams;
     $('#oneEvent').checked = state.settings.oneEvent;
   }
   $('#teamName').addEventListener('input', (e) => { state.settings.teamName = e.target.value; save(); });
-  $('#ageMode').addEventListener('change', (e) => { state.settings.ageMode = e.target.value; renderAll(); });
   $('#teams').addEventListener('input', (e) => { state.settings.teams = Number(e.target.value) || ''; renderMatches(); });
   $('#oneEvent').addEventListener('change', (e) => { state.settings.oneEvent = e.target.checked; renderMatches(); });
 
@@ -352,7 +390,31 @@
     renderExport();
   }
 
+  // メンバー用の閲覧画面(読み取り専用・年齢なし)
+  function renderViewer(data) {
+    document.body.classList.add('viewer-mode');
+    $('#app').hidden = true;
+    $('.tabs').hidden = true;
+    const v = $('#viewer');
+    v.hidden = false;
+    const matches = (data.m || []).map((m) => `<div class="card">
+      <h2>${esc(m.l || '対戦')}${m.o ? ` <span class="vs">vs ${esc(m.o)}</span>` : ''}</h2>
+      ${R.EVENTS.map((ev, i) => {
+        const names = ((m.p || [])[i] || []).filter(Boolean);
+        return `<div class="vrow"><div class="vev">${ev.no}. ${esc(ev.ja)}<small>${esc(ev.th)}</small></div>
+          <div class="vnames">${names.length ? names.map(esc).join(' / ') : '<span class="muted">未定</span>'}</div></div>`;
+      }).join('')}
+    </div>`).join('');
+    v.innerHTML = `${data.t ? `<p class="vteam">${esc(data.t)}</p>` : ''}${matches || '<div class="card muted">オーダーはまだありません</div>'}
+      <p class="hint">この画面は閲覧専用です。オーダーの変更は管理者が行います。</p>`;
+  }
+
   const T = R.TOURNAMENT;
   $('#tourInfo').textContent = `${T.date.replace(/-/g, '/')}(土) ${T.venue}`;
-  renderAll();
+  const viewParam = /^#view=(.+)$/.exec(location.hash);
+  if (viewParam) {
+    try { renderViewer(decode(viewParam[1])); } catch (e) { renderViewer({ m: [] }); }
+  } else {
+    renderAll();
+  }
 })();

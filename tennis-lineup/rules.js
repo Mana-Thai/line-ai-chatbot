@@ -40,14 +40,20 @@
     { id: 'special', ja: '特別枠' },
   ];
 
-  // mode 'full': 大会日時点の満年齢 / 'year': 大会年 − 生年
-  function ageOf(birth, mode, onDate) {
-    if (!birth) return null;
-    const m = /^(\d{4})(?:-(\d{2})-(\d{2}))?$/.exec(String(birth).trim());
+  // 年齢は管理者が直接入力する(大会当日時点の年齢)。不正値は null
+  function toAge(v) {
+    if (v === '' || v == null) return null;
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 10 && n <= 110 ? n : null;
+  }
+
+  // 旧データ(生年月日入力)からの移行用: 大会日時点の満年齢
+  function ageFromBirth(birth) {
+    const m = /^(\d{4})(?:-(\d{2})-(\d{2}))?$/.exec(String(birth || '').trim());
     if (!m) return null;
-    const [ty, tm, td] = (onDate || TOURNAMENT.date).split('-').map(Number);
+    const [ty, tm, td] = TOURNAMENT.date.split('-').map(Number);
     const by = Number(m[1]);
-    if (mode === 'year' || !m[2]) return ty - by;
+    if (!m[2]) return ty - by;
     const bm = Number(m[2]), bd = Number(m[3]);
     return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
   }
@@ -67,7 +73,7 @@
     if (!a || !b) return { ok: false, errors: ['2人を選んでください'] };
     if (a.player.id === b.player.id) return { ok: false, errors: ['同じ選手が2回選ばれています'] };
     for (const p of [a, b]) {
-      if (p.age == null) errors.push(`${p.player.name}: 生年月日が未入力`);
+      if (p.age == null) errors.push(`${p.player.name}: 年齢が未入力`);
     }
     if (errors.length) return { ok: false, errors };
     if (ev.kind === 'X') {
@@ -75,18 +81,18 @@
       const m = [a, b].find((p) => p.player.gender === 'M');
       if (!w || !m) errors.push('女子1人と男子1人の組み合わせにしてください');
       else {
-        if (w.age < ev.minW) errors.push(`${w.player.name}(${w.age}歳)は女子${ev.minW}歳以上の条件を満たしません`);
-        if (m.age < ev.minM) errors.push(`${m.player.name}(${m.age}歳)は男子${ev.minM}歳以上の条件を満たしません`);
+        if (w.age < ev.minW) errors.push(`${w.player.name}は女子${ev.minW}歳以上の条件を満たしません`);
+        if (m.age < ev.minM) errors.push(`${m.player.name}は男子${ev.minM}歳以上の条件を満たしません`);
       }
     } else {
       const g = ev.kind === 'W' ? 'F' : 'M';
       for (const p of [a, b]) {
         if (p.player.gender !== g) errors.push(`${p.player.name}は${g === 'F' ? '女子' : '男子'}ではありません`);
-        else if (p.age < ev.minEach) errors.push(`${p.player.name}(${p.age}歳)は各${ev.minEach}歳以上の条件を満たしません`);
+        else if (p.age < ev.minEach) errors.push(`${p.player.name}は各${ev.minEach}歳以上の条件を満たしません`);
       }
     }
     const sum = a.age + b.age;
-    if (ev.minSum && sum < ev.minSum) errors.push(`合計${sum}歳(${ev.minSum}歳以上が必要・あと${ev.minSum - sum}歳)`);
+    if (ev.minSum && sum < ev.minSum) errors.push(`2人の合計年齢が${ev.minSum}歳に届きません`);
     return { ok: errors.length === 0, errors, sum };
   }
 
@@ -102,7 +108,7 @@
     }
     for (const p of players) {
       if (!p.name) warnings.push('名前が空欄の選手がいます');
-      if (!p.birth) warnings.push(`${p.name || '(名前なし)'}: 生年月日(または生年)が未入力`);
+      if (toAge(p.age) == null) warnings.push(`${p.name || '(名前なし)'}: 年齢が未入力(10〜110の整数)`);
       if (!p.eligibility) warnings.push(`${p.name || '(名前なし)'}: 出場資格が未選択`);
     }
     return { errors, warnings: [...new Set(warnings)] };
@@ -167,5 +173,5 @@
     return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 各組1位で決勝、2位で3位決定戦(3.3)`, matches: a };
   }
 
-  return { TOURNAMENT, EVENTS, ELIGIBILITY, ageOf, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  return { TOURNAMENT, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });
