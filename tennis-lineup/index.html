@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>伝統テニス大会 オーダー表</title>
+<meta name="description" content="第44回 チョンブリー県内クラブ・同好会対抗 伝統テニス大会の選手登録と対戦オーダー作成ツール">
+<meta property="og:title" content="伝統テニス大会 オーダー表">
+<meta property="og:description" content="選手名簿と5種目の組み合わせを年齢条件つきでチェック">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>伝統テニス大会 オーダー表</h1>
+  <p class="sub" id="tourInfo"></p>
+  <nav class="tabs" role="tablist">
+    <button data-tab="roster" class="on">選手名簿</button>
+    <button data-tab="matches">対戦オーダー</button>
+    <button data-tab="stats">出場状況</button>
+    <button data-tab="export">書き出し</button>
+  </nav>
+</header>
+
+<main>
+  <section id="tab-roster" class="tab on">
+    <div class="card">
+      <label class="row">チーム名 <input id="teamName" placeholder="例:パタヤ日本人テニス会"></label>
+      <label class="row">年齢の数え方
+        <select id="ageMode">
+          <option value="full">大会日(2026/11/14)時点の満年齢</option>
+          <option value="year">2026 − 生まれ年</option>
+        </select>
+      </label>
+      <p class="hint">数え方は運営委員会の解釈に合わせてください。不明なら厳しい方(満年齢)が安全です。</p>
+    </div>
+    <div id="rosterCheck"></div>
+    <div class="card">
+      <h2>選手 <span id="rosterCount" class="badge"></span></h2>
+      <div id="playerList"></div>
+      <button id="addPlayer" class="primary">+ 選手を追加</button>
+    </div>
+    <div class="card">
+      <h2>種目ごとの出場可能な選手</h2>
+      <div id="coverage"></div>
+    </div>
+  </section>
+
+  <section id="tab-matches" class="tab">
+    <div class="card">
+      <label class="row">参加チーム数 <input id="teams" type="number" min="2" max="10" inputmode="numeric"></label>
+      <p class="hint" id="formatText"></p>
+      <label class="check"><input type="checkbox" id="oneEvent"> 1つの対戦では1人1種目まで(推奨)</label>
+    </div>
+    <div id="matchList"></div>
+    <button id="addMatch" class="primary">+ 対戦を追加</button>
+  </section>
+
+  <section id="tab-stats" class="tab">
+    <div class="card">
+      <h2>選手ごとの出場数</h2>
+      <p class="hint">出場が偏っていないか、出番のない選手がいないかを確認できます。</p>
+      <div id="statsTable"></div>
+    </div>
+  </section>
+
+  <section id="tab-export" class="tab">
+    <div class="card">
+      <h2>申込用の選手名簿</h2>
+      <p class="hint">規則6:男女別・年齢の若い順。特別枠は名前の後に明記。</p>
+      <div class="seg"><button data-rlang="ja" class="on">日本語</button><button data-rlang="th">ไทย</button></div>
+      <textarea id="rosterText" readonly></textarea>
+      <button class="copy" data-copy="rosterText">コピー</button>
+    </div>
+    <div class="card">
+      <h2>オーダー(LINE共有用)</h2>
+      <textarea id="lineupText" readonly></textarea>
+      <button class="copy" data-copy="lineupText">コピー</button>
+    </div>
+    <div class="card">
+      <h2>データの保存・読み込み</h2>
+      <p class="hint">データはこの端末のブラウザにだけ保存されます。別の端末に移す・バックアップする時はファイルに保存してください。</p>
+      <button id="saveFile">ファイルに保存</button>
+      <label class="filebtn">ファイルから読み込み<input type="file" id="loadFile" accept="application/json"></label>
+      <button id="resetAll" class="danger">すべて消去</button>
+    </div>
+  </section>
+</main>
+
+<template id="playerTpl">
+  <div class="player">
+    <input class="p-name" placeholder="名前">
+    <select class="p-gender"><option value="M">男</option><option value="F">女</option></select>
+    <input class="p-birth" type="date" min="1920-01-01" max="2010-12-31">
+    <span class="p-age"></span>
+    <select class="p-elig">
+      <option value="">資格を選択</option>
+    </select>
+    <button class="p-del icon" title="削除">✕</button>
+  </div>
+</template>
+
+<script src="rules.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
