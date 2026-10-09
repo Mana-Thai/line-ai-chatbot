@@ -17,7 +17,7 @@
   <nav class="tabs" role="tablist">
     <button data-tab="roster" class="on">選手名簿</button>
     <button data-tab="matches">対戦オーダー</button>
-    <button data-tab="stats">出場状況</button>
+    <button data-tab="stats">出場・参加費</button>
     <button data-tab="export">書き出し</button>
   </nav>
 </header>
@@ -54,8 +54,9 @@
 
   <section id="tab-stats" class="tab">
     <div class="card">
-      <h2>選手ごとの出場数</h2>
-      <p class="hint">出場が偏っていないか、出番のない選手がいないかを確認できます。</p>
+      <h2>出場回数と参加費の分担</h2>
+      <label class="row">チームの参加費(バーツ) <input id="fee" type="number" min="0" step="100" inputmode="numeric"></label>
+      <p class="hint">参加費を各選手の出場回数(出場する種目の数)に比例して分けます。出場0回の選手は0バーツです。</p>
       <div id="statsTable"></div>
     </div>
   </section>
@@ -63,7 +64,7 @@
   <section id="tab-export" class="tab">
     <div class="card">
       <h2>メンバー用の閲覧リンク</h2>
-      <p class="hint">オーダー(名前と種目)と各選手の出場回数だけを見られるリンクです。年齢・資格・備考は含まれません。
+      <p class="hint">オーダー(名前と種目)と各選手の出場回数・参加費の分担だけを見られるリンクです。年齢・資格・備考は含まれません。
         オーダーを変えたら作り直して送り直してください。</p>
       <textarea id="shareUrl" class="short" readonly></textarea>
       <button class="copy" data-copy="shareUrl">コピー</button>

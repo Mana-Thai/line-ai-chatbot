@@ -51,4 +51,10 @@ assert.strictEqual(R.formatFor(8).matches, 4);
 assert.strictEqual(R.formatFor(10).matches, 5);
 assert.strictEqual(R.formatFor(6).matches, 4);
 assert.strictEqual(R.formatFor(5).matches, 4);
+// 参加費の分担
+const f = R.splitFee(6000, { a: 3, b: 3, c: 2, d: 1, e: 0 });
+assert.deepStrictEqual(f, { a: 2000, b: 2000, c: 1333, d: 667, e: 0 });
+const g = R.splitFee(6000, { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1, g: 1 });
+assert.strictEqual(Object.values(g).reduce((x, y) => x + y, 0), 6000);
+assert.deepStrictEqual(R.splitFee(6000, { a: 0 }), { a: 0 });
 console.log('all tests passed');

@@ -84,3 +84,5 @@ textarea.short { min-height: 70px; word-break: break-all; }
 .vev { flex: 1 1 220px; font-size: 13px; }
 .vev small { display: block; color: var(--muted); font-size: 11px; }
 .vnames { flex: 1 1 180px; font-weight: bold; }
+.stats td.fee { text-align: right; font-weight: bold; }
+.stats tfoot th, .stats tfoot td { background: var(--bg); }

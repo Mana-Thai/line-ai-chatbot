@@ -8,7 +8,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const blank = () => ({
-    settings: { teamName: '', teams: 8, oneEvent: true, rosterLang: 'ja' },
+    settings: { teamName: '', fee: R.TOURNAMENT.fee, teams: 8, oneEvent: true, rosterLang: 'ja' },
     players: [],
     matches: [],
   });
@@ -263,22 +263,45 @@
   });
 
   // ---------- 出場状況 ----------
-  function renderStats() {
-    const ms = state.matches;
-    if (!state.players.length) { $('#statsTable').innerHTML = '<p class="muted">選手がいません</p>'; return; }
-    const rows = [...state.players].filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => {
-      let total = 0;
-      const cells = ms.map((m) => {
-        const ev = R.EVENTS.find((e) => (m.lineup[e.id] || []).includes(p.id));
-        if (ev) total++;
-        return `<td>${ev ? ev.no : ''}</td>`;
+  // 出場回数+参加費分担の表(管理者画面・メンバー画面で共用。年齢は扱わない)
+  // ms: [{ label, pairs: [[名前,名前] × 5種目] }]
+  function statsHtml(names, ms, fee) {
+    const counts = {};
+    const cellsOf = {};
+    for (const name of names) {
+      counts[name] = 0;
+      cellsOf[name] = ms.map((m) => {
+        const evs = R.EVENTS.filter((ev, i) => (m.pairs[i] || []).includes(name));
+        counts[name] += evs.length;
+        return `<td>${evs.map((ev) => ev.no).join('・')}</td>`;
       }).join('');
-      return `<tr class="${total ? '' : 'zero'}"><th>${esc(label(p))}<small>${p.gender === 'F' ? '女' : '男'}</small></th>${cells}<td><b>${total}</b></td></tr>`;
-    }).join('');
-    $('#statsTable').innerHTML = `<div class="scroll"><table class="stats">
-      <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.label || '対戦')}</th>`).join('')}<th>計</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>
-      <p class="hint">数字は種目番号(1女子D / 2男子D120 / 3一般男子D / 4混合D / 5男子D100)。</p>`;
+    }
+    const share = R.splitFee(Number(fee) || 0, counts);
+    const rows = names.map((name) => `<tr class="${counts[name] ? '' : 'zero'}"><th>${esc(name)}</th>${cellsOf[name]}<td><b>${counts[name]}</b></td><td class="fee">${share[name].toLocaleString()}</td></tr>`).join('');
+    const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+    return `<div class="scroll"><table class="stats">
+      <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.label || '対戦')}</th>`).join('')}<th>計</th><th>参加費</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><th>合計</th>${ms.map(() => '<td></td>').join('')}<td><b>${totalCount}</b></td><td class="fee">${totalCount ? Number(fee).toLocaleString() : 0}</td></tr></tfoot>
+      </table></div>
+      <p class="hint">数字は種目番号(1女子D / 2男子D120 / 3一般男子D / 4混合D / 5男子D100)。
+        参加費${Number(fee).toLocaleString()}バーツを出場回数に比例して分担(1バーツ単位・端数は合計が合うよう調整)。</p>`;
+  }
+  const adminMatches = () => state.matches.map((m) => ({
+    label: m.label,
+    pairs: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
+  }));
+  const namedPlayers = () => state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1));
+  function feeShares() {
+    const counts = {};
+    for (const p of namedPlayers()) counts[p.name] = 0;
+    for (const m of adminMatches()) for (const pair of m.pairs) for (const n of pair) if (n in counts) counts[n]++;
+    return { counts, share: R.splitFee(Number(state.settings.fee) || 0, counts) };
+  }
+  function renderStats() {
+    $('#fee').value = state.settings.fee;
+    if (!state.players.length) { $('#statsTable').innerHTML = '<p class="muted">選手がいません</p>'; return; }
+    $('#statsTable').innerHTML = statsHtml(namedPlayers().map((p) => p.name), adminMatches(), state.settings.fee);
   }
 
   // ---------- 書き出し ----------
@@ -295,7 +318,17 @@
       th ? '【หญิง】' : '【女子】', ...sorted('F').map(line),
     ].join('\n');
   }
+  function feeText() {
+    const { counts, share } = feeShares();
+    const names = Object.keys(counts);
+    if (!names.length || !state.matches.length) return '';
+    return [`■ 参加費の分担(合計${Number(state.settings.fee).toLocaleString()}バーツ・出場回数に比例)`,
+      ...names.map((n) => `${n}  ${counts[n]}回  ${share[n].toLocaleString()}バーツ`)].join('\n');
+  }
   function lineupText() {
+    return [lineupOnlyText(), feeText()].filter(Boolean).join('\n\n');
+  }
+  function lineupOnlyText() {
     return state.matches.map((m) => {
       const head = `■ ${m.label || '対戦'}${m.opponent ? ` vs ${m.opponent}` : ''}`;
       const lines = R.EVENTS.map((ev) => {
@@ -309,6 +342,7 @@
   function shareData() {
     return {
       t: state.settings.teamName,
+      f: Number(state.settings.fee) || 0,
       n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
       m: state.matches.map((m) => ({
         l: m.label, o: m.opponent,
@@ -381,6 +415,7 @@
     $('#oneEvent').checked = state.settings.oneEvent;
   }
   $('#teamName').addEventListener('input', (e) => { state.settings.teamName = e.target.value; save(); });
+  $('#fee').addEventListener('input', (e) => { state.settings.fee = Math.max(0, Math.round(Number(e.target.value) || 0)); save(); renderStats(); });
   $('#teams').addEventListener('input', (e) => { state.settings.teams = Number(e.target.value) || ''; renderMatches(); });
   $('#oneEvent').addEventListener('change', (e) => { state.settings.oneEvent = e.target.checked; renderMatches(); });
 
@@ -418,19 +453,8 @@
     // 出場回数: 名簿の名前(年齢なし)+オーダーに出てくる名前
     const ms = data.m || [];
     const names = [...new Set([...(data.n || []), ...ms.flatMap((m) => (m.p || []).flat()).filter(Boolean)])];
-    const rows = names.map((name) => {
-      let total = 0;
-      const cells = ms.map((m) => {
-        const i = (m.p || []).findIndex((pair) => (pair || []).includes(name));
-        if (i >= 0) total++;
-        return `<td>${i >= 0 ? R.EVENTS[i].no : ''}</td>`;
-      }).join('');
-      return `<tr class="${total ? '' : 'zero'}"><th>${esc(name)}</th>${cells}<td><b>${total}</b></td></tr>`;
-    }).join('');
-    const stats = names.length && ms.length ? `<div class="card"><h2>出場回数</h2><div class="scroll"><table class="stats">
-      <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.l || '対戦')}</th>`).join('')}<th>計</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>
-      <p class="hint">数字は種目番号(1女子D / 2男子D120 / 3一般男子D / 4混合D / 5男子D100)。</p></div>` : '';
+    const stats = names.length && ms.length
+      ? `<div class="card"><h2>出場回数と参加費の分担</h2>${statsHtml(names, ms.map((m) => ({ label: m.l, pairs: m.p || [] })), data.f ?? R.TOURNAMENT.fee)}</div>` : '';
     v.innerHTML = `${data.t ? `<p class="vteam">${esc(data.t)}</p>` : ''}${matches || '<div class="card muted">オーダーはまだありません</div>'}${stats}
       <p class="hint">この画面は閲覧専用です。オーダーの変更は管理者が行います。</p>`;
   }

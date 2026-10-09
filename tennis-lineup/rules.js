@@ -11,6 +11,7 @@
     minPlayers: 10, // 1.3
     maxPlayers: 20,
     maxSpecial: 2, // 1.2(4)
+    fee: 6000, // 5. 参加費(1チーム・バーツ)
   };
 
   // 2章の年齢条件。並びは 3.7 の試合順。
@@ -173,5 +174,20 @@
     return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 各組1位で決勝、2位で3位決定戦(3.3)`, matches: a };
   }
 
-  return { TOURNAMENT, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  // 参加費を出場回数(種目への出場数)に比例して分ける。1バーツ単位で、合計がちょうど total になるよう
+  // 端数は小数部の大きい人から1バーツずつ足す(最大剰余法)。全員0回なら全員0。
+  function splitFee(total, counts) {
+    const names = Object.keys(counts);
+    const sum = names.reduce((a, k) => a + counts[k], 0);
+    const out = {};
+    if (!sum) { names.forEach((k) => (out[k] = 0)); return out; }
+    const raw = names.map((k, i) => ({ k, i, v: (total * counts[k]) / sum }));
+    raw.forEach((r) => (out[r.k] = Math.floor(r.v)));
+    let rest = total - raw.reduce((a, r) => a + out[r.k], 0);
+    raw.sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)) || a.i - b.i);
+    for (const r of raw) { if (rest <= 0) break; out[r.k]++; rest--; }
+    return out;
+  }
+
+  return { TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });
