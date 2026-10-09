@@ -139,10 +139,17 @@
       if (ev.kind === 'X') return e.player.gender === (slot === 0 ? 'F' : 'M');
       return e.player.gender === (ev.kind === 'W' ? 'F' : 'M');
     }).sort((a, b) => Number(R.canEnter(ev, b.player, b.age)) - Number(R.canEnter(ev, a.player, a.age)));
-    const opts = es.map((e) => {
+    // 出場回数ごとにグループ分け(少ない順)。グループ内は出場条件を満たす人が先
+    const groups = new Map();
+    for (const e of es) {
+      const n = totals[e.player.id] || 0;
+      if (!groups.has(n)) groups.set(n, []);
+      groups.get(n).push(e);
+    }
+    const opts = [...groups.keys()].sort((a, b) => a - b).map((n) => `<optgroup label="出場${n}試合">${groups.get(n).map((e) => {
       const fit = R.canEnter(ev, e.player, e.age);
-      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}(${totals[e.player.id] || 0}試合)</option>`;
-    });
+      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}(${n}試合)</option>`;
+    }).join('')}</optgroup>`);
     const ph = ev.kind === 'X' ? (slot === 0 ? '女子を選択' : '男子を選択') : '選手を選択';
     return `<option value="">${ph}</option>${opts.join('')}`;
   }
