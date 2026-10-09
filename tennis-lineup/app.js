@@ -133,6 +133,7 @@
     return load;
   }
 
+  let totals = {};
   function slotOptions(ev, slot, selected) {
     const es = entries().filter((e) => {
       if (ev.kind === 'X') return e.player.gender === (slot === 0 ? 'F' : 'M');
@@ -140,7 +141,7 @@
     }).sort((a, b) => Number(R.canEnter(ev, b.player, b.age)) - Number(R.canEnter(ev, a.player, a.age)));
     const opts = es.map((e) => {
       const fit = R.canEnter(ev, e.player, e.age);
-      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}</option>`;
+      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}(${totals[e.player.id] || 0}試合)</option>`;
     });
     const ph = ev.kind === 'X' ? (slot === 0 ? '女子を選択' : '男子を選択') : '選手を選択';
     return `<option value="">${ph}</option>${opts.join('')}`;
@@ -168,6 +169,7 @@
   }
 
   function renderMatches() {
+    totals = loadCount(null);
     const f = R.formatFor(state.settings.teams);
     $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
     $('#matchList').innerHTML = state.matches.map((m, i) => {
@@ -300,6 +302,7 @@
   function shareData() {
     return {
       t: state.settings.teamName,
+      n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
       m: state.matches.map((m) => ({
         l: m.label, o: m.opponent,
         p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
@@ -405,7 +408,23 @@
           <div class="vnames">${names.length ? names.map(esc).join(' / ') : '<span class="muted">未定</span>'}</div></div>`;
       }).join('')}
     </div>`).join('');
-    v.innerHTML = `${data.t ? `<p class="vteam">${esc(data.t)}</p>` : ''}${matches || '<div class="card muted">オーダーはまだありません</div>'}
+    // 出場回数: 名簿の名前(年齢なし)+オーダーに出てくる名前
+    const ms = data.m || [];
+    const names = [...new Set([...(data.n || []), ...ms.flatMap((m) => (m.p || []).flat()).filter(Boolean)])];
+    const rows = names.map((name) => {
+      let total = 0;
+      const cells = ms.map((m) => {
+        const i = (m.p || []).findIndex((pair) => (pair || []).includes(name));
+        if (i >= 0) total++;
+        return `<td>${i >= 0 ? R.EVENTS[i].no : ''}</td>`;
+      }).join('');
+      return `<tr class="${total ? '' : 'zero'}"><th>${esc(name)}</th>${cells}<td><b>${total}</b></td></tr>`;
+    }).join('');
+    const stats = names.length && ms.length ? `<div class="card"><h2>出場回数</h2><div class="scroll"><table class="stats">
+      <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.l || '対戦')}</th>`).join('')}<th>計</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <p class="hint">数字は種目番号(1女子D / 2男子D120 / 3一般男子D / 4混合D / 5男子D100)。</p></div>` : '';
+    v.innerHTML = `${data.t ? `<p class="vteam">${esc(data.t)}</p>` : ''}${matches || '<div class="card muted">オーダーはまだありません</div>'}${stats}
       <p class="hint">この画面は閲覧専用です。オーダーの変更は管理者が行います。</p>`;
   }
 
