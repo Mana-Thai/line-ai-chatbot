@@ -24,11 +24,12 @@
 
 <main id="viewer" hidden></main>
 <main id="app">
+  <p class="legend private">🔒 この色の文字は管理者だけが見られる情報です(年齢・レベル・資格・備考・勝率予測)。メンバー用リンクには入りません。</p>
   <section id="tab-roster" class="tab on">
     <div class="card">
       <label class="row">チーム名 <input id="teamName" placeholder="例:パタヤ日本人テニス会"></label>
-      <p class="hint">🔒 選手名簿(年齢)はこの端末だけに保存され、メンバーには共有されません。
-        メンバーには「書き出し」の閲覧用リンク(名前とオーダーのみ)を送ってください。</p>
+      <p class="hint">選手名簿はこの端末だけに保存されます。メンバーには「書き出し」の閲覧用リンク
+        (名前・オーダー・出場回数・参加費のみ)を送ってください。</p>
     </div>
     <div id="rosterCheck"></div>
     <div class="card">
@@ -39,7 +40,7 @@
     </div>
     <div class="card">
       <h2>種目ごとの出場可能な選手</h2>
-      <div id="coverage"></div>
+      <div id="coverage" class="private"></div>
     </div>
   </section>
 
@@ -73,10 +74,10 @@
       <a id="shareOpen" target="_blank" rel="noopener">新しいタブで開く</a>
     </div>
     <div class="card">
-      <h2>申込用の選手名簿 <span class="badge">管理者用・年齢あり</span></h2>
+      <h2 class="private">🔒 申込用の選手名簿(年齢あり)</h2>
       <p class="hint">規則6:男女別・年齢の若い順。特別枠は名前の後に明記。</p>
       <div class="seg"><button data-rlang="ja" class="on">日本語</button><button data-rlang="th">ไทย</button></div>
-      <textarea id="rosterText" readonly></textarea>
+      <textarea id="rosterText" class="private" readonly></textarea>
       <button class="copy" data-copy="rosterText">コピー</button>
     </div>
     <div class="card">
@@ -98,12 +99,18 @@
   <div class="player">
     <input class="p-name" placeholder="名前">
     <select class="p-gender"><option value="M">男</option><option value="F">女</option></select>
-    <label class="p-agebox"><input class="p-age" type="number" min="10" max="110" inputmode="numeric" placeholder="年齢">歳</label>
-    <select class="p-elig">
+    <div class="p-agebox private">
+      <input class="p-age private" type="number" min="10" max="110" inputmode="numeric" placeholder="年齢" aria-label="年齢">歳
+      <select class="p-level private" aria-label="レベル"><option value="">レベル</option>
+        <option value="10">Lv10 最強</option><option value="9">Lv9</option><option value="8">Lv8</option><option value="7">Lv7</option>
+        <option value="6">Lv6</option><option value="5">Lv5 普通</option><option value="4">Lv4</option><option value="3">Lv3</option>
+        <option value="2">Lv2</option><option value="1">Lv1 初級</option></select>
+    </div>
+    <select class="p-elig private">
       <option value="">資格を選択</option>
     </select>
     <button class="p-del icon" title="削除">✕</button>
-    <input class="p-note" placeholder="備考(生年月日など・任意)">
+    <input class="p-note private" placeholder="備考(生年月日など・任意)">
   </div>
 </template>
 

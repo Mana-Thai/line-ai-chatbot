@@ -39,7 +39,8 @@
   }
 
   const age = (p) => R.toAge(p.age);
-  const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p) }));
+  const lvl = (p) => R.toLevel(p.level);
+  const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p), level: lvl(p) }));
   const byId = (id) => state.players.find((p) => p.id === id);
   const entryOf = (id) => { const p = byId(id); return p ? { player: p, age: age(p) } : null; };
   // 確認ダイアログ(confirm)が使えない環境もあるので、同じボタンを2回押して確定する方式にする
@@ -76,6 +77,7 @@
       $('.p-gender', el).value = p.gender;
       $('.p-age', el).value = p.age ?? '';
       $('.p-note', el).value = p.note || '';
+      $('.p-level', el).value = p.level ?? '';
       elig.value = p.eligibility;
       list.appendChild(el);
     }
@@ -104,7 +106,7 @@
       const c = es.filter((e) => R.canEnter(ev, e.player, e.age));
       let possible = false;
       for (let i = 0; i < c.length && !possible; i++) for (let j = i + 1; j < c.length && !possible; j++) possible = R.checkPair(ev, c[i], c[j]).ok;
-      const names = c.sort((a, b) => b.age - a.age).map((e) => `${esc(e.player.name)}<small>${e.age}</small>`).join('、');
+      const names = c.sort((a, b) => b.age - a.age).map((e) => `${esc(e.player.name)}<small>${e.age}歳${e.level != null ? `・Lv${e.level}` : ''}</small>`).join('、');
       return `<div class="cov ${possible ? '' : 'bad'}">
         <div><b>${ev.no}. ${esc(ev.ja)}</b> <small>${esc(ev.rule)}</small></div>
         <div>${possible ? '✓' : '✕ 組めるペアがありません'} ${names || '<span class="muted">該当者なし</span>'}</div>
@@ -122,6 +124,7 @@
     if (t.classList.contains('p-age')) p.age = t.value === '' ? '' : Number(t.value);
     if (t.classList.contains('p-note')) p.note = t.value;
     if (t.classList.contains('p-elig')) p.eligibility = t.value;
+    if (t.classList.contains('p-level')) { p.level = t.value === '' ? '' : Number(t.value); suggestions = {}; }
     refreshDerived();
   });
   $('#playerList').addEventListener('change', (ev) => ev.target.dispatchEvent(new Event('input', { bubbles: true })));
@@ -141,7 +144,8 @@
       ['伊藤 翔', 'M', 28], ['渡辺 誠', 'M', 59], ['山本 茂', 'M', 66], ['中村 浩', 'M', 53],
       ['小林 大輔', 'M', 48], ['加藤 正', 'M', 61], ['Somchai', 'M', 41]];
     state.settings.teamName = state.settings.teamName || 'サンプルクラブ';
-    state.players = sample.map(([name, gender, a], i) => ({ id: uid(), name, gender, age: a, eligibility: i === 10 ? 'special' : 'work', note: '' }));
+    const levels = [7, 5, 8, 9, 6, 4, 6, 7, 5, 3, 8];
+    state.players = sample.map(([name, gender, a], i) => ({ id: uid(), name, gender, age: a, level: levels[i], eligibility: i === 10 ? 'special' : 'work', note: '' }));
     state.matches = [1, 2, 3].map((n) => ({ id: uid(), label: `予選${n}`, opponent: ['Sriracha TC', 'Bang Saen', 'Jomtien'][n - 1], lineup: {} }));
     totals = {};
     for (const m of state.matches) {
@@ -210,12 +214,48 @@
     return out;
   }
 
+  // ---------- 勝率予測と提案(管理者のみ・共有データには入れない) ----------
+  let suggestions = {}; // matchId -> 提案リスト(画面上だけで保持)
+  const oppLevel = (m) => R.toLevel(m.oppLevel) ?? R.LEVEL_DEFAULT;
+  function lineupForecast(m) {
+    const eventP = {};
+    for (const ev of R.EVENTS) {
+      const pair = (m.lineup[ev.id] || []).map(byId);
+      if (pair.length === 2 && pair[0] && pair[1]) eventP[ev.id] = R.eventWinProb(pair.map((p) => lvl(p) ?? R.LEVEL_DEFAULT), oppLevel(m));
+    }
+    const full = R.EVENTS.every((ev) => ev.id in eventP);
+    return { eventP, p: full ? R.teamWinProb(R.EVENTS.map((ev) => eventP[ev.id])) : null };
+  }
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  function forecastHtml(m) {
+    const f = lineupForecast(m);
+    const missing = state.players.filter((p) => p.name && lvl(p) == null).length;
+    const sug = suggestions[m.id];
+    const sugHtml = !sug ? '' : !sug.length
+      ? '<p class="msg">条件を満たす組み合わせがありません</p>'
+      : sug.map((s, i) => `<div class="sug">
+          <div class="sugh"><b>案${i + 1} チーム勝率 ${pct(s.p)}</b><button data-act="apply" data-i="${i}">この案にする</button></div>
+          ${R.EVENTS.map((ev) => `<div class="sugrow"><span>${ev.no}. ${esc(ev.ja)}</span>
+            <span>${s.lineup[ev.id].map((id) => esc(byId(id).name)).join(' / ')}</span><span class="num">${pct(s.eventP[ev.id])}</span></div>`).join('')}
+        </div>`).join('');
+    return `<div class="forecast private">
+      <div class="fhead">
+        <span>🔒 勝率予測 ${f.p == null ? '<small>(5種目そろうと表示)</small>' : `<b class="big">${pct(f.p)}</b>`}</span>
+        <label>相手の強さ <select class="m-opplv private">${[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((n) => `<option value="${n}" ${n === oppLevel(m) ? 'selected' : ''}>Lv${n}</option>`).join('')}</select></label>
+      </div>
+      ${missing ? `<p class="msg">レベル未入力の選手が${missing}人います(Lv${R.LEVEL_DEFAULT}として計算)</p>` : ''}
+      <button data-act="suggest">勝てる組み合わせを提案</button>
+      ${sugHtml}
+    </div>`;
+  }
+
   function renderMatches() {
     totals = loadCount(null);
     const f = R.formatFor(state.settings.teams);
     $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
     $('#matchList').innerHTML = state.matches.map((m, i) => {
       const issues = matchIssues(m);
+      const fc = lineupForecast(m);
       const done = R.EVENTS.filter((ev) => issues[ev.id].state === 'ok').length;
       return `<div class="card match" data-id="${m.id}">
         <div class="mhead">
@@ -228,7 +268,7 @@
           const pair = m.lineup[ev.id] || ['', ''];
           const is = issues[ev.id];
           return `<div class="ev ${is.state}" data-ev="${ev.id}">
-            <div class="evh"><b>${ev.no}. ${esc(ev.ja)}</b><small>${esc(ev.rule)}</small></div>
+            <div class="evh"><b>${ev.no}. ${esc(ev.ja)}</b><small>${esc(ev.rule)}</small>${ev.id in fc.eventP ? `<span class="evp private">🔒 勝率${pct(fc.eventP[ev.id])}</span>` : ''}</div>
             <div class="slots">
               <select data-slot="0">${slotOptions(ev, 0, pair[0])}</select>
               <select data-slot="1">${slotOptions(ev, 1, pair[1])}</select>
@@ -236,6 +276,7 @@
             ${is.msgs.map((t) => `<p class="msg">${esc(t)}</p>`).join('')}
           </div>`;
         }).join('')}
+        ${forecastHtml(m)}
         <div class="mbtns">
           <button data-act="auto">空き枠を自動で埋める</button>
           ${i > 0 ? '<button data-act="copy">前の対戦をコピー</button>' : ''}
@@ -251,6 +292,12 @@
     const card = e.target.closest('.match');
     const m = card && state.matches.find((x) => x.id === card.dataset.id);
     if (!m) return;
+    if (e.target.classList.contains('m-opplv')) {
+      m.oppLevel = Number(e.target.value);
+      delete suggestions[m.id];
+      renderMatches();
+      return;
+    }
     if (e.target.matches('select[data-slot]')) {
       const evId = e.target.closest('.ev').dataset.ev;
       const pair = (m.lineup[evId] || ['', '']).slice();
@@ -275,6 +322,13 @@
     if (act === 'del') {
       if (!armed(e.target, 'もう一度押すと削除')) return;
       state.matches.splice(idx, 1);
+    }
+    if (act === 'suggest') {
+      suggestions[m.id] = R.suggestLineups(entries(), oppLevel(m), { allowRepeat: !state.settings.oneEvent, top: 3 });
+    }
+    if (act === 'apply') {
+      const s = (suggestions[m.id] || [])[Number(e.target.dataset.i)];
+      if (s) { m.lineup = JSON.parse(JSON.stringify(s.lineup)); delete suggestions[m.id]; toast('提案のオーダーにしました'); }
     }
     if (act === 'clear') m.lineup = {};
     if (act === 'copy') m.lineup = JSON.parse(JSON.stringify(state.matches[idx - 1].lineup));

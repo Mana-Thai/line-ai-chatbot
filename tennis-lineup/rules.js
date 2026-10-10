@@ -189,5 +189,87 @@
     return out;
   }
 
-  return { TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  // ---------- 勝率予測(管理者のみ) ----------
+  // レベルは1〜10。ペアの強さ=2人の平均。相手ペアの強さとの差からロジスティック曲線で
+  // その種目の勝率を推定する(差1で約65%、差2で約77%、差3で約86%)。
+  const LEVEL_DEFAULT = 5;
+  const LEVEL_K = 0.6;
+  const toLevel = (v) => {
+    const n = Number(v);
+    return v !== '' && v != null && Number.isFinite(n) && n >= 1 && n <= 10 ? n : null;
+  };
+  function eventWinProb(ourLevels, oppLevel) {
+    const our = ourLevels.reduce((a, b) => a + b, 0) / ourLevels.length;
+    return 1 / (1 + Math.exp(-LEVEL_K * (our - oppLevel)));
+  }
+  // 5種目中3勝以上する確率(各種目は独立と仮定)
+  function teamWinProb(ps) {
+    let dist = [1];
+    for (const p of ps) {
+      const next = new Array(dist.length + 1).fill(0);
+      dist.forEach((q, k) => { next[k] += q * (1 - p); next[k + 1] += q * p; });
+      dist = next;
+    }
+    const need = Math.floor(ps.length / 2) + 1;
+    return dist.slice(need).reduce((a, b) => a + b, 0);
+  }
+
+  // チーム勝率が高い組み合わせを上位 top 件まで探す(分枝限定法)。
+  // entries: [{player, age, level}] / oppLevel: 相手の強さ(数値 or {eventId: 数値})
+  function suggestLineups(entries, oppLevel, opts) {
+    const allowRepeat = opts && opts.allowRepeat;
+    const top = (opts && opts.top) || 3;
+    const opp = (ev) => (typeof oppLevel === 'object' ? oppLevel[ev.id] : oppLevel) ?? LEVEL_DEFAULT;
+    const lv = (e) => e.level ?? LEVEL_DEFAULT;
+    const lists = EVENTS.map((ev) => {
+      const cands = entries.filter((e) => canEnter(ev, e.player, e.age));
+      const pairs = [];
+      for (let i = 0; i < cands.length; i++) {
+        for (let j = i + 1; j < cands.length; j++) {
+          if (checkPair(ev, cands[i], cands[j]).ok) {
+            pairs.push({ ids: [cands[i].player.id, cands[j].player.id], p: eventWinProb([lv(cands[i]), lv(cands[j])], opp(ev)) });
+          }
+        }
+      }
+      pairs.sort((a, b) => b.p - a.p);
+      return { ev, pairs };
+    });
+    if (lists.some((l) => !l.pairs.length)) return [];
+    // 候補の少ない種目から決める
+    const order = lists.slice().sort((a, b) => a.pairs.length - b.pairs.length);
+    const best = [];
+    const used = new Set();
+    const chosen = [];
+    let steps = 0;
+    const floor = () => (best.length < top ? -1 : best[best.length - 1].p);
+    function go(k) {
+      if (++steps > 300000) return;
+      if (k === order.length) {
+        const ps = chosen.map((c) => c.p);
+        const p = teamWinProb(ps);
+        if (p <= floor()) return;
+        const lineup = {}, eventP = {};
+        order.forEach((l, i) => { lineup[l.ev.id] = chosen[i].ids.slice(); eventP[l.ev.id] = chosen[i].p; });
+        best.push({ lineup, eventP, p });
+        best.sort((a, b) => b.p - a.p);
+        if (best.length > top) best.pop();
+        return;
+      }
+      // 上限: 残りの種目に最強ペアを置けたとしても上位に入らないなら打ち切る
+      const bound = teamWinProb([...chosen.map((c) => c.p), ...order.slice(k).map((l) => l.pairs[0].p)]);
+      if (bound <= floor()) return;
+      for (const pair of order[k].pairs) {
+        if (!allowRepeat && (used.has(pair.ids[0]) || used.has(pair.ids[1]))) continue;
+        chosen.push(pair);
+        if (!allowRepeat) pair.ids.forEach((id) => used.add(id));
+        go(k + 1);
+        chosen.pop();
+        if (!allowRepeat) pair.ids.forEach((id) => used.delete(id));
+      }
+    }
+    go(0);
+    return best;
+  }
+
+  return { LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });

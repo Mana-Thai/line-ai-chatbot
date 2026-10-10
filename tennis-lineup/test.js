@@ -57,4 +57,34 @@ assert.deepStrictEqual(f, { a: 2000, b: 2000, c: 1333, d: 667, e: 0 });
 const g = R.splitFee(6000, { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1, g: 1 });
 assert.strictEqual(Object.values(g).reduce((x, y) => x + y, 0), 6000);
 assert.deepStrictEqual(R.splitFee(6000, { a: 0 }), { a: 0 });
+// 勝率予測
+assert.ok(Math.abs(R.eventWinProb([5, 5], 5) - 0.5) < 1e-9);
+assert.ok(R.eventWinProb([7, 7], 5) > 0.75);
+assert.ok(Math.abs(R.teamWinProb([0.5, 0.5, 0.5, 0.5, 0.5]) - 0.5) < 1e-9);
+assert.ok(Math.abs(R.teamWinProb([1, 1, 1, 0, 0]) - 1) < 1e-9);
+assert.strictEqual(R.toLevel(''), null);
+assert.strictEqual(R.toLevel('7'), 7);
+// 提案: 条件を満たし、1人1種目で、上位ほど勝率が高い
+const lv = { w1: 8, w2: 3, w3: 6, m1: 9, m2: 4, m3: 7, m4: 5, m5: 6, m6: 2, m7: 8 };
+const esL = es.map((e) => ({ ...e, level: lv[e.player.id] }));
+const sug = R.suggestLineups(esL, 5, { top: 3 });
+assert.ok(sug.length >= 1);
+for (let i = 1; i < sug.length; i++) assert.ok(sug[i - 1].p >= sug[i].p);
+for (const sgg of sug) {
+  assert.strictEqual(new Set(Object.values(sgg.lineup).flat()).size, 10);
+  for (const e of R.EVENTS) assert.ok(R.checkPair(e, ...sgg.lineup[e.id].map(get)).ok, e.id);
+}
+// 総当たりで最善と一致するか(1人1種目)
+let bestP = 0;
+(function brute(k, used, ps) {
+  if (k === 5) { bestP = Math.max(bestP, R.teamWinProb(ps)); return; }
+  const ev = R.EVENTS[k];
+  const c = esL.filter((e) => !used.has(e.player.id));
+  for (let i = 0; i < c.length; i++) for (let j = i + 1; j < c.length; j++) {
+    if (!R.checkPair(ev, c[i], c[j]).ok) continue;
+    const u = new Set(used); u.add(c[i].player.id); u.add(c[j].player.id);
+    brute(k + 1, u, [...ps, R.eventWinProb([c[i].level, c[j].level], 5)]);
+  }
+})(0, new Set(), []);
+assert.ok(Math.abs(sug[0].p - bestP) < 1e-9, `${sug[0].p} vs ${bestP}`);
 console.log('all tests passed');

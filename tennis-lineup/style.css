@@ -1,17 +1,20 @@
 /* コートの緑を基調にしたスマホ向け1カラムの作業画面 */
 :root {
   --bg: #f4f6f3; --card: #fff; --field: #fff; --ink: #1d2a22; --muted: #6b7a70; --line: #dfe5df;
+  --private: #6b3fbf; --privatebg: #f3edfc;
   --accent: #2f7d4a; --on-accent: #fff; --ok: #2f7d4a; --okbg: #eaf6ee; --err: #c0392b; --errbg: #fdecea; --warn: #a86a00; --warnbg: #fff5e0;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121814; --card: #1b231e; --field: #232d27; --ink: #e3ebe5; --muted: #93a398; --line: #2f3b34;
+    --private: #c4a4ff; --privatebg: #2a2238;
     --accent: #3f9b5f; --on-accent: #fff; --ok: #6fcf8f; --okbg: #1d3326; --err: #ff8a7a; --errbg: #3a201d; --warn: #f0b860; --warnbg: #3a2e18;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121814; --card: #1b231e; --field: #232d27; --ink: #e3ebe5; --muted: #93a398; --line: #2f3b34;
+  --private: #c4a4ff; --privatebg: #2a2238;
   --accent: #3f9b5f; --on-accent: #fff; --ok: #6fcf8f; --okbg: #1d3326; --err: #ff8a7a; --errbg: #3a201d; --warn: #f0b860; --warnbg: #3a2e18;
   color-scheme: dark;
 }
@@ -108,3 +111,19 @@ textarea { background: var(--field); }
 .previewbar { position: sticky; bottom: env(safe-area-inset-bottom, 0px); display: flex; gap: 8px; align-items: center; justify-content: space-between;
   background: var(--warnbg); border: 1px solid var(--warn); color: var(--warn); border-radius: 8px; padding: 8px 10px; margin-top: 12px; }
 #viewer { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; }
+
+/* 管理者だけが見られる情報(メンバー用リンクに入らないもの) */
+.private, .private small, input.private, select.private, textarea.private { color: var(--private); }
+input.private, select.private, textarea.private { border-color: color-mix(in srgb, var(--private) 45%, var(--line)); }
+.legend { font-size: 12px; background: var(--privatebg); border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; }
+.player .p-level { flex: 1; min-width: 0; }
+.evp { margin-left: auto; font-size: 12px; font-weight: bold; }
+.forecast { background: var(--privatebg); border-radius: 8px; padding: 10px; margin-top: 10px; display: grid; gap: 8px; }
+.forecast .fhead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; }
+.forecast .big { font-size: 20px; font-variant-numeric: tabular-nums; }
+.forecast .msg { margin: 0; color: var(--private); }
+.forecast button { border-color: var(--private); color: var(--private); background: var(--field); justify-self: start; }
+.sug { background: var(--card); border: 1px solid color-mix(in srgb, var(--private) 35%, var(--line)); border-radius: 8px; padding: 8px; }
+.sugh { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.sugrow { display: grid; grid-template-columns: 1fr 1.3fr 3.2em; gap: 6px; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--line); }
+.sugrow .num { text-align: right; font-variant-numeric: tabular-nums; }
