@@ -21,3 +21,17 @@
 
 規則ロジックは `rules.js`(UMD)。テストは `node tennis-lineup/test.js`。
 公開は `website-publish` Skill(GitHub Pages)の手順で。
+
+## 公開構成(正式版)
+
+| 用途 | 置き場所 | ログイン |
+|---|---|---|
+| 管理者版(名簿・年齢・レベル・オーダー編集) | claude.ai のページ(非公開・アカウントに自動保存) | 管理者のclaude.ai |
+| メンバー用閲覧ページ | GitHub Pages `https://mana-thai.github.io/tennis-lineup/` | 不要 |
+
+- 管理者版の「書き出し」→「メンバー用の閲覧リンク」は GitHub Pages のURLを指す。
+  オーダーの中身(名前・種目・出場回数・参加費)はURLの `#` 以降に入り、サーバーには送られない
+- 年齢・レベル・資格・備考・勝率は閲覧リンクに入らない
+- 配布ファイルの作成: `python3 tennis-lineup/build.py` → `dist/admin.html`(claude.ai用)と
+  `dist/viewer/index.html`(GitHub Pages用)。`pages/index.html` は Pages リポジトリに置く最新版の控え
+- Pages 用リポジトリ `Mana-Thai/tennis-lineup`(公開)には `pages/index.html` を `index.html` として置く

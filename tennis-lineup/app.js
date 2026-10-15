@@ -510,8 +510,11 @@
     const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
   }
+  // メンバー用ページの場所。build.py が管理者版に公開URL(GitHub Pages)を埋め込む。
+  // 未設定のときはこのページ自身を閲覧用に使う。
   function shareUrl() {
-    return `${location.href.split('#')[0]}#view=${encode(shareData())}`;
+    const base = window.TENNIS_VIEWER_URL || location.href.split('#')[0];
+    return `${base}#view=${encode(shareData())}`;
   }
 
   function renderExport() {
@@ -631,9 +634,23 @@
 
   const T = R.TOURNAMENT;
   $('#tourInfo').textContent = `${T.date.replace(/-/g, '/')}(土) ${T.venue}`;
-  const viewParam = /^#view=(.+)$/.exec(location.hash);
-  if (viewParam) {
-    try { renderViewer(decode(viewParam[1])); } catch (e) { renderViewer({ m: [] }); }
+  function showFromHash() {
+    const viewParam = /^#view=(.+)$/.exec(location.hash);
+    if (viewParam) {
+      try { renderViewer(decode(viewParam[1])); } catch (e) { renderViewer({ m: [] }); }
+      return true;
+    }
+    return false;
+  }
+  if (window.TENNIS_VIEWER_ONLY) {
+    // メンバー用ページ: 閲覧のみ。管理画面は出さない
+    if (!showFromHash()) {
+      renderViewer({ m: [] });
+      $('#viewer').innerHTML = '<div class="card"><h2>オーダー表</h2><p>管理者からLINEで届いたリンクを開いてください。</p></div>';
+    }
+    window.addEventListener('hashchange', showFromHash);
+  } else if (showFromHash()) {
+    /* 管理者版でも閲覧リンクを開いたときは閲覧画面 */
   } else {
     lastSaved = JSON.stringify(state);
     setSync('この端末に保存されます', '');
