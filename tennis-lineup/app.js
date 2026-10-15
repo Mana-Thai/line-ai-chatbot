@@ -1,4 +1,6 @@
-// 伝統テニス大会 オーダー表(静的アプリ・データは端末のlocalStorageに保存)
+// 伝統テニス大会 オーダー表(静的アプリ)
+// 保存先: claude.ai で開いたときはアカウントごとの非公開ストア(db の data/users/<id>/)、
+// それ以外ではこの端末の localStorage。どちらの場合も localStorage にも控えを置く。
 (function () {
   const R = window.TennisRules;
   const KEY = 'tennis-lineup-v1';
@@ -34,8 +36,67 @@
     });
     return out;
   }
+  // ---------- 保存 ----------
+  let remote = null;      // アカウント保存先のドキュメント参照(使えないときは null)
+  let lastSaved = '';     // 最後に保存した内容(変化がなければ書かない)
+  let saveTimer = null, writing = false, again = false;
+  function setSync(text, cls) {
+    const el = $('#syncStatus');
+    el.textContent = text;
+    el.className = 'sync ' + (cls || '');
+  }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* noop */ }
+    const json = JSON.stringify(state);
+    if (json === lastSaved) return;
+    try { localStorage.setItem(KEY, json); } catch (e) { /* noop */ }
+    if (!remote) return;
+    setSync('保存中…', 'busy');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 800);
+  }
+  async function flush() {
+    if (!remote) return;
+    if (writing) { again = true; return; }
+    writing = true;
+    const json = JSON.stringify(state);
+    try {
+      await remote.set({ state: JSON.parse(json), savedAt: Date.now() });
+      lastSaved = json;
+      setSync('☁ アカウントに保存済み', 'ok');
+    } catch (e) {
+      setSync('⚠ 保存できませんでした(この端末には保存済み)', 'err');
+    }
+    writing = false;
+    if (again) { again = false; flush(); }
+  }
+  // claude.ai で開いたときだけ、アカウントごとの非公開ストアにつなぐ
+  async function connectRemote() {
+    if (!window.claude || !window.claude.use) return;
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      const id = db && user ? await user.id() : null;
+      if (!id) return;
+      const ref = db.doc(`data/users/${id}/lineup`);
+      const snap = await ref.get();
+      const saved = snap.exists && snap.data().state;
+      const localHasData = state.players.length || state.matches.length;
+      remote = ref;
+      if (saved && (saved.players || []).length + (saved.matches || []).length > 0) {
+        // アカウントの保存内容を正とする(端末の内容は控え)
+        state = migrate(saved);
+        lastSaved = JSON.stringify(state);
+        try { localStorage.setItem(KEY, lastSaved); } catch (e) { /* noop */ }
+        if (!document.body.classList.contains('viewer-mode')) renderAll();
+        setSync('☁ アカウントに保存済み', 'ok');
+      } else if (localHasData) {
+        lastSaved = '';
+        await flush(); // 端末にだけあったデータをアカウントへ移す
+      } else {
+        setSync('☁ アカウントに保存されます', 'ok');
+      }
+    } catch (e) {
+      remote = null;
+    }
   }
 
   const age = (p) => R.toAge(p.age);
@@ -469,11 +530,19 @@
     b.textContent = 'コピーしました';
     setTimeout(() => (b.textContent = 'コピー'), 1500);
   }));
-  $('#saveFile').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  $('#saveFile').addEventListener('click', async () => {
+    const json = JSON.stringify(state, null, 2);
+    const filename = `tennis-lineup-${new Date().toISOString().slice(0, 10)}.json`;
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+    if (dl) {
+      try { await dl.save({ filename, data: json }); toast('バックアップを保存しました'); } catch (e) {
+        if (e && e.code !== 'declined') toast('保存できませんでした。もう一度お試しください');
+      }
+      return;
+    }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `tennis-lineup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -566,6 +635,9 @@
   if (viewParam) {
     try { renderViewer(decode(viewParam[1])); } catch (e) { renderViewer({ m: [] }); }
   } else {
+    lastSaved = JSON.stringify(state);
+    setSync('この端末に保存されます', '');
     renderAll();
+    connectRemote();
   }
 })();

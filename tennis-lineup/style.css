@@ -127,3 +127,5 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .sugh { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .sugrow { display: grid; grid-template-columns: 1fr 1.3fr 3.2em; gap: 6px; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--line); }
 .sugrow .num { text-align: right; font-variant-numeric: tabular-nums; }
+.sync { display: inline-block; margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 99px; background: color-mix(in srgb, var(--on-accent) 18%, transparent); }
+.sync.err { background: var(--err); }
