@@ -24,12 +24,13 @@
 
 <main id="viewer" hidden></main>
 <main id="app">
+  <div id="lockBar" class="lockbar" role="status" hidden></div>
   <p class="legend private">🔒 この色の文字は管理者だけが見られる情報です(年齢・レベル・資格・備考・勝率予測)。メンバー用リンクには入りません。</p>
   <section id="tab-roster" class="tab on">
     <div class="card">
       <label class="row">チーム名 <input id="teamName" placeholder="例:パタヤ日本人テニス会"></label>
-      <p class="hint">選手名簿はこの端末だけに保存されます。メンバーには「書き出し」の閲覧用リンク
-        (名前・オーダー・出場回数・参加費のみ)を送ってください。</p>
+      <p class="hint">選手名簿(年齢・レベルなど)は管理者だけが見られます。メンバーには「書き出し」の閲覧用リンク
+        (名前・オーダー・出場回数・参加費のみ)を送るか、閲覧者として共有してください。</p>
     </div>
     <div id="rosterCheck"></div>
     <div class="card">
