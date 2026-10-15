@@ -13,7 +13,7 @@
 <body>
 <header class="top">
   <h1>伝統テニス大会 オーダー表</h1>
-  <p class="sub"><span id="tourInfo"></span> <span id="syncStatus" class="sync" role="status"></span></p>
+  <p class="sub"><span id="tourInfo"></span> <span id="roleBadge" class="sync role" hidden></span> <span id="syncStatus" class="sync" role="status"></span></p>
   <nav class="tabs" role="tablist">
     <button data-tab="roster" class="on">選手名簿</button>
     <button data-tab="matches">対戦オーダー</button>
@@ -65,7 +65,19 @@
 
   <section id="tab-export" class="tab">
     <div class="card">
-      <h2>メンバー用の閲覧リンク</h2>
+      <h2>共有と権限</h2>
+      <p class="hint">共有する人ごとに、次のどちらかを選べます。</p>
+      <div class="perm">
+        <div class="permrow"><b>管理者と同じ権限</b>
+          <p>このページ右上の「共有」で相手を<b>編集者(Editor)</b>として招待します。名簿・年齢・レベル・勝率を見られ、
+            オーダーの編集もできます(変更はお互いの画面に自動で反映)。相手にもclaude.aiのアカウントが必要です。</p></div>
+        <div class="permrow"><b>閲覧のみ</b>
+          <p>「共有」で<b>閲覧者(Viewer)</b>として招待すると、最新のオーダー・出場回数・参加費が常に自動で表示されます(年齢・レベルなどは見えません)。
+            claude.aiのアカウントが無い人には、下の閲覧リンクをLINEで送ってください(ログイン不要)。</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>メンバー用の閲覧リンク(ログイン不要)</h2>
       <p class="hint">オーダー(名前と種目)と各選手の出場回数・参加費の分担だけを見られるリンクです。年齢・資格・備考は含まれません。
         オーダーを変えたら作り直して送り直してください。</p>
       <textarea id="shareUrl" class="short" readonly></textarea>

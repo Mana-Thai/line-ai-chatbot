@@ -26,7 +26,8 @@
 
 | 用途 | 置き場所 | ログイン |
 |---|---|---|
-| 管理者版(名簿・年齢・レベル・オーダー編集) | claude.ai のページ(非公開・アカウントに自動保存) | 管理者のclaude.ai |
+| 管理者版(名簿・年齢・レベル・オーダー編集) | claude.ai のページ。共有メニューで**編集者(Editor)**にした人も同じ権限 | claude.ai |
+| 閲覧のみ(claude.ai) | 同じページ。共有メニューで**閲覧者(Viewer)**にした人は最新オーダーだけが自動表示 | claude.ai |
 | メンバー用閲覧ページ | GitHub Pages `https://mana-thai.github.io/tennis-lineup/` | 不要 |
 
 - 管理者版の「書き出し」→「メンバー用の閲覧リンク」は GitHub Pages のURLを指す。
@@ -35,3 +36,10 @@
 - 配布ファイルの作成: `python3 tennis-lineup/build.py` → `dist/admin.html`(claude.ai用)と
   `dist/viewer/index.html`(GitHub Pages用)。`pages/index.html` は Pages リポジトリに置く最新版の控え
 - Pages 用リポジトリ `Mana-Thai/tennis-lineup`(公開)には `pages/index.html` を `index.html` として置く
+
+### claude.ai 上の権限とデータ(db のルール)
+
+- `admin/state` … 全データ(名簿・年齢・レベル等)。ルール `admin` は read/write とも admin 以上(編集者・所有者)のみ
+- `public/order` … メンバーに見せる内容(名前・オーダー・出場回数・参加費)。全員が読め、書けるのは admin 以上
+- 画面は `user.canEdit()` で管理者画面/閲覧画面を切り替える(表示の切替だけで、守っているのはルール)
+- 管理者どうしの同時編集は最後の保存が勝つ。他の管理者の変更は自動で反映される

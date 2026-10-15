@@ -143,12 +143,16 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .sugrow .num { text-align: right; font-variant-numeric: tabular-nums; }
 .sync { display: inline-block; margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 99px; background: color-mix(in srgb, var(--on-accent) 18%, transparent); }
 .sync.err { background: var(--err); }
+.sync.role { background: var(--on-accent); color: var(--accent); font-weight: bold; }
+.perm { display: grid; gap: 8px; }
+.permrow { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 
 </style>
 
 <header class="top">
   <h1>伝統テニス大会 オーダー表</h1>
-  <p class="sub"><span id="tourInfo"></span> <span id="syncStatus" class="sync" role="status"></span></p>
+  <p class="sub"><span id="tourInfo"></span> <span id="roleBadge" class="sync role" hidden></span> <span id="syncStatus" class="sync" role="status"></span></p>
   <nav class="tabs" role="tablist">
     <button data-tab="roster" class="on">選手名簿</button>
     <button data-tab="matches">対戦オーダー</button>
@@ -200,7 +204,19 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 
   <section id="tab-export" class="tab">
     <div class="card">
-      <h2>メンバー用の閲覧リンク</h2>
+      <h2>共有と権限</h2>
+      <p class="hint">共有する人ごとに、次のどちらかを選べます。</p>
+      <div class="perm">
+        <div class="permrow"><b>管理者と同じ権限</b>
+          <p>このページ右上の「共有」で相手を<b>編集者(Editor)</b>として招待します。名簿・年齢・レベル・勝率を見られ、
+            オーダーの編集もできます(変更はお互いの画面に自動で反映)。相手にもclaude.aiのアカウントが必要です。</p></div>
+        <div class="permrow"><b>閲覧のみ</b>
+          <p>「共有」で<b>閲覧者(Viewer)</b>として招待すると、最新のオーダー・出場回数・参加費が常に自動で表示されます(年齢・レベルなどは見えません)。
+            claude.aiのアカウントが無い人には、下の閲覧リンクをLINEで送ってください(ログイン不要)。</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>メンバー用の閲覧リンク(ログイン不要)</h2>
       <p class="hint">オーダー(名前と種目)と各選手の出場回数・参加費の分担だけを見られるリンクです。年齢・資格・備考は含まれません。
         オーダーを変えたら作り直して送り直してください。</p>
       <textarea id="shareUrl" class="short" readonly></textarea>
@@ -584,6 +600,7 @@ window.TENNIS_VIEWER_ONLY = true;
     if (json === lastSaved) return;
     try { localStorage.setItem(KEY, json); } catch (e) { /* noop */ }
     if (!remote) return;
+    dirty = true;
     setSync('保存中…', 'busy');
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 800);
@@ -594,42 +611,99 @@ window.TENNIS_VIEWER_ONLY = true;
     writing = true;
     const json = JSON.stringify(state);
     try {
-      await remote.set({ state: JSON.parse(json), savedAt: Date.now() });
+      const savedAt = Date.now();
+      await remote.set({ state: JSON.parse(json), savedAt, by: clientId });
+      if (publicRef) await publicRef.set({ view: shareData(), savedAt });
       lastSaved = json;
-      setSync('☁ アカウントに保存済み', 'ok');
+      if (JSON.stringify(state) === json) dirty = false;
+      setSync('☁ 保存済み(管理者で共有)', 'ok');
     } catch (e) {
       setSync('⚠ 保存できませんでした(この端末には保存済み)', 'err');
     }
     writing = false;
     if (again) { again = false; flush(); }
   }
-  // claude.ai で開いたときだけ、アカウントごとの非公開ストアにつなぐ
+  // ---------- claude.ai での共有と権限 ----------
+  // 共有メニューの「編集者(Editor)」以上 = 管理者と同じ権限: admin/state(全データ)を読み書き
+  // それ以外(閲覧者など) = 閲覧のみ: public/order(名前・オーダー・回数・参加費だけ)を読む
+  // ※ アクセス制御は db のルール(admin は admin 以上のみ読める)で行う
+  const clientId = uid();
+  let publicRef = null, dirty = false;
+  const hasData = (s) => !!s && ((s.players || []).length + (s.matches || []).length > 0);
+  function setRole(text) {
+    const el = $('#roleBadge');
+    el.textContent = text;
+    el.hidden = !text;
+  }
+  function showApp() {
+    $('#viewer').hidden = true;
+    $('#app').hidden = false;
+    $('.tabs').hidden = false;
+    document.body.classList.remove('viewer-mode');
+  }
+  function startLocal() {
+    setSync('この端末に保存されます', '');
+    showApp();
+  }
+  function startMember(db) {
+    setRole('閲覧のみ');
+    setSync('', '');
+    $('#syncStatus').hidden = true;
+    renderViewer({ m: [] });
+    $('#viewer').innerHTML = '<div class="card muted">読み込み中…</div>';
+    db.doc('public/order').onSnapshot((snap) => {
+      const view = snap.exists && snap.data().view;
+      if (view) renderViewer(view);
+      else $('#viewer').innerHTML = '<div class="card"><h2>オーダー表</h2><p>まだオーダーが公開されていません。管理者が入力すると、ここに自動で表示されます。</p></div>';
+    }, () => {
+      $('#viewer').innerHTML = '<div class="card"><p>オーダーを読み込めませんでした。ページを開き直してください。</p></div>';
+    });
+  }
   async function connectRemote() {
-    if (!window.claude || !window.claude.use) return;
+    const use = window.claude && window.claude.use;
+    if (!use) { startLocal(); return; }
     try {
-      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
-      const id = db && user ? await user.id() : null;
-      if (!id) return;
-      const ref = db.doc(`data/users/${id}/lineup`);
-      const snap = await ref.get();
-      const saved = snap.exists && snap.data().state;
-      const localHasData = state.players.length || state.matches.length;
-      remote = ref;
-      if (saved && (saved.players || []).length + (saved.matches || []).length > 0) {
-        // アカウントの保存内容を正とする(端末の内容は控え)
-        state = migrate(saved);
-        lastSaved = JSON.stringify(state);
-        try { localStorage.setItem(KEY, lastSaved); } catch (e) { /* noop */ }
-        if (!document.body.classList.contains('viewer-mode')) renderAll();
-        setSync('☁ アカウントに保存済み', 'ok');
-      } else if (localHasData) {
-        lastSaved = '';
-        await flush(); // 端末にだけあったデータをアカウントへ移す
-      } else {
-        setSync('☁ アカウントに保存されます', 'ok');
+      const [db, user] = await Promise.all([use('db'), use('user')]);
+      if (!db || !user) { startLocal(); return; }
+      if (!(await user.canEdit())) { startMember(db); return; }
+      setRole('管理者');
+      const ref = db.doc('admin/state');
+      publicRef = db.doc('public/order');
+      let saved = (await ref.get()).data();
+      saved = saved && saved.state;
+      let moved = false;
+      if (!hasData(saved) && (await user.isOwner())) {
+        // 以前の保存先(所有者だけの非公開領域)から共有の管理者用データへ移す
+        const id = await user.id();
+        const old = id ? (await db.doc(`data/users/${id}/lineup`).get()).data() : null;
+        if (old && hasData(old.state)) { saved = old.state; moved = true; }
       }
+      remote = ref;
+      if (hasData(saved)) {
+        state = migrate(saved);
+        lastSaved = moved ? '' : JSON.stringify(state);
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* noop */ }
+        renderAll();
+        if (moved) await flush(); else setSync('☁ 保存済み(管理者で共有)', 'ok');
+      } else if (hasData(state)) {
+        lastSaved = '';
+        await flush(); // 端末にだけあったデータを移す
+      } else {
+        setSync('☁ 保存されます(管理者で共有)', 'ok');
+      }
+      showApp();
+      // 他の管理者の変更をそのまま反映する(自分の書き込みと未保存の編集中は除く)
+      ref.onSnapshot((snap) => {
+        const d = snap.exists && snap.data();
+        if (!d || !d.state || d.by === clientId || dirty || writing) return;
+        state = migrate(d.state);
+        lastSaved = JSON.stringify(state);
+        renderAll();
+        toast('他の管理者の変更を反映しました');
+      }, () => {});
     } catch (e) {
       remote = null;
+      startLocal();
     }
   }
 
@@ -1187,8 +1261,12 @@ window.TENNIS_VIEWER_ONLY = true;
     /* 管理者版でも閲覧リンクを開いたときは閲覧画面 */
   } else {
     lastSaved = JSON.stringify(state);
-    setSync('この端末に保存されます', '');
     renderAll();
+    if (window.claude && window.claude.use) {
+      // 権限が分かるまで管理画面は出さない(閲覧のみの人に名簿が一瞬見えないように)
+      renderViewer({ m: [] });
+      $('#viewer').innerHTML = '<div class="card muted">読み込み中…</div>';
+    }
     connectRemote();
   }
 })();
