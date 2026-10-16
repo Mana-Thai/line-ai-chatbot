@@ -506,6 +506,18 @@
     toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
       : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
   });
+  // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
+  $('#balanceMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    const r = R.balancedLineups(entries(), state.matches.map((m) => oppLevel(m)), { allowRepeat: !state.settings.oneEvent });
+    if (!r) { toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください'); return; }
+    state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
+    suggestions = {};
+    renderMatches();
+    const v = Object.values(r.counts);
+    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${Math.min(...v)}〜${Math.max(...v)}回`);
+  });
   $('#rebuildMatches').addEventListener('click', (e) => {
     if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }
     if (state.matches.some((m) => Object.keys(m.lineup).length) && !armed(e.target, 'もう一度押すと作り直し(組み合わせは消えます)')) return;

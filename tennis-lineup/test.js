@@ -95,4 +95,16 @@ assert.strictEqual(R.matchPlan(5).length, 4);
 assert.strictEqual(R.matchPlan(9).length, 5);
 assert.strictEqual(R.matchPlan(7).length, 4);
 assert.deepStrictEqual(R.matchPlan(11), []);
+// 勝率+出場回数のバランス(4対戦)
+const greedy = [5, 5, 5, 5].map(() => R.suggestLineups(esL, 5, { top: 1 })[0]);
+const gCounts = {}; greedy.forEach((g) => Object.values(g.lineup).flat().forEach((id) => (gCounts[id] = (gCounts[id] || 0) + 1)));
+const bal = R.balancedLineups(esL, [5, 5, 5, 5], {});
+assert.ok(bal && bal.lineups.length === 4);
+for (const lu of bal.lineups) {
+  assert.strictEqual(new Set(Object.values(lu).flat()).size, 10);
+  for (const e of R.EVENTS) assert.ok(R.checkPair(e, ...lu[e.id].map(get)).ok);
+}
+const spread = (c) => { const v = Object.values(c); return Math.max(...v) - Math.min(...v); };
+assert.ok(spread(bal.counts) <= 1, 'balanced counts within 1: ' + JSON.stringify(bal.counts));
+assert.ok(bal.avgP > 0.5);
 console.log('all tests passed');

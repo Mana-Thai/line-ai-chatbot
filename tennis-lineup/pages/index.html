@@ -147,6 +147,8 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .perm { display: grid; gap: 8px; }
 .permrow { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+button.private-btn { margin-bottom: 4px; }
+#tab-matches > button { margin-top: 6px; }
 
 </style>
 
@@ -191,7 +193,9 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
       <button id="rebuildMatches">このチーム数で対戦カードを作り直す</button>
     </div>
     <div id="matchList"></div>
-    <button id="autoMatches" class="primary">⚡ 全対戦の組み合わせを自動で作る</button>
+    <button id="balanceMatches" class="primary private-btn">⚖️ 勝率と出場回数のバランスで全対戦を自動作成</button>
+    <p class="hint private">🔒 各対戦の勝率予測(相手の強さ・選手レベル)をできるだけ高く保ちながら、全員の出場回数がそろうように全対戦をまとめて組み直します。</p>
+    <button id="autoMatches" class="ghost">⚡ 空き枠だけ自動で埋める(出場回数を均等に)</button>
     <button id="addMatch" class="ghost">+ 対戦を追加</button>
   </section>
 
@@ -448,6 +452,54 @@ window.TENNIS_VIEWER_ONLY = true;
     return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 各組1位で決勝、2位で3位決定戦(3.3)`, matches: a };
   }
 
+  // 全対戦をまとめて決める: 各対戦のチーム勝率の平均を高く保ちつつ、選手ごとの出場回数を
+  // できるだけそろえる。各対戦の上位候補(suggestLineups)から1案ずつ選び、
+  // 「平均勝率 − λ × 出場回数のばらつき(平均からの差の2乗の平均)」が最大になるよう
+  // 対戦ごとに選び直す(座標降下)を数回くり返す。
+  function balancedLineups(entries, oppLevels, opts) {
+    const o = Object.assign({ allowRepeat: false, lambda: 0.08, passes: 6 }, opts || {});
+    const M = oppLevels.length;
+    const first = oppLevels.map((opp) => suggestLineups(entries, opp, { allowRepeat: o.allowRepeat, top: 1 })[0]);
+    if (!M || first.some((c) => !c)) return null;
+    // 出場できる可能性のある選手(どれかの種目に出られる人)だけで出場回数をそろえる
+    const active = entries.filter((e) => EVENTS.some((ev) => canEnter(ev, e.player, e.age))).map((e) => e.player.id);
+    const ideal = (10 * M) / active.length;
+    const ids = (lu) => Object.values(lu).flat();
+    const pick = first.slice();
+    const evaluate = () => {
+      const counts = {};
+      active.forEach((id) => (counts[id] = 0));
+      pick.forEach((c) => ids(c.lineup).forEach((id) => (counts[id] = (counts[id] || 0) + 1)));
+      const spread = active.reduce((a, id) => a + (counts[id] - ideal) ** 2, 0) / active.length;
+      const avgP = pick.reduce((a, c) => a + c.p, 0) / M;
+      return { total: avgP - o.lambda * spread, avgP, counts };
+    };
+    let cur = evaluate().total;
+    for (let pass = 0; pass < o.passes; pass++) {
+      let changed = false;
+      for (let m = 0; m < M; m++) {
+        // ほかの対戦での出場回数から、この対戦で各選手を使うときの追加コストを出す
+        const others = {};
+        active.forEach((id) => (others[id] = 0));
+        pick.forEach((c, i) => { if (i !== m) ids(c.lineup).forEach((id) => (others[id] = (others[id] || 0) + 1)); });
+        const raw = {};
+        active.forEach((id) => (raw[id] = (o.lambda * M / active.length) * ((others[id] + 1 - ideal) ** 2 - (others[id] - ideal) ** 2)));
+        const minRaw = Math.min(...Object.values(raw));
+        const penalty = {};
+        active.forEach((id) => (penalty[id] = raw[id] - minRaw)); // 全員に同じ定数を足しても順位は変わらない
+        const cand = suggestLineups(entries, oppLevels[m], { allowRepeat: o.allowRepeat, top: 1, penalty })[0];
+        if (!cand) continue;
+        const keep = pick[m];
+        pick[m] = cand;
+        const t = evaluate().total;
+        if (t > cur + 1e-9) { cur = t; changed = true; } else pick[m] = keep;
+      }
+      if (!changed) break;
+    }
+    const r = evaluate();
+    return { lineups: pick.map((c) => c.lineup), probs: pick.map((c) => c.p), avgP: r.avgP, counts: r.counts };
+  }
+
   // 参加チーム数から、自チームが戦う対戦カードを大会規則3章どおりに作る。
   // 組の大きさが違うとき(7・9チーム)は、多い方の組に入った場合(試合数が最大)で作る。
   function matchPlan(teams) {
@@ -532,34 +584,44 @@ window.TENNIS_VIEWER_ONLY = true;
       return { ev, pairs };
     });
     if (lists.some((l) => !l.pairs.length)) return [];
+    // opts.penalty: {選手id: 0以上の値}。順位は「チーム勝率 − 選んだ選手のpenaltyの合計」で決める
+    // (出場回数をそろえるために balancedLineups が使う。未指定なら勝率だけ)
+    const pen = (opts && opts.penalty) || {};
+    const penOf = (pair) => (pen[pair.ids[0]] || 0) + (pen[pair.ids[1]] || 0);
+    if (opts && opts.penalty) lists.forEach((l) => l.pairs.sort((a, b) => (b.p - penOf(b)) - (a.p - penOf(a))));
     // 候補の少ない種目から決める
     const order = lists.slice().sort((a, b) => a.pairs.length - b.pairs.length);
     const best = [];
     const used = new Set();
     const chosen = [];
     let steps = 0;
-    const floor = () => (best.length < top ? -1 : best[best.length - 1].p);
+    const floor = () => (best.length < top ? -Infinity : best[best.length - 1].s);
+    let penSoFar = 0;
     function go(k) {
       if (++steps > 300000) return;
       if (k === order.length) {
         const ps = chosen.map((c) => c.p);
         const p = teamWinProb(ps);
-        if (p <= floor()) return;
+        const s = p - penSoFar;
+        if (s <= floor()) return;
         const lineup = {}, eventP = {};
         order.forEach((l, i) => { lineup[l.ev.id] = chosen[i].ids.slice(); eventP[l.ev.id] = chosen[i].p; });
-        best.push({ lineup, eventP, p });
-        best.sort((a, b) => b.p - a.p);
+        best.push({ lineup, eventP, p, s });
+        best.sort((a, b) => b.s - a.s);
         if (best.length > top) best.pop();
         return;
       }
       // 上限: 残りの種目に最強ペアを置けたとしても上位に入らないなら打ち切る
-      const bound = teamWinProb([...chosen.map((c) => c.p), ...order.slice(k).map((l) => l.pairs[0].p)]);
+      // (penalty は0以上なので、これまでの合計を引いた値が上限になる)
+      const bound = teamWinProb([...chosen.map((c) => c.p), ...order.slice(k).map((l) => Math.max(...l.pairs.map((x) => x.p)))]) - penSoFar;
       if (bound <= floor()) return;
       for (const pair of order[k].pairs) {
         if (!allowRepeat && (used.has(pair.ids[0]) || used.has(pair.ids[1]))) continue;
         chosen.push(pair);
+        penSoFar += penOf(pair);
         if (!allowRepeat) pair.ids.forEach((id) => used.add(id));
         go(k + 1);
+        penSoFar -= penOf(pair);
         chosen.pop();
         if (!allowRepeat) pair.ids.forEach((id) => used.delete(id));
       }
@@ -568,7 +630,7 @@ window.TENNIS_VIEWER_ONLY = true;
     return best;
   }
 
-  return { matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  return { balancedLineups, matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });
 
 </script>
@@ -1080,6 +1142,18 @@ window.TENNIS_VIEWER_ONLY = true;
     renderMatches();
     toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
       : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
+  });
+  // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
+  $('#balanceMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    const r = R.balancedLineups(entries(), state.matches.map((m) => oppLevel(m)), { allowRepeat: !state.settings.oneEvent });
+    if (!r) { toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください'); return; }
+    state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
+    suggestions = {};
+    renderMatches();
+    const v = Object.values(r.counts);
+    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${Math.min(...v)}〜${Math.max(...v)}回`);
   });
   $('#rebuildMatches').addEventListener('click', (e) => {
     if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }

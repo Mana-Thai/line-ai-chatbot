@@ -133,3 +133,5 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .perm { display: grid; gap: 8px; }
 .permrow { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+button.private-btn { margin-bottom: 4px; }
+#tab-matches > button { margin-top: 6px; }
