@@ -174,6 +174,29 @@
     return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 各組1位で決勝、2位で3位決定戦(3.3)`, matches: a };
   }
 
+  // 参加チーム数から、自チームが戦う対戦カードを大会規則3章どおりに作る。
+  // 組の大きさが違うとき(7・9チーム)は、多い方の組に入った場合(試合数が最大)で作る。
+  function matchPlan(teams) {
+    teams = Number(teams);
+    if (!teams || teams < 2 || teams > 10) return [];
+    const cards = [];
+    if (teams <= 5) {
+      for (let i = 1; i < teams; i++) cards.push({ label: `総当たり 第${i}試合`, note: `${teams}チームの総当たり(3.5)。合計得点で順位を決定` });
+      return cards;
+    }
+    const g = Math.ceil(teams / 2); // 自チームの組のチーム数(最大)
+    for (let i = 1; i < g; i++) cards.push({ label: `予選 第${i}試合`, note: `組内の総当たり(${g}チームの組・3.2)` });
+    if (teams === 6) {
+      cards.push({ label: '準決勝 / 5位決定戦', note: '組1位はもう一方の組の2位と、組2位はもう一方の組の1位と準決勝。組3位は5位決定戦(3.4)' });
+      cards.push({ label: '決勝 / 3位決定戦', note: '準決勝の勝者は決勝、敗者は3位決定戦。組3位はこの試合なし(3.4)' });
+    } else if (teams <= 8) {
+      cards.push({ label: '順位決定戦', note: `両組の同順位どうしで対戦。1位:決勝、2位:3位決定戦、3位:5位決定戦、4位:7位決定戦(3.1/3.2)${teams === 7 ? '。7チームのときB組は3チームのため、A組4位はこの試合なし' : ''}` });
+    } else {
+      cards.push({ label: '決勝 / 3位決定戦', note: '組1位どうしで決勝、組2位どうしで3位決定戦。組3位以下はこの試合なし(3.3)' });
+    }
+    return cards;
+  }
+
   // 参加費を出場回数(種目への出場数)に比例して分ける。1バーツ単位で、合計がちょうど total になるよう
   // 端数は小数部の大きい人から1バーツずつ足す(最大剰余法)。全員0回なら全員0。
   function splitFee(total, counts) {
@@ -271,5 +294,5 @@
     return best;
   }
 
-  return { LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  return { matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });

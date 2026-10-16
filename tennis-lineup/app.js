@@ -61,7 +61,8 @@
     writing = true;
     const json = JSON.stringify(state);
     try {
-      const savedAt = Date.now();
+      const savedAt = Math.max(Date.now(), latestSavedAt + 1);
+      latestSavedAt = savedAt;
       await remote.set({ state: JSON.parse(json), savedAt, by: clientId });
       if (publicRef) await publicRef.set({ view: shareData(), savedAt });
       lastSaved = json;
@@ -79,6 +80,7 @@
   // ※ アクセス制御は db のルール(admin は admin 以上のみ読める)で行う
   const clientId = uid();
   let publicRef = null, dirty = false;
+  let latestSavedAt = 0; // 自分が書いた/取り込んだ中で最新の保存時刻。これより古い通知は無視する
   const hasData = (s) => !!s && ((s.players || []).length + (s.matches || []).length > 0);
   function setRole(text) {
     const el = $('#roleBadge');
@@ -122,6 +124,7 @@
       const ref = db.doc('admin/state');
       publicRef = db.doc('public/order');
       let saved = (await ref.get()).data();
+      latestSavedAt = (saved && saved.savedAt) || 0;
       saved = saved && saved.state;
       let moved = false;
       if (!hasData(saved) && (await user.isOwner())) {
@@ -148,6 +151,9 @@
       ref.onSnapshot((snap) => {
         const d = snap.exists && snap.data();
         if (!d || !d.state || d.by === clientId || dirty || writing) return;
+        if (snap.metadata && snap.metadata.fromCache) return; // 確定していない(古いかもしれない)内容は使わない
+        if (!(d.savedAt > latestSavedAt)) return;            // 手元より古い保存は無視
+        latestSavedAt = d.savedAt;
         const next = migrate(d.state);
         const json = JSON.stringify(next);
         if (json === JSON.stringify(state)) { lastSaved = json; return; } // 同じ内容なら何もしない
@@ -374,6 +380,7 @@
   }
 
   function renderMatches() {
+    if (!state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
     totals = loadCount(null);
     const f = R.formatFor(state.settings.teams);
     $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
@@ -388,6 +395,7 @@
           <input class="m-opp" value="${esc(m.opponent)}" placeholder="相手チーム">
           <span class="badge ${done === 5 ? 'okb' : ''}">${done}/5</span>
         </div>
+        ${m.note ? `<p class="hint mnote">${esc(m.note)}</p>` : ''}
         ${R.EVENTS.map((ev) => {
           const pair = m.lineup[ev.id] || ['', ''];
           const is = issues[ev.id];
@@ -470,18 +478,16 @@
     }
     renderMatches();
   });
-  // 対戦がなければ大会方式から試合数を決めて作成し、全対戦の空き枠を自動で組む
-  $('#autoMatches').addEventListener('click', () => {
-    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
-    if (!state.matches.length) {
-      const f = R.formatFor(state.settings.teams);
-      const n = f ? f.matches : 4;
-      const groupOnly = Number(state.settings.teams) <= 5;
-      for (let i = 1; i <= n; i++) {
-        const label = groupOnly || i < n ? `予選${i}` : '順位決定戦';
-        state.matches.push({ id: uid(), label, opponent: '', lineup: {} });
-      }
-    }
+  // 参加チーム数から大会規則どおりの対戦カードを作る(既存カードの相手チーム名は引き継ぐ)
+  function buildCards() {
+    const plan = R.matchPlan(state.settings.teams);
+    if (!plan.length) return false;
+    const old = state.matches;
+    state.matches = plan.map((c, i) => ({ id: uid(), label: c.label, note: c.note, opponent: (old[i] && old[i].opponent) || '', lineup: {} }));
+    state.settings.cardsFor = Number(state.settings.teams);
+    return true;
+  }
+  function autofillAll() {
     let failed = 0;
     for (const m of state.matches) {
       const issues = matchIssues(m);
@@ -490,9 +496,23 @@
       const r = R.autoAssign(entries(), fixed, loadCount(m.id), { allowRepeat: !state.settings.oneEvent });
       if (r.ok) m.lineup = r.lineup; else failed++;
     }
+    return failed;
+  }
+  $('#autoMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    const failed = autofillAll();
     renderMatches();
     toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
       : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
+  });
+  $('#rebuildMatches').addEventListener('click', (e) => {
+    if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    if (state.matches.some((m) => Object.keys(m.lineup).length) && !armed(e.target, 'もう一度押すと作り直し(組み合わせは消えます)')) return;
+    buildCards();
+    if (entries().length) autofillAll();
+    renderMatches();
+    toast(`${state.settings.teams}チームの大会方式で対戦カードを作りました`);
   });
   $('#addMatch').addEventListener('click', () => {
     state.matches.push({ id: uid(), label: `予選${state.matches.length + 1}`, opponent: '', lineup: {} });
@@ -582,7 +602,7 @@
       f: Number(state.settings.fee) || 0,
       n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
       m: state.matches.map((m) => ({
-        l: m.label, o: m.opponent,
+        l: m.label, o: m.opponent, d: m.note || '',
         p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
       })),
     };
@@ -694,6 +714,7 @@
     v.hidden = false;
     const matches = (data.m || []).map((m) => `<div class="card">
       <h2>${esc(m.l || '対戦')}${m.o ? ` <span class="vs">vs ${esc(m.o)}</span>` : ''}</h2>
+      ${m.d ? `<p class="hint">${esc(m.d)}</p>` : ''}
       ${R.EVENTS.map((ev, i) => {
         const names = ((m.p || [])[i] || []).filter(Boolean);
         return `<div class="vrow"><div class="vev">${ev.no}. ${esc(ev.ja)}<small>${esc(ev.th)}</small></div>

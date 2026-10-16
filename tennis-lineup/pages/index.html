@@ -188,6 +188,7 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
       <label class="row">参加チーム数 <input id="teams" type="number" min="2" max="10" inputmode="numeric"></label>
       <p class="hint" id="formatText"></p>
       <label class="check"><input type="checkbox" id="oneEvent"> 1つの対戦では1人1種目まで(推奨)</label>
+      <button id="rebuildMatches">このチーム数で対戦カードを作り直す</button>
     </div>
     <div id="matchList"></div>
     <button id="autoMatches" class="primary">⚡ 全対戦の組み合わせを自動で作る</button>
@@ -447,6 +448,29 @@ window.TENNIS_VIEWER_ONLY = true;
     return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 各組1位で決勝、2位で3位決定戦(3.3)`, matches: a };
   }
 
+  // 参加チーム数から、自チームが戦う対戦カードを大会規則3章どおりに作る。
+  // 組の大きさが違うとき(7・9チーム)は、多い方の組に入った場合(試合数が最大)で作る。
+  function matchPlan(teams) {
+    teams = Number(teams);
+    if (!teams || teams < 2 || teams > 10) return [];
+    const cards = [];
+    if (teams <= 5) {
+      for (let i = 1; i < teams; i++) cards.push({ label: `総当たり 第${i}試合`, note: `${teams}チームの総当たり(3.5)。合計得点で順位を決定` });
+      return cards;
+    }
+    const g = Math.ceil(teams / 2); // 自チームの組のチーム数(最大)
+    for (let i = 1; i < g; i++) cards.push({ label: `予選 第${i}試合`, note: `組内の総当たり(${g}チームの組・3.2)` });
+    if (teams === 6) {
+      cards.push({ label: '準決勝 / 5位決定戦', note: '組1位はもう一方の組の2位と、組2位はもう一方の組の1位と準決勝。組3位は5位決定戦(3.4)' });
+      cards.push({ label: '決勝 / 3位決定戦', note: '準決勝の勝者は決勝、敗者は3位決定戦。組3位はこの試合なし(3.4)' });
+    } else if (teams <= 8) {
+      cards.push({ label: '順位決定戦', note: `両組の同順位どうしで対戦。1位:決勝、2位:3位決定戦、3位:5位決定戦、4位:7位決定戦(3.1/3.2)${teams === 7 ? '。7チームのときB組は3チームのため、A組4位はこの試合なし' : ''}` });
+    } else {
+      cards.push({ label: '決勝 / 3位決定戦', note: '組1位どうしで決勝、組2位どうしで3位決定戦。組3位以下はこの試合なし(3.3)' });
+    }
+    return cards;
+  }
+
   // 参加費を出場回数(種目への出場数)に比例して分ける。1バーツ単位で、合計がちょうど total になるよう
   // 端数は小数部の大きい人から1バーツずつ足す(最大剰余法)。全員0回なら全員0。
   function splitFee(total, counts) {
@@ -544,7 +568,7 @@ window.TENNIS_VIEWER_ONLY = true;
     return best;
   }
 
-  return { LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  return { matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });
 
 </script>
@@ -612,7 +636,8 @@ window.TENNIS_VIEWER_ONLY = true;
     writing = true;
     const json = JSON.stringify(state);
     try {
-      const savedAt = Date.now();
+      const savedAt = Math.max(Date.now(), latestSavedAt + 1);
+      latestSavedAt = savedAt;
       await remote.set({ state: JSON.parse(json), savedAt, by: clientId });
       if (publicRef) await publicRef.set({ view: shareData(), savedAt });
       lastSaved = json;
@@ -630,6 +655,7 @@ window.TENNIS_VIEWER_ONLY = true;
   // ※ アクセス制御は db のルール(admin は admin 以上のみ読める)で行う
   const clientId = uid();
   let publicRef = null, dirty = false;
+  let latestSavedAt = 0; // 自分が書いた/取り込んだ中で最新の保存時刻。これより古い通知は無視する
   const hasData = (s) => !!s && ((s.players || []).length + (s.matches || []).length > 0);
   function setRole(text) {
     const el = $('#roleBadge');
@@ -673,6 +699,7 @@ window.TENNIS_VIEWER_ONLY = true;
       const ref = db.doc('admin/state');
       publicRef = db.doc('public/order');
       let saved = (await ref.get()).data();
+      latestSavedAt = (saved && saved.savedAt) || 0;
       saved = saved && saved.state;
       let moved = false;
       if (!hasData(saved) && (await user.isOwner())) {
@@ -699,6 +726,9 @@ window.TENNIS_VIEWER_ONLY = true;
       ref.onSnapshot((snap) => {
         const d = snap.exists && snap.data();
         if (!d || !d.state || d.by === clientId || dirty || writing) return;
+        if (snap.metadata && snap.metadata.fromCache) return; // 確定していない(古いかもしれない)内容は使わない
+        if (!(d.savedAt > latestSavedAt)) return;            // 手元より古い保存は無視
+        latestSavedAt = d.savedAt;
         const next = migrate(d.state);
         const json = JSON.stringify(next);
         if (json === JSON.stringify(state)) { lastSaved = json; return; } // 同じ内容なら何もしない
@@ -925,6 +955,7 @@ window.TENNIS_VIEWER_ONLY = true;
   }
 
   function renderMatches() {
+    if (!state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
     totals = loadCount(null);
     const f = R.formatFor(state.settings.teams);
     $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
@@ -939,6 +970,7 @@ window.TENNIS_VIEWER_ONLY = true;
           <input class="m-opp" value="${esc(m.opponent)}" placeholder="相手チーム">
           <span class="badge ${done === 5 ? 'okb' : ''}">${done}/5</span>
         </div>
+        ${m.note ? `<p class="hint mnote">${esc(m.note)}</p>` : ''}
         ${R.EVENTS.map((ev) => {
           const pair = m.lineup[ev.id] || ['', ''];
           const is = issues[ev.id];
@@ -1021,18 +1053,16 @@ window.TENNIS_VIEWER_ONLY = true;
     }
     renderMatches();
   });
-  // 対戦がなければ大会方式から試合数を決めて作成し、全対戦の空き枠を自動で組む
-  $('#autoMatches').addEventListener('click', () => {
-    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
-    if (!state.matches.length) {
-      const f = R.formatFor(state.settings.teams);
-      const n = f ? f.matches : 4;
-      const groupOnly = Number(state.settings.teams) <= 5;
-      for (let i = 1; i <= n; i++) {
-        const label = groupOnly || i < n ? `予選${i}` : '順位決定戦';
-        state.matches.push({ id: uid(), label, opponent: '', lineup: {} });
-      }
-    }
+  // 参加チーム数から大会規則どおりの対戦カードを作る(既存カードの相手チーム名は引き継ぐ)
+  function buildCards() {
+    const plan = R.matchPlan(state.settings.teams);
+    if (!plan.length) return false;
+    const old = state.matches;
+    state.matches = plan.map((c, i) => ({ id: uid(), label: c.label, note: c.note, opponent: (old[i] && old[i].opponent) || '', lineup: {} }));
+    state.settings.cardsFor = Number(state.settings.teams);
+    return true;
+  }
+  function autofillAll() {
     let failed = 0;
     for (const m of state.matches) {
       const issues = matchIssues(m);
@@ -1041,9 +1071,23 @@ window.TENNIS_VIEWER_ONLY = true;
       const r = R.autoAssign(entries(), fixed, loadCount(m.id), { allowRepeat: !state.settings.oneEvent });
       if (r.ok) m.lineup = r.lineup; else failed++;
     }
+    return failed;
+  }
+  $('#autoMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    const failed = autofillAll();
     renderMatches();
     toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
       : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
+  });
+  $('#rebuildMatches').addEventListener('click', (e) => {
+    if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    if (state.matches.some((m) => Object.keys(m.lineup).length) && !armed(e.target, 'もう一度押すと作り直し(組み合わせは消えます)')) return;
+    buildCards();
+    if (entries().length) autofillAll();
+    renderMatches();
+    toast(`${state.settings.teams}チームの大会方式で対戦カードを作りました`);
   });
   $('#addMatch').addEventListener('click', () => {
     state.matches.push({ id: uid(), label: `予選${state.matches.length + 1}`, opponent: '', lineup: {} });
@@ -1133,7 +1177,7 @@ window.TENNIS_VIEWER_ONLY = true;
       f: Number(state.settings.fee) || 0,
       n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
       m: state.matches.map((m) => ({
-        l: m.label, o: m.opponent,
+        l: m.label, o: m.opponent, d: m.note || '',
         p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
       })),
     };
@@ -1245,6 +1289,7 @@ window.TENNIS_VIEWER_ONLY = true;
     v.hidden = false;
     const matches = (data.m || []).map((m) => `<div class="card">
       <h2>${esc(m.l || '対戦')}${m.o ? ` <span class="vs">vs ${esc(m.o)}</span>` : ''}</h2>
+      ${m.d ? `<p class="hint">${esc(m.d)}</p>` : ''}
       ${R.EVENTS.map((ev, i) => {
         const names = ((m.p || [])[i] || []).filter(Boolean);
         return `<div class="vrow"><div class="vev">${ev.no}. ${esc(ev.ja)}<small>${esc(ev.th)}</small></div>

@@ -87,4 +87,12 @@ let bestP = 0;
   }
 })(0, new Set(), []);
 assert.ok(Math.abs(sug[0].p - bestP) < 1e-9, `${sug[0].p} vs ${bestP}`);
+// 対戦カード(規則3章)
+assert.deepStrictEqual(R.matchPlan(8).map((c) => c.label), ['予選 第1試合', '予選 第2試合', '予選 第3試合', '順位決定戦']);
+assert.deepStrictEqual(R.matchPlan(10).map((c) => c.label), ['予選 第1試合', '予選 第2試合', '予選 第3試合', '予選 第4試合', '決勝 / 3位決定戦']);
+assert.deepStrictEqual(R.matchPlan(6).map((c) => c.label), ['予選 第1試合', '予選 第2試合', '準決勝 / 5位決定戦', '決勝 / 3位決定戦']);
+assert.strictEqual(R.matchPlan(5).length, 4);
+assert.strictEqual(R.matchPlan(9).length, 5);
+assert.strictEqual(R.matchPlan(7).length, 4);
+assert.deepStrictEqual(R.matchPlan(11), []);
 console.log('all tests passed');
