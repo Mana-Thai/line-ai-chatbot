@@ -190,7 +190,8 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
       <label class="check"><input type="checkbox" id="oneEvent"> 1つの対戦では1人1種目まで(推奨)</label>
     </div>
     <div id="matchList"></div>
-    <button id="addMatch" class="primary">+ 対戦を追加</button>
+    <button id="autoMatches" class="primary">⚡ 全対戦の組み合わせを自動で作る</button>
+    <button id="addMatch" class="ghost">+ 対戦を追加</button>
   </section>
 
   <section id="tab-stats" class="tab">
@@ -665,7 +666,9 @@ window.TENNIS_VIEWER_ONLY = true;
     try {
       const [db, user] = await Promise.all([use('db'), use('user')]);
       if (!db || !user) { startLocal(); return; }
-      if (!(await user.canEdit())) { startMember(db); return; }
+      // 所有者は必ず管理者画面(canEdit が取れない環境でも閲覧専用にしない)
+      const isAdmin = (await user.canEdit()) || (await user.isOwner());
+      if (!isAdmin) { startMember(db); return; }
       setRole('管理者');
       const ref = db.doc('admin/state');
       publicRef = db.doc('public/order');
@@ -696,8 +699,11 @@ window.TENNIS_VIEWER_ONLY = true;
       ref.onSnapshot((snap) => {
         const d = snap.exists && snap.data();
         if (!d || !d.state || d.by === clientId || dirty || writing) return;
-        state = migrate(d.state);
-        lastSaved = JSON.stringify(state);
+        const next = migrate(d.state);
+        const json = JSON.stringify(next);
+        if (json === JSON.stringify(state)) { lastSaved = json; return; } // 同じ内容なら何もしない
+        state = next;
+        lastSaved = json;
         renderAll();
         toast('他の管理者の変更を反映しました');
       }, () => {});
@@ -953,7 +959,7 @@ window.TENNIS_VIEWER_ONLY = true;
           <button data-act="del" class="danger">対戦を削除</button>
         </div>
       </div>`;
-    }).join('') || '<div class="card muted">まだ対戦がありません。「+ 対戦を追加」で作成してください。</div>';
+    }).join('') || '<div class="card muted">まだ対戦がありません。下の「⚡ 全対戦の組み合わせを自動で作る」を押すと、参加チーム数に合わせて対戦を作り、メンバーを自動で組み合わせます。</div>';
     save();
   }
 
@@ -1014,6 +1020,30 @@ window.TENNIS_VIEWER_ONLY = true;
       m.lineup = r.lineup;
     }
     renderMatches();
+  });
+  // 対戦がなければ大会方式から試合数を決めて作成し、全対戦の空き枠を自動で組む
+  $('#autoMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length) {
+      const f = R.formatFor(state.settings.teams);
+      const n = f ? f.matches : 4;
+      const groupOnly = Number(state.settings.teams) <= 5;
+      for (let i = 1; i <= n; i++) {
+        const label = groupOnly || i < n ? `予選${i}` : '順位決定戦';
+        state.matches.push({ id: uid(), label, opponent: '', lineup: {} });
+      }
+    }
+    let failed = 0;
+    for (const m of state.matches) {
+      const issues = matchIssues(m);
+      const fixed = {};
+      for (const ev of R.EVENTS) if (issues[ev.id].state === 'ok') fixed[ev.id] = m.lineup[ev.id];
+      const r = R.autoAssign(entries(), fixed, loadCount(m.id), { allowRepeat: !state.settings.oneEvent });
+      if (r.ok) m.lineup = r.lineup; else failed++;
+    }
+    renderMatches();
+    toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
+      : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
   });
   $('#addMatch').addEventListener('click', () => {
     state.matches.push({ id: uid(), label: `予選${state.matches.length + 1}`, opponent: '', lineup: {} });
