@@ -109,77 +109,6 @@
       $('#viewer').innerHTML = '<div class="card"><p>オーダーを読み込めませんでした。ページを開き直してください。</p></div>';
     });
   }
-  // ---------- 編集ロック(管理者どうしの同時編集を防ぐ) ----------
-  // 全体で1人だけ編集できる。admin/lock の lease(30秒・10秒ごとに更新)で排他し、
-  // 状態表示用に {by: 編集者のid, until: 期限(ms)} を同じ文書に書く。
-  // 「編集を終える」・5分間操作なし・ページを閉じて30秒で解除。
-  const LOCK_TTL = 30000, LOCK_RENEW = 10000, LOCK_IDLE = 5 * 60000;
-  let lock = null; // {ref, user, myId, editing, info, renewTimer, lastActive}
-  async function nameOf(id) {
-    try { const ps = await lock.user.profiles([id]); return (ps[id] && ps[id].name) || ''; } catch (e) { return ''; }
-  }
-  function applyEditable() {
-    const ro = !!lock && !lock.editing;
-    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = ro;
-    for (const id of ['resetAll', 'loadFile']) document.getElementById(id).disabled = ro;
-    $('#app').classList.toggle('readonly', ro);
-  }
-  async function renderLockBar() {
-    if (!lock) return;
-    const bar = $('#lockBar');
-    bar.hidden = false;
-    const info = lock.info || {};
-    const busy = !lock.editing && info.by && info.by !== lock.myId && info.until > Date.now();
-    if (lock.editing) {
-      bar.className = 'lockbar mine';
-      bar.innerHTML = '<span>✏️ 編集中(ほかの管理者は編集できません)</span><button id="lockEnd">編集を終える</button>';
-    } else if (busy) {
-      const who = await nameOf(info.by);
-      bar.className = 'lockbar busy';
-      bar.innerHTML = `<span>🔒 他のユーザー${who ? `(${esc(who)}さん)` : ''}が編集中です。編集が終わるまでお待ちください</span>`;
-    } else {
-      bar.className = 'lockbar';
-      bar.innerHTML = '<span>👀 閲覧中</span><button id="lockStart" class="primary-inline">編集を始める</button>';
-    }
-    applyEditable();
-  }
-  async function acquireLock(ttl, until) {
-    return lock.ref.acquire({ holder: clientId, ttlMs: ttl, data: { by: lock.myId, until } });
-  }
-  async function startEditing() {
-    const r = await acquireLock(LOCK_TTL, Date.now() + LOCK_TTL).catch(() => ({ acquired: false }));
-    if (!r.acquired) { toast('他のユーザーが編集中です'); renderLockBar(); return; }
-    lock.editing = true;
-    lock.lastActive = Date.now();
-    clearInterval(lock.renewTimer);
-    lock.renewTimer = setInterval(async () => {
-      if (Date.now() - lock.lastActive > LOCK_IDLE) { await endEditing(); toast('5分間操作がなかったため編集を終了しました'); return; }
-      const rr = await acquireLock(LOCK_TTL, Date.now() + LOCK_TTL).catch(() => ({ acquired: false }));
-      if (!rr.acquired) { lock.editing = false; clearInterval(lock.renewTimer); toast('編集権が切れました。もう一度「編集を始める」を押してください'); renderLockBar(); }
-    }, LOCK_RENEW);
-    renderLockBar();
-  }
-  async function endEditing() {
-    if (!lock || !lock.editing) return;
-    clearInterval(lock.renewTimer);
-    clearTimeout(saveTimer);
-    if (dirty) await flush(); // 未保存の変更を先に保存
-    lock.editing = false;
-    await acquireLock(1000, 0).catch(() => {}); // 1秒で切れる lease にして解放
-    renderLockBar();
-  }
-  function startLock(db, user, myId) {
-    lock = { ref: db.doc('admin/lock'), user, myId, editing: false, info: null, renewTimer: null, lastActive: 0 };
-    $('#lockBar').addEventListener('click', (e) => {
-      if (e.target.id === 'lockStart') startEditing();
-      if (e.target.id === 'lockEnd') endEditing();
-    });
-    for (const ev of ['input', 'click', 'keydown']) $('#app').addEventListener(ev, () => { if (lock.editing) lock.lastActive = Date.now(); }, true);
-    lock.ref.onSnapshot((snap) => { lock.info = snap.exists ? snap.data() : null; if (!lock.editing) renderLockBar(); }, () => {});
-    setInterval(() => { if (!lock.editing) renderLockBar(); }, 5000); // 期限切れ(相手がページを閉じた等)を反映
-    renderLockBar();
-  }
-
   async function connectRemote() {
     const use = window.claude && window.claude.use;
     if (!use) { startLocal(); return; }
@@ -213,11 +142,10 @@
         setSync('☁ 保存されます(管理者で共有)', 'ok');
       }
       showApp();
-      startLock(db, user, await user.id());
       // 他の管理者の変更をそのまま反映する(自分の書き込みと未保存の編集中は除く)
       ref.onSnapshot((snap) => {
         const d = snap.exists && snap.data();
-        if (!d || !d.state || d.by === clientId || dirty || writing || (lock && lock.editing)) return;
+        if (!d || !d.state || d.by === clientId || dirty || writing) return;
         state = migrate(d.state);
         lastSaved = JSON.stringify(state);
         renderAll();

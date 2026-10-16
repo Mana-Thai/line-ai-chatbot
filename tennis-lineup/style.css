@@ -133,9 +133,3 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .perm { display: grid; gap: 8px; }
 .permrow { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
-.lockbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; font-size: 14px; box-shadow: 0 2px 6px rgb(0 0 0 / .08); }
-.lockbar.mine { background: var(--okbg); border-color: var(--ok); color: var(--ok); }
-.lockbar.busy { background: var(--warnbg); border-color: var(--warn); color: var(--warn); font-weight: bold; }
-.lockbar button.primary-inline { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-#app.readonly #tab-roster, #app.readonly #tab-matches, #app.readonly #tab-stats { opacity: .75; }
