@@ -46,3 +46,10 @@
 - `public/order` … メンバーに見せる内容(名前・オーダー・出場回数・参加費)。全員が読め、書けるのは admin 以上
 - 画面は `user.canEdit()` で管理者画面/閲覧画面を切り替える(表示の切替だけで、守っているのはルール)
 - 管理者どうしの同時編集は最後の保存が勝つ。他の管理者の変更は自動で反映される
+
+## Cloudflare版(LINEログイン)
+
+`cloudflare/` に Cloudflare Workers + D1 + LINEログイン版がある。画面は同じ(`build.py --cf` で生成)。
+`client/cf-adapter.js` が app.js の `window.claude.use('db'/'user')` と同じ形で自前API(`src/worker.js`)につなぐため、
+app.js は claude.ai 版と共通。権限は users テーブル(admin / viewer)、データは docs テーブル(admin_state / public_order)。
+公開手順は `cloudflare/SETUP.md`。

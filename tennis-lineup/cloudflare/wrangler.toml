@@ -1,0 +1,21 @@
+# 伝統テニス大会 オーダー表(Cloudflare版): Workers(画面+API)+ D1(データ)
+name = "tennis-lineup"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+# 画面(public/ は ../build.py で生成してコミットする)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# データベース。Cloudflare の画面で D1 を作り、その Database ID をここに入れる
+[[d1_databases]]
+binding = "DB"
+database_name = "tennis-lineup"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# 公開してよい設定(LINE Developers の値)。秘密の値は「シークレット」に入れる(SETUP.md 参照)
+[vars]
+LIFF_ID = ""
+LINE_LOGIN_CHANNEL_ID = ""

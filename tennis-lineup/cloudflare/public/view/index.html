@@ -1,0 +1,1428 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>伝統テニス大会 オーダー</title>
+<meta name="description" content="第44回 チョンブリー県内クラブ・同好会対抗 伝統テニス大会 チームオーダー">
+<meta property="og:title" content="伝統テニス大会 オーダー">
+<meta property="og:description" content="2026/11/14 Greta Sport Club Pattaya ・ チームオーダーと参加費の分担">
+<meta property="og:type" content="website">
+<meta name="robots" content="noindex">
+
+</head>
+<body>
+<style>
+/* コートの緑を基調にしたスマホ向け1カラムの作業画面 */
+:root {
+  --bg: #f4f6f3; --card: #fff; --field: #fff; --ink: #1d2a22; --muted: #6b7a70; --line: #dfe5df;
+  --private: #6b3fbf; --privatebg: #f3edfc;
+  --accent: #2f7d4a; --on-accent: #fff; --ok: #2f7d4a; --okbg: #eaf6ee; --err: #c0392b; --errbg: #fdecea; --warn: #a86a00; --warnbg: #fff5e0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121814; --card: #1b231e; --field: #232d27; --ink: #e3ebe5; --muted: #93a398; --line: #2f3b34;
+    --private: #c4a4ff; --privatebg: #2a2238;
+    --accent: #3f9b5f; --on-accent: #fff; --ok: #6fcf8f; --okbg: #1d3326; --err: #ff8a7a; --errbg: #3a201d; --warn: #f0b860; --warnbg: #3a2e18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121814; --card: #1b231e; --field: #232d27; --ink: #e3ebe5; --muted: #93a398; --line: #2f3b34;
+  --private: #c4a4ff; --privatebg: #2a2238;
+  --accent: #3f9b5f; --on-accent: #fff; --ok: #6fcf8f; --okbg: #1d3326; --err: #ff8a7a; --errbg: #3a201d; --warn: #f0b860; --warnbg: #3a2e18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 "Hiragino Sans", "Noto Sans JP", "Noto Sans Thai", system-ui, sans-serif; }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--accent); color: var(--on-accent); padding: 10px 16px 0; }
+.top h1 { font-size: 18px; margin: 0; }
+.sub { margin: 0 0 8px; font-size: 12px; opacity: .85; }
+.tabs { display: flex; gap: 4px; overflow-x: auto; }
+.tabs button { flex: 1; border: 0; background: transparent; color: var(--on-accent); opacity: .75; padding: 10px 4px; font-size: 14px; border-bottom: 3px solid transparent; white-space: nowrap; }
+.tabs button.on { opacity: 1; border-bottom-color: var(--on-accent); font-weight: bold; }
+main { max-width: 760px; margin: 0 auto; padding: 12px 16px 60px; }
+.tab { display: none; } .tab.on { display: block; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+.card h2 { font-size: 16px; margin: 0 0 8px; }
+.card.ok { background: var(--okbg); border-color: #bfe3cb; color: var(--ok); }
+.card.alert p { margin: 2px 0; }
+.err { color: var(--err); } .warn { color: var(--warn); } .muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 12px; margin: 4px 0; }
+.row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+input, select, textarea, button { font: inherit; color: inherit; }
+input, select { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--field); min-width: 0; }
+button { border: 1px solid var(--line); background: var(--field); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); width: 100%; }
+button.danger { color: var(--err); }
+button.icon { padding: 6px 10px; }
+.badge { font-size: 12px; background: var(--bg); border-radius: 99px; padding: 2px 8px; color: var(--muted); font-weight: normal; }
+.badge.okb { background: var(--okbg); color: var(--ok); }
+.check { display: flex; gap: 6px; align-items: center; font-size: 14px; }
+
+.player { display: grid; grid-template-columns: 1fr 64px; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.player .p-name { grid-column: 1 / 2; }
+.player .p-agebox { grid-column: 1 / 2; display: flex; align-items: center; gap: 6px; }
+.player .p-age { width: 80px; }
+.player .p-age.invalid { border-color: var(--err); background: var(--errbg); }
+.player .p-note { grid-column: 1 / -1; font-size: 13px; }
+.player .p-elig { grid-column: 1 / 2; }
+.player .p-del { justify-self: center; }
+#playerList { margin-bottom: 10px; }
+
+.cov { border-left: 4px solid var(--ok); padding: 4px 8px; margin: 6px 0; font-size: 13px; }
+.cov.bad { border-left-color: var(--err); background: var(--errbg); }
+.cov small, .player small, .stats small { color: var(--muted); margin-left: 2px; font-size: 11px; }
+
+.mhead { display: grid; grid-template-columns: 1fr auto 1.4fr auto; gap: 6px; align-items: center; margin-bottom: 8px; }
+.ev { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 8px; margin: 6px 0; }
+.ev.ok { border-left-color: var(--ok); background: var(--okbg); }
+.ev.err { border-left-color: var(--err); background: var(--errbg); }
+.ev.warn { border-left-color: var(--warn); background: var(--warnbg); }
+.evh { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-bottom: 6px; font-size: 14px; }
+.evh small { color: var(--muted); font-size: 11px; }
+.sum { margin-left: auto; font-size: 12px; font-weight: bold; }
+.slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.msg { margin: 4px 0 0; font-size: 12px; }
+.ev.err .msg { color: var(--err); } .ev.warn .msg { color: var(--warn); }
+.mbtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.scroll { overflow-x: auto; }
+.stats { border-collapse: collapse; font-size: 13px; width: 100%; }
+.stats th, .stats td { border: 1px solid var(--line); padding: 4px 6px; text-align: center; white-space: nowrap; }
+.stats tbody th { text-align: left; }
+.stats tr.zero th { color: var(--err); }
+
+textarea { width: 100%; min-height: 200px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; font-size: 13px; }
+.seg { display: flex; gap: 4px; margin-bottom: 6px; }
+.seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.filebtn { display: inline-block; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.filebtn input { display: none; }
+#tab-export .card > button, #tab-export .filebtn { margin: 4px 4px 0 0; }
+
+@media (min-width: 640px) {
+  .player { grid-template-columns: 1.4fr 64px 110px 1.4fr auto; }
+  .player .p-name, .player .p-agebox, .player .p-elig { grid-column: auto; }
+  .row { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+textarea.short { min-height: 70px; word-break: break-all; }
+#shareOpen { font-size: 13px; margin-left: 4px; }
+.vteam { font-weight: bold; margin: 4px 0 10px; }
+.vs { font-weight: normal; color: var(--muted); }
+.vrow { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+.vev { flex: 1 1 220px; font-size: 13px; }
+.vev small { display: block; color: var(--muted); font-size: 11px; }
+.vnames { flex: 1 1 180px; font-weight: bold; }
+.stats td.fee { text-align: right; font-weight: bold; }
+.stats tfoot th, .stats tfoot td { background: var(--bg); }
+button.ghost { width: 100%; margin-top: 6px; background: transparent; border-style: dashed; color: var(--accent); }
+button.armed { background: var(--err); color: var(--on-accent); border-color: var(--err); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea { background: var(--field); }
+#toast { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+  max-width: 560px; margin: 0 auto; background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 8px; font-size: 14px; }
+.previewbar { position: sticky; bottom: env(safe-area-inset-bottom, 0px); display: flex; gap: 8px; align-items: center; justify-content: space-between;
+  background: var(--warnbg); border: 1px solid var(--warn); color: var(--warn); border-radius: 8px; padding: 8px 10px; margin-top: 12px; }
+#viewer { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; }
+
+/* 管理者だけが見られる情報(メンバー用リンクに入らないもの) */
+.private, .private small, input.private, select.private, textarea.private { color: var(--private); }
+input.private, select.private, textarea.private { border-color: color-mix(in srgb, var(--private) 45%, var(--line)); }
+.legend { font-size: 12px; background: var(--privatebg); border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; }
+.player .p-level { flex: 1; min-width: 0; }
+.evp { margin-left: auto; font-size: 12px; font-weight: bold; }
+.forecast { background: var(--privatebg); border-radius: 8px; padding: 10px; margin-top: 10px; display: grid; gap: 8px; }
+.forecast .fhead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; }
+.forecast .big { font-size: 20px; font-variant-numeric: tabular-nums; }
+.forecast .msg { margin: 0; color: var(--private); }
+.forecast button { border-color: var(--private); color: var(--private); background: var(--field); justify-self: start; }
+.sug { background: var(--card); border: 1px solid color-mix(in srgb, var(--private) 35%, var(--line)); border-radius: 8px; padding: 8px; }
+.sugh { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.sugrow { display: grid; grid-template-columns: 1fr 1.3fr 3.2em; gap: 6px; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--line); }
+.sugrow .num { text-align: right; font-variant-numeric: tabular-nums; }
+.sync { display: inline-block; margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 99px; background: color-mix(in srgb, var(--on-accent) 18%, transparent); }
+.sync.err { background: var(--err); }
+.sync.role { background: var(--on-accent); color: var(--accent); font-weight: bold; }
+.perm { display: grid; gap: 8px; }
+.permrow { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+button.private-btn { margin-bottom: 4px; }
+#tab-matches > button { margin-top: 6px; }
+
+
+</style>
+
+<header class="top">
+  <h1>伝統テニス大会 オーダー表</h1>
+  <p class="sub"><span id="tourInfo"></span> <span id="roleBadge" class="sync role" hidden></span> <span id="syncStatus" class="sync" role="status"></span></p>
+  <nav class="tabs" role="tablist">
+    <button data-tab="roster" class="on">選手名簿</button>
+    <button data-tab="matches">対戦オーダー</button>
+    <button data-tab="stats">出場・参加費</button>
+    <button data-tab="export">書き出し</button>
+  </nav>
+</header>
+
+<main id="viewer" hidden></main>
+<main id="app">
+  <p class="legend private">🔒 この色の文字は管理者だけが見られる情報です(年齢・レベル・資格・備考・勝率予測)。メンバー用リンクには入りません。</p>
+  <section id="tab-roster" class="tab on">
+    <div class="card">
+      <label class="row">チーム名 <input id="teamName" placeholder="例:パタヤ日本人テニス会"></label>
+      <p class="hint">選手名簿はこの端末だけに保存されます。メンバーには「書き出し」の閲覧用リンク
+        (名前・オーダー・出場回数・参加費のみ)を送ってください。</p>
+    </div>
+    <div id="rosterCheck"></div>
+    <div class="card">
+      <h2>選手 <span id="rosterCount" class="badge"></span></h2>
+      <div id="playerList"></div>
+      <button id="addPlayer" class="primary">+ 選手を追加</button>
+      <button id="loadSample" class="ghost">サンプルデータで試す</button>
+    </div>
+    <div class="card">
+      <h2>種目ごとの出場可能な選手</h2>
+      <div id="coverage" class="private"></div>
+    </div>
+  </section>
+
+  <section id="tab-matches" class="tab">
+    <div class="card">
+      <label class="row">参加チーム数 <input id="teams" type="number" min="2" max="10" inputmode="numeric"></label>
+      <p class="hint" id="formatText"></p>
+      <label class="check"><input type="checkbox" id="oneEvent"> 1つの対戦では1人1種目まで(推奨)</label>
+      <button id="rebuildMatches">このチーム数で対戦カードを作り直す</button>
+    </div>
+    <div id="matchList"></div>
+    <button id="balanceMatches" class="primary private-btn">⚖️ 勝率と出場回数のバランスで全対戦を自動作成</button>
+    <p class="hint private">🔒 各対戦の勝率予測(相手の強さ・選手レベル)をできるだけ高く保ちながら、全員の出場回数がそろうように全対戦をまとめて組み直します。</p>
+    <button id="autoMatches" class="ghost">⚡ 空き枠だけ自動で埋める(出場回数を均等に)</button>
+    <button id="addMatch" class="ghost">+ 対戦を追加</button>
+  </section>
+
+  <section id="tab-stats" class="tab">
+    <div class="card">
+      <h2>出場回数と参加費の分担</h2>
+      <label class="row">チームの参加費(バーツ) <input id="fee" type="number" min="0" step="100" inputmode="numeric"></label>
+      <p class="hint">参加費を各選手の出場回数(出場する種目の数)に比例して分けます。出場0回の選手は0バーツです。</p>
+      <div id="statsTable"></div>
+    </div>
+  </section>
+
+  <section id="tab-export" class="tab">
+    <div class="card" id="permCard">
+      <h2>共有と権限</h2>
+      <p class="hint">共有する人ごとに、次のどちらかを選べます。</p>
+      <div class="perm">
+        <div class="permrow"><b>管理者と同じ権限</b>
+          <p>このページ右上の「共有」で相手を<b>編集者(Editor)</b>として招待します。名簿・年齢・レベル・勝率を見られ、
+            オーダーの編集もできます(変更はお互いの画面に自動で反映)。相手にもclaude.aiのアカウントが必要です。</p></div>
+        <div class="permrow"><b>閲覧のみ</b>
+          <p>「共有」で<b>閲覧者(Viewer)</b>として招待すると、最新のオーダー・出場回数・参加費が常に自動で表示されます(年齢・レベルなどは見えません)。
+            claude.aiのアカウントが無い人には、下の閲覧リンクをLINEで送ってください(ログイン不要)。</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>メンバー用の閲覧リンク(ログイン不要)</h2>
+      <p class="hint">オーダー(名前と種目)と各選手の出場回数・参加費の分担だけを見られるリンクです。年齢・資格・備考は含まれません。
+        オーダーを変えたら作り直して送り直してください。</p>
+      <textarea id="shareUrl" class="short" readonly></textarea>
+      <button class="copy" data-copy="shareUrl">コピー</button>
+      <button id="previewViewer">メンバー画面をプレビュー</button>
+      <a id="shareOpen" target="_blank" rel="noopener">新しいタブで開く</a>
+    </div>
+    <div class="card">
+      <h2 class="private">🔒 申込用の選手名簿(年齢あり)</h2>
+      <p class="hint">規則6:男女別・年齢の若い順。特別枠は名前の後に明記。</p>
+      <div class="seg"><button data-rlang="ja" class="on">日本語</button><button data-rlang="th">ไทย</button></div>
+      <textarea id="rosterText" class="private" readonly></textarea>
+      <button class="copy" data-copy="rosterText">コピー</button>
+    </div>
+    <div class="card">
+      <h2>オーダー(LINE共有用)</h2>
+      <textarea id="lineupText" readonly></textarea>
+      <button class="copy" data-copy="lineupText">コピー</button>
+    </div>
+    <div class="card">
+      <h2>データの保存・読み込み</h2>
+      <p class="hint">データはこの端末のブラウザにだけ保存されます。別の端末に移す・バックアップする時はファイルに保存してください。</p>
+      <button id="saveFile">ファイルに保存</button>
+      <label class="filebtn">ファイルから読み込み<input type="file" id="loadFile" accept="application/json"></label>
+      <button id="resetAll" class="danger">すべて消去</button>
+    </div>
+  </section>
+</main>
+
+<template id="playerTpl">
+  <div class="player">
+    <input class="p-name" placeholder="名前">
+    <select class="p-gender"><option value="M">男</option><option value="F">女</option></select>
+    <div class="p-agebox private">
+      <input class="p-age private" type="number" min="10" max="110" inputmode="numeric" placeholder="年齢" aria-label="年齢">歳
+      <select class="p-level private" aria-label="レベル"><option value="">レベル</option>
+        <option value="10">Lv10 最強</option><option value="9">Lv9</option><option value="8">Lv8</option><option value="7">Lv7</option>
+        <option value="6">Lv6</option><option value="5">Lv5 普通</option><option value="4">Lv4</option><option value="3">Lv3</option>
+        <option value="2">Lv2</option><option value="1">Lv1 初級</option></select>
+    </div>
+    <select class="p-elig private">
+      <option value="">資格を選択</option>
+    </select>
+    <button class="p-del icon" title="削除">✕</button>
+    <input class="p-note private" placeholder="備考(生年月日など・任意)">
+  </div>
+</template>
+
+<div id="toast" role="status" hidden></div>
+<script>
+window.TENNIS_VIEWER_ONLY = true;
+</script>
+<script>
+// 第44回 チョンブリー県内クラブ・同好会対抗 伝統テニス大会 の規則ロジック。
+// ブラウザ(window.TennisRules)とNode(require)の両方から使えるUMD形式。
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.TennisRules = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  const TOURNAMENT = {
+    name: '第44回 チョンブリー県内クラブ・同好会対抗 伝統テニス大会',
+    date: '2026-11-14',
+    venue: 'Greta Sport Club Pattaya',
+    minPlayers: 10, // 1.3
+    maxPlayers: 20,
+    maxSpecial: 2, // 1.2(4)
+    fee: 6000, // 5. 参加費(1チーム・バーツ)
+  };
+
+  // 2章の年齢条件。並びは 3.7 の試合順。
+  // kind: 'W'=女子2人 / 'M'=男子2人 / 'X'=女子1人+男子1人
+  const EVENTS = [
+    { id: 'WD80', no: 1, kind: 'W', minEach: 30, minSum: 80,
+      ja: '女子ダブルス(合計80歳以上)', th: 'หญิงคู่ (อายุรวม 80 ปีขึ้นไป)',
+      rule: '各30歳以上・合計80歳以上' },
+    { id: 'MD120', no: 2, kind: 'M', minEach: 55, minSum: 120,
+      ja: '男子ダブルス(合計120歳以上)', th: 'ชายคู่ (อายุรวม 120 ปีขึ้นไป)',
+      rule: '各55歳以上・合計120歳以上' },
+    { id: 'MO', no: 3, kind: 'M', minEach: 25, minSum: 0,
+      ja: '一般男子ダブルス', th: 'ชายคู่ทั่วไป',
+      rule: '各25歳以上' },
+    { id: 'XD100', no: 4, kind: 'X', minW: 40, minM: 50, minSum: 100,
+      ja: '混合ダブルス(合計100歳以上)', th: 'คู่ผสม (อายุรวม 100 ปีขึ้นไป)',
+      rule: '女子40歳以上・男子50歳以上・合計100歳以上' },
+    { id: 'MD100', no: 5, kind: 'M', minEach: 40, minSum: 100,
+      ja: '男子ダブルス(合計100歳以上)', th: 'ชายคู่ (อายุรวม 100 ปีขึ้นไป)',
+      rule: '各40歳以上・合計100歳以上' },
+  ];
+
+  const ELIGIBILITY = [
+    { id: 'resident', ja: '県内に住民登録6か月以上' },
+    { id: 'work', ja: '県内に勤務先' },
+    { id: 'veteran', ja: '過去3回以上出場' },
+    { id: 'special', ja: '特別枠' },
+  ];
+
+  // 年齢は管理者が直接入力する(大会当日時点の年齢)。不正値は null
+  function toAge(v) {
+    if (v === '' || v == null) return null;
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 10 && n <= 110 ? n : null;
+  }
+
+  // 旧データ(生年月日入力)からの移行用: 大会日時点の満年齢
+  function ageFromBirth(birth) {
+    const m = /^(\d{4})(?:-(\d{2})-(\d{2}))?$/.exec(String(birth || '').trim());
+    if (!m) return null;
+    const [ty, tm, td] = TOURNAMENT.date.split('-').map(Number);
+    const by = Number(m[1]);
+    if (!m[2]) return ty - by;
+    const bm = Number(m[2]), bd = Number(m[3]);
+    return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
+  }
+
+  // 1人がその種目のどちらかの枠に入れる可能性があるか(候補絞り込み用)
+  function canEnter(ev, player, age) {
+    if (age == null) return false;
+    if (ev.kind === 'W') return player.gender === 'F' && age >= ev.minEach;
+    if (ev.kind === 'M') return player.gender === 'M' && age >= ev.minEach;
+    if (player.gender === 'F') return age >= ev.minW;
+    return player.gender === 'M' && age >= ev.minM;
+  }
+
+  // ペアの検証。a,b は {player, age}。errors が空なら出場可。
+  function checkPair(ev, a, b) {
+    const errors = [];
+    if (!a || !b) return { ok: false, errors: ['2人を選んでください'] };
+    if (a.player.id === b.player.id) return { ok: false, errors: ['同じ選手が2回選ばれています'] };
+    for (const p of [a, b]) {
+      if (p.age == null) errors.push(`${p.player.name}: 年齢が未入力`);
+    }
+    if (errors.length) return { ok: false, errors };
+    if (ev.kind === 'X') {
+      const w = [a, b].find((p) => p.player.gender === 'F');
+      const m = [a, b].find((p) => p.player.gender === 'M');
+      if (!w || !m) errors.push('女子1人と男子1人の組み合わせにしてください');
+      else {
+        if (w.age < ev.minW) errors.push(`${w.player.name}は女子${ev.minW}歳以上の条件を満たしません`);
+        if (m.age < ev.minM) errors.push(`${m.player.name}は男子${ev.minM}歳以上の条件を満たしません`);
+      }
+    } else {
+      const g = ev.kind === 'W' ? 'F' : 'M';
+      for (const p of [a, b]) {
+        if (p.player.gender !== g) errors.push(`${p.player.name}は${g === 'F' ? '女子' : '男子'}ではありません`);
+        else if (p.age < ev.minEach) errors.push(`${p.player.name}は各${ev.minEach}歳以上の条件を満たしません`);
+      }
+    }
+    const sum = a.age + b.age;
+    if (ev.minSum && sum < ev.minSum) errors.push(`2人の合計年齢が${ev.minSum}歳に届きません`);
+    return { ok: errors.length === 0, errors, sum };
+  }
+
+  // 名簿全体のチェック(1.2, 1.3)
+  function checkRoster(players) {
+    const errors = [], warnings = [];
+    const n = players.length;
+    if (n < TOURNAMENT.minPlayers) errors.push(`登録選手が${n}人です(${TOURNAMENT.minPlayers}人以上が必要)`);
+    if (n > TOURNAMENT.maxPlayers) errors.push(`登録選手が${n}人です(${TOURNAMENT.maxPlayers}人以下にしてください)`);
+    const special = players.filter((p) => p.eligibility === 'special');
+    if (special.length > TOURNAMENT.maxSpecial) {
+      errors.push(`特別枠が${special.length}人です(1チーム${TOURNAMENT.maxSpecial}人まで)`);
+    }
+    for (const p of players) {
+      if (!p.name) warnings.push('名前が空欄の選手がいます');
+      if (toAge(p.age) == null) warnings.push(`${p.name || '(名前なし)'}: 年齢が未入力(10〜110の整数)`);
+      if (!p.eligibility) warnings.push(`${p.name || '(名前なし)'}: 出場資格が未選択`);
+    }
+    return { errors, warnings: [...new Set(warnings)] };
+  }
+
+  // 1つの対戦で5種目すべてを、1人1種目で埋める組み合わせを探す(バックトラック)。
+  // fixed: { eventId: [idA, idB] } 既に決まっている枠はそのまま使う。
+  // load: { playerId: 出場数 } 少ない人から優先して、出場を均等にする。
+  function autoAssign(entries, fixed, load, opts) {
+    const allowRepeat = opts && opts.allowRepeat;
+    const used = new Set();
+    const result = {};
+    for (const ev of EVENTS) {
+      const pair = fixed && fixed[ev.id];
+      if (pair && pair[0] && pair[1]) {
+        result[ev.id] = pair.slice();
+        if (!allowRepeat) pair.forEach((id) => used.add(id));
+      }
+    }
+    const score = (e) => (load[e.player.id] || 0);
+    // 候補の少ない(条件の厳しい)種目から決める
+    const todo = EVENTS.filter((ev) => !result[ev.id]).map((ev) => {
+      const pairs = [];
+      const cands = entries.filter((e) => canEnter(ev, e.player, e.age));
+      for (let i = 0; i < cands.length; i++) {
+        for (let j = i + 1; j < cands.length; j++) {
+          if (checkPair(ev, cands[i], cands[j]).ok) pairs.push([cands[i], cands[j]]);
+        }
+      }
+      // 出場数の少ない人 → 合計年齢が条件ぎりぎり(若い選手を温存しない)の順
+      pairs.sort((p, q) => (score(p[0]) + score(p[1])) - (score(q[0]) + score(q[1]))
+        || (p[0].age + p[1].age) - (q[0].age + q[1].age));
+      return { ev, pairs };
+    }).sort((x, y) => x.pairs.length - y.pairs.length);
+
+    let steps = 0;
+    function go(k) {
+      if (k === todo.length) return true;
+      if (++steps > 200000) return false;
+      for (const [a, b] of todo[k].pairs) {
+        if (!allowRepeat && (used.has(a.player.id) || used.has(b.player.id))) continue;
+        result[todo[k].ev.id] = [a.player.id, b.player.id];
+        if (!allowRepeat) { used.add(a.player.id); used.add(b.player.id); }
+        if (go(k + 1)) return true;
+        if (!allowRepeat) { used.delete(a.player.id); used.delete(b.player.id); }
+        delete result[todo[k].ev.id];
+      }
+      return false;
+    }
+    const ok = go(0);
+    return { ok, lineup: ok ? result : null };
+  }
+
+  // 参加チーム数から大会方式(3.1〜3.5)の説明と、自チームの最大試合数を返す
+  function formatFor(teams) {
+    teams = Number(teams);
+    if (!teams || teams < 2) return null;
+    if (teams <= 5) return { text: `${teams}チームの総当たり戦。合計得点で順位を決定(3.5)`, matches: teams - 1 };
+    if (teams === 6) return { text: '3チームずつ2組の総当たり → 準決勝(A1対B2・B1対A2)→ 決勝/3位決定戦。各組3位は5位決定戦(3.4)', matches: 4 };
+    const a = Math.ceil(teams / 2);
+    if (teams === 7 || teams === 8) return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 同順位同士で決勝・3位・5位・7位決定戦(3.1/3.2)`, matches: a };
+    return { text: `A・B 2組(${a}チーム+${teams - a}チーム)の総当たり → 各組1位で決勝、2位で3位決定戦(3.3)`, matches: a };
+  }
+
+  // 全対戦をまとめて決める: 各対戦のチーム勝率の平均を高く保ちつつ、選手ごとの出場回数を
+  // できるだけそろえる。各対戦の上位候補(suggestLineups)から1案ずつ選び、
+  // 「平均勝率 − λ × 出場回数のばらつき(平均からの差の2乗の平均)」が最大になるよう
+  // 対戦ごとに選び直す(座標降下)を数回くり返す。
+  function balancedLineups(entries, oppLevels, opts) {
+    const o = Object.assign({ allowRepeat: false, lambda: 0.08, passes: 6 }, opts || {});
+    const M = oppLevels.length;
+    const first = oppLevels.map((opp) => suggestLineups(entries, opp, { allowRepeat: o.allowRepeat, top: 1 })[0]);
+    if (!M || first.some((c) => !c)) return null;
+    // 出場できる可能性のある選手(どれかの種目に出られる人)だけで出場回数をそろえる
+    const active = entries.filter((e) => EVENTS.some((ev) => canEnter(ev, e.player, e.age))).map((e) => e.player.id);
+    const ideal = (10 * M) / active.length;
+    const ids = (lu) => Object.values(lu).flat();
+    const pick = first.slice();
+    const evaluate = () => {
+      const counts = {};
+      active.forEach((id) => (counts[id] = 0));
+      pick.forEach((c) => ids(c.lineup).forEach((id) => (counts[id] = (counts[id] || 0) + 1)));
+      const spread = active.reduce((a, id) => a + (counts[id] - ideal) ** 2, 0) / active.length;
+      const avgP = pick.reduce((a, c) => a + c.p, 0) / M;
+      return { total: avgP - o.lambda * spread, avgP, counts };
+    };
+    let cur = evaluate().total;
+    for (let pass = 0; pass < o.passes; pass++) {
+      let changed = false;
+      for (let m = 0; m < M; m++) {
+        // ほかの対戦での出場回数から、この対戦で各選手を使うときの追加コストを出す
+        const others = {};
+        active.forEach((id) => (others[id] = 0));
+        pick.forEach((c, i) => { if (i !== m) ids(c.lineup).forEach((id) => (others[id] = (others[id] || 0) + 1)); });
+        const raw = {};
+        active.forEach((id) => (raw[id] = (o.lambda * M / active.length) * ((others[id] + 1 - ideal) ** 2 - (others[id] - ideal) ** 2)));
+        const minRaw = Math.min(...Object.values(raw));
+        const penalty = {};
+        active.forEach((id) => (penalty[id] = raw[id] - minRaw)); // 全員に同じ定数を足しても順位は変わらない
+        const cand = suggestLineups(entries, oppLevels[m], { allowRepeat: o.allowRepeat, top: 1, penalty })[0];
+        if (!cand) continue;
+        const keep = pick[m];
+        pick[m] = cand;
+        const t = evaluate().total;
+        if (t > cur + 1e-9) { cur = t; changed = true; } else pick[m] = keep;
+      }
+      if (!changed) break;
+    }
+    const r = evaluate();
+    return { lineups: pick.map((c) => c.lineup), probs: pick.map((c) => c.p), avgP: r.avgP, counts: r.counts };
+  }
+
+  // 参加チーム数から、自チームが戦う対戦カードを大会規則3章どおりに作る。
+  // 組の大きさが違うとき(7・9チーム)は、多い方の組に入った場合(試合数が最大)で作る。
+  function matchPlan(teams) {
+    teams = Number(teams);
+    if (!teams || teams < 2 || teams > 10) return [];
+    const cards = [];
+    if (teams <= 5) {
+      for (let i = 1; i < teams; i++) cards.push({ label: `総当たり 第${i}試合`, note: `${teams}チームの総当たり(3.5)。合計得点で順位を決定` });
+      return cards;
+    }
+    const g = Math.ceil(teams / 2); // 自チームの組のチーム数(最大)
+    for (let i = 1; i < g; i++) cards.push({ label: `予選 第${i}試合`, note: `組内の総当たり(${g}チームの組・3.2)` });
+    if (teams === 6) {
+      cards.push({ label: '準決勝 / 5位決定戦', note: '組1位はもう一方の組の2位と、組2位はもう一方の組の1位と準決勝。組3位は5位決定戦(3.4)' });
+      cards.push({ label: '決勝 / 3位決定戦', note: '準決勝の勝者は決勝、敗者は3位決定戦。組3位はこの試合なし(3.4)' });
+    } else if (teams <= 8) {
+      cards.push({ label: '順位決定戦', note: `両組の同順位どうしで対戦。1位:決勝、2位:3位決定戦、3位:5位決定戦、4位:7位決定戦(3.1/3.2)${teams === 7 ? '。7チームのときB組は3チームのため、A組4位はこの試合なし' : ''}` });
+    } else {
+      cards.push({ label: '決勝 / 3位決定戦', note: '組1位どうしで決勝、組2位どうしで3位決定戦。組3位以下はこの試合なし(3.3)' });
+    }
+    return cards;
+  }
+
+  // 参加費を出場回数(種目への出場数)に比例して分ける。1バーツ単位で、合計がちょうど total になるよう
+  // 端数は小数部の大きい人から1バーツずつ足す(最大剰余法)。全員0回なら全員0。
+  function splitFee(total, counts) {
+    const names = Object.keys(counts);
+    const sum = names.reduce((a, k) => a + counts[k], 0);
+    const out = {};
+    if (!sum) { names.forEach((k) => (out[k] = 0)); return out; }
+    const raw = names.map((k, i) => ({ k, i, v: (total * counts[k]) / sum }));
+    raw.forEach((r) => (out[r.k] = Math.floor(r.v)));
+    let rest = total - raw.reduce((a, r) => a + out[r.k], 0);
+    raw.sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)) || a.i - b.i);
+    for (const r of raw) { if (rest <= 0) break; out[r.k]++; rest--; }
+    return out;
+  }
+
+  // ---------- 勝率予測(管理者のみ) ----------
+  // レベルは1〜10。ペアの強さ=2人の平均。相手ペアの強さとの差からロジスティック曲線で
+  // その種目の勝率を推定する(差1で約65%、差2で約77%、差3で約86%)。
+  const LEVEL_DEFAULT = 5;
+  const LEVEL_K = 0.6;
+  const toLevel = (v) => {
+    const n = Number(v);
+    return v !== '' && v != null && Number.isFinite(n) && n >= 1 && n <= 10 ? n : null;
+  };
+  function eventWinProb(ourLevels, oppLevel) {
+    const our = ourLevels.reduce((a, b) => a + b, 0) / ourLevels.length;
+    return 1 / (1 + Math.exp(-LEVEL_K * (our - oppLevel)));
+  }
+  // 5種目中3勝以上する確率(各種目は独立と仮定)
+  function teamWinProb(ps) {
+    let dist = [1];
+    for (const p of ps) {
+      const next = new Array(dist.length + 1).fill(0);
+      dist.forEach((q, k) => { next[k] += q * (1 - p); next[k + 1] += q * p; });
+      dist = next;
+    }
+    const need = Math.floor(ps.length / 2) + 1;
+    return dist.slice(need).reduce((a, b) => a + b, 0);
+  }
+
+  // チーム勝率が高い組み合わせを上位 top 件まで探す(分枝限定法)。
+  // entries: [{player, age, level}] / oppLevel: 相手の強さ(数値 or {eventId: 数値})
+  function suggestLineups(entries, oppLevel, opts) {
+    const allowRepeat = opts && opts.allowRepeat;
+    const top = (opts && opts.top) || 3;
+    const opp = (ev) => (typeof oppLevel === 'object' ? oppLevel[ev.id] : oppLevel) ?? LEVEL_DEFAULT;
+    const lv = (e) => e.level ?? LEVEL_DEFAULT;
+    const lists = EVENTS.map((ev) => {
+      const cands = entries.filter((e) => canEnter(ev, e.player, e.age));
+      const pairs = [];
+      for (let i = 0; i < cands.length; i++) {
+        for (let j = i + 1; j < cands.length; j++) {
+          if (checkPair(ev, cands[i], cands[j]).ok) {
+            pairs.push({ ids: [cands[i].player.id, cands[j].player.id], p: eventWinProb([lv(cands[i]), lv(cands[j])], opp(ev)) });
+          }
+        }
+      }
+      pairs.sort((a, b) => b.p - a.p);
+      return { ev, pairs };
+    });
+    if (lists.some((l) => !l.pairs.length)) return [];
+    // opts.penalty: {選手id: 0以上の値}。順位は「チーム勝率 − 選んだ選手のpenaltyの合計」で決める
+    // (出場回数をそろえるために balancedLineups が使う。未指定なら勝率だけ)
+    const pen = (opts && opts.penalty) || {};
+    const penOf = (pair) => (pen[pair.ids[0]] || 0) + (pen[pair.ids[1]] || 0);
+    if (opts && opts.penalty) lists.forEach((l) => l.pairs.sort((a, b) => (b.p - penOf(b)) - (a.p - penOf(a))));
+    // 候補の少ない種目から決める
+    const order = lists.slice().sort((a, b) => a.pairs.length - b.pairs.length);
+    const best = [];
+    const used = new Set();
+    const chosen = [];
+    let steps = 0;
+    const floor = () => (best.length < top ? -Infinity : best[best.length - 1].s);
+    let penSoFar = 0;
+    function go(k) {
+      if (++steps > 300000) return;
+      if (k === order.length) {
+        const ps = chosen.map((c) => c.p);
+        const p = teamWinProb(ps);
+        const s = p - penSoFar;
+        if (s <= floor()) return;
+        const lineup = {}, eventP = {};
+        order.forEach((l, i) => { lineup[l.ev.id] = chosen[i].ids.slice(); eventP[l.ev.id] = chosen[i].p; });
+        best.push({ lineup, eventP, p, s });
+        best.sort((a, b) => b.s - a.s);
+        if (best.length > top) best.pop();
+        return;
+      }
+      // 上限: 残りの種目に最強ペアを置けたとしても上位に入らないなら打ち切る
+      // (penalty は0以上なので、これまでの合計を引いた値が上限になる)
+      const bound = teamWinProb([...chosen.map((c) => c.p), ...order.slice(k).map((l) => Math.max(...l.pairs.map((x) => x.p)))]) - penSoFar;
+      if (bound <= floor()) return;
+      for (const pair of order[k].pairs) {
+        if (!allowRepeat && (used.has(pair.ids[0]) || used.has(pair.ids[1]))) continue;
+        chosen.push(pair);
+        penSoFar += penOf(pair);
+        if (!allowRepeat) pair.ids.forEach((id) => used.add(id));
+        go(k + 1);
+        penSoFar -= penOf(pair);
+        chosen.pop();
+        if (!allowRepeat) pair.ids.forEach((id) => used.delete(id));
+      }
+    }
+    go(0);
+    return best;
+  }
+
+  return { balancedLineups, matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+});
+
+</script>
+<script>
+// 伝統テニス大会 オーダー表(静的アプリ)
+// 保存先: claude.ai で開いたときはアカウントごとの非公開ストア(db の data/users/<id>/)、
+// それ以外ではこの端末の localStorage。どちらの場合も localStorage にも控えを置く。
+(function () {
+  const R = window.TennisRules;
+  const KEY = 'tennis-lineup-v1';
+  const $ = (sel, el = document) => el.querySelector(sel);
+  const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const blank = () => ({
+    settings: { teamName: '', fee: R.TOURNAMENT.fee, teams: 8, oneEvent: true, rosterLang: 'ja' },
+    players: [],
+    matches: [],
+  });
+
+  let state = load();
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      if (s && Array.isArray(s.players)) return migrate(s);
+    } catch (e) { /* 保存領域が使えない環境でも動かす */ }
+    return blank();
+  }
+  // 旧形式(生年月日入力)のデータを、年齢入力+備考に移す
+  function migrate(s) {
+    const out = { ...blank(), ...s, settings: { ...blank().settings, ...s.settings } };
+    delete out.settings.ageMode;
+    out.players = s.players.map((p) => {
+      if (!('birth' in p)) return { note: '', ...p };
+      const { birth, ...rest } = p;
+      const a = R.ageFromBirth(birth);
+      return { ...rest, age: rest.age ?? (a == null ? '' : a), note: rest.note || (birth ? `生年月日 ${birth}` : '') };
+    });
+    return out;
+  }
+  // ---------- 保存 ----------
+  let remote = null;      // アカウント保存先のドキュメント参照(使えないときは null)
+  let lastSaved = '';     // 最後に保存した内容(変化がなければ書かない)
+  let saveTimer = null, writing = false, again = false;
+  function setSync(text, cls) {
+    const el = $('#syncStatus');
+    el.textContent = text;
+    el.className = 'sync ' + (cls || '');
+  }
+  function save() {
+    const json = JSON.stringify(state);
+    if (json === lastSaved) return;
+    try { localStorage.setItem(KEY, json); } catch (e) { /* noop */ }
+    if (!remote) return;
+    dirty = true;
+    setSync('保存中…', 'busy');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 800);
+  }
+  async function flush() {
+    if (!remote) return;
+    if (writing) { again = true; return; }
+    writing = true;
+    const json = JSON.stringify(state);
+    try {
+      const savedAt = Math.max(Date.now(), latestSavedAt + 1);
+      latestSavedAt = savedAt;
+      await remote.set({ state: JSON.parse(json), savedAt, by: clientId });
+      if (publicRef) await publicRef.set({ view: shareData(), savedAt });
+      lastSaved = json;
+      if (JSON.stringify(state) === json) dirty = false;
+      setSync('☁ 保存済み(管理者で共有)', 'ok');
+    } catch (e) {
+      setSync('⚠ 保存できませんでした(この端末には保存済み)', 'err');
+    }
+    writing = false;
+    if (again) { again = false; flush(); }
+  }
+  // ---------- claude.ai での共有と権限 ----------
+  // 共有メニューの「編集者(Editor)」以上 = 管理者と同じ権限: admin/state(全データ)を読み書き
+  // それ以外(閲覧者など) = 閲覧のみ: public/order(名前・オーダー・回数・参加費だけ)を読む
+  // ※ アクセス制御は db のルール(admin は admin 以上のみ読める)で行う
+  const clientId = uid();
+  let publicRef = null, dirty = false;
+  let latestSavedAt = 0; // 自分が書いた/取り込んだ中で最新の保存時刻。これより古い通知は無視する
+  const hasData = (s) => !!s && ((s.players || []).length + (s.matches || []).length > 0);
+  function setRole(text) {
+    const el = $('#roleBadge');
+    el.textContent = text;
+    el.hidden = !text;
+  }
+  function showApp() {
+    $('#viewer').hidden = true;
+    $('#app').hidden = false;
+    $('.tabs').hidden = false;
+    document.body.classList.remove('viewer-mode');
+  }
+  function startLocal() {
+    setSync('この端末に保存されます', '');
+    showApp();
+  }
+  function startMember(db) {
+    setRole('閲覧のみ');
+    setSync('', '');
+    $('#syncStatus').hidden = true;
+    renderViewer({ m: [] });
+    $('#viewer').innerHTML = '<div class="card muted">読み込み中…</div>';
+    db.doc('public/order').onSnapshot((snap) => {
+      const view = snap.exists && snap.data().view;
+      if (view) renderViewer(view);
+      else $('#viewer').innerHTML = '<div class="card"><h2>オーダー表</h2><p>まだオーダーが公開されていません。管理者が入力すると、ここに自動で表示されます。</p></div>';
+    }, () => {
+      $('#viewer').innerHTML = '<div class="card"><p>オーダーを読み込めませんでした。ページを開き直してください。</p></div>';
+    });
+  }
+  async function connectRemote() {
+    const use = window.claude && window.claude.use;
+    if (!use) { startLocal(); return; }
+    try {
+      const [db, user] = await Promise.all([use('db'), use('user')]);
+      if (!db || !user) { startLocal(); return; }
+      // 所有者は必ず管理者画面(canEdit が取れない環境でも閲覧専用にしない)
+      const isAdmin = (await user.canEdit()) || (await user.isOwner());
+      if (!isAdmin) { startMember(db); return; }
+      setRole('管理者');
+      const ref = db.doc('admin/state');
+      publicRef = db.doc('public/order');
+      let saved = (await ref.get()).data();
+      latestSavedAt = (saved && saved.savedAt) || 0;
+      saved = saved && saved.state;
+      let moved = false;
+      if (!hasData(saved) && (await user.isOwner())) {
+        // 以前の保存先(所有者だけの非公開領域)から共有の管理者用データへ移す
+        const id = await user.id();
+        const old = id ? (await db.doc(`data/users/${id}/lineup`).get()).data() : null;
+        if (old && hasData(old.state)) { saved = old.state; moved = true; }
+      }
+      remote = ref;
+      if (hasData(saved)) {
+        state = migrate(saved);
+        lastSaved = moved ? '' : JSON.stringify(state);
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* noop */ }
+        renderAll();
+        if (moved) await flush(); else setSync('☁ 保存済み(管理者で共有)', 'ok');
+      } else if (hasData(state)) {
+        lastSaved = '';
+        await flush(); // 端末にだけあったデータを移す
+      } else {
+        setSync('☁ 保存されます(管理者で共有)', 'ok');
+      }
+      showApp();
+      // 他の管理者の変更をそのまま反映する(自分の書き込みと未保存の編集中は除く)
+      ref.onSnapshot((snap) => {
+        const d = snap.exists && snap.data();
+        if (!d || !d.state || d.by === clientId || dirty || writing) return;
+        if (snap.metadata && snap.metadata.fromCache) return; // 確定していない(古いかもしれない)内容は使わない
+        if (!(d.savedAt > latestSavedAt)) return;            // 手元より古い保存は無視
+        latestSavedAt = d.savedAt;
+        const next = migrate(d.state);
+        const json = JSON.stringify(next);
+        if (json === JSON.stringify(state)) { lastSaved = json; return; } // 同じ内容なら何もしない
+        state = next;
+        lastSaved = json;
+        renderAll();
+        toast('他の管理者の変更を反映しました');
+      }, () => {});
+    } catch (e) {
+      remote = null;
+      startLocal();
+    }
+  }
+
+  const age = (p) => R.toAge(p.age);
+  const lvl = (p) => R.toLevel(p.level);
+  const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p), level: lvl(p) }));
+  const byId = (id) => state.players.find((p) => p.id === id);
+  const entryOf = (id) => { const p = byId(id); return p ? { player: p, age: age(p) } : null; };
+  // 確認ダイアログ(confirm)が使えない環境もあるので、同じボタンを2回押して確定する方式にする
+  function armed(btn, msg) {
+    if (btn.dataset.armed) return true;
+    const orig = btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = msg;
+    btn.classList.add('armed');
+    setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = orig; btn.classList.remove('armed'); } }, 4000);
+    return false;
+  }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (t.hidden = true), 6000);
+  }
+  const label = (p) => (p ? `${p.name}${p.eligibility === 'special' ? '(特)' : ''}` : '');
+
+  // ---------- 選手名簿 ----------
+  function renderPlayers() {
+    const list = $('#playerList');
+    list.innerHTML = '';
+    const tpl = $('#playerTpl');
+    for (const p of state.players) {
+      const el = tpl.content.firstElementChild.cloneNode(true);
+      el.dataset.id = p.id;
+      const elig = $('.p-elig', el);
+      for (const e of R.ELIGIBILITY) elig.insertAdjacentHTML('beforeend', `<option value="${e.id}">${esc(e.ja)}</option>`);
+      $('.p-name', el).value = p.name;
+      $('.p-gender', el).value = p.gender;
+      $('.p-age', el).value = p.age ?? '';
+      $('.p-note', el).value = p.note || '';
+      $('.p-level', el).value = p.level ?? '';
+      elig.value = p.eligibility;
+      list.appendChild(el);
+    }
+    refreshDerived();
+  }
+
+  function refreshDerived() {
+    for (const el of $$('#playerList .player')) {
+      const p = byId(el.dataset.id);
+      $('.p-age', el).classList.toggle('invalid', !!p && p.age !== '' && age(p) == null);
+    }
+    const n = state.players.length;
+    $('#loadSample').hidden = n > 0;
+    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})`;
+    const { errors, warnings } = R.checkRoster(state.players);
+    $('#rosterCheck').innerHTML = (errors.length || warnings.length)
+      ? `<div class="card alert">${errors.map((e) => `<p class="err">✕ ${esc(e)}</p>`).join('')}${warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`).join('')}</div>`
+      : '<div class="card ok">✓ 名簿は規則(10〜20人・特別枠2人まで)を満たしています</div>';
+    renderCoverage();
+    save();
+  }
+
+  function renderCoverage() {
+    const es = entries();
+    $('#coverage').innerHTML = R.EVENTS.map((ev) => {
+      const c = es.filter((e) => R.canEnter(ev, e.player, e.age));
+      let possible = false;
+      for (let i = 0; i < c.length && !possible; i++) for (let j = i + 1; j < c.length && !possible; j++) possible = R.checkPair(ev, c[i], c[j]).ok;
+      const names = c.sort((a, b) => b.age - a.age).map((e) => `${esc(e.player.name)}<small>${e.age}歳${e.level != null ? `・Lv${e.level}` : ''}</small>`).join('、');
+      return `<div class="cov ${possible ? '' : 'bad'}">
+        <div><b>${ev.no}. ${esc(ev.ja)}</b> <small>${esc(ev.rule)}</small></div>
+        <div>${possible ? '✓' : '✕ 組めるペアがありません'} ${names || '<span class="muted">該当者なし</span>'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  $('#playerList').addEventListener('input', (ev) => {
+    const row = ev.target.closest('.player');
+    const p = row && byId(row.dataset.id);
+    if (!p) return;
+    const t = ev.target;
+    if (t.classList.contains('p-name')) p.name = t.value.trim();
+    if (t.classList.contains('p-gender')) p.gender = t.value;
+    if (t.classList.contains('p-age')) p.age = t.value === '' ? '' : Number(t.value);
+    if (t.classList.contains('p-note')) p.note = t.value;
+    if (t.classList.contains('p-elig')) p.eligibility = t.value;
+    if (t.classList.contains('p-level')) { p.level = t.value === '' ? '' : Number(t.value); suggestions = {}; }
+    refreshDerived();
+  });
+  $('#playerList').addEventListener('change', (ev) => ev.target.dispatchEvent(new Event('input', { bubbles: true })));
+  $('#playerList').addEventListener('click', (ev) => {
+    if (!ev.target.classList.contains('p-del')) return;
+    const id = ev.target.closest('.player').dataset.id;
+    const p = byId(id);
+    const usedIn = state.matches.filter((m) => Object.values(m.lineup).some((pair) => pair.includes(id))).length;
+    if (!armed(ev.target, usedIn ? `削除(${usedIn}試合から外れます)` : '削除する')) return;
+    toast(`${p.name || '選手'}を削除しました`);
+    state.players = state.players.filter((x) => x.id !== id);
+    for (const m of state.matches) for (const k in m.lineup) m.lineup[k] = m.lineup[k].map((x) => (x === id ? '' : x));
+    renderPlayers();
+  });
+  $('#loadSample').addEventListener('click', () => {
+    const sample = [['佐藤 花子', 'F', 36], ['鈴木 恵子', 'F', 51], ['高橋 由美', 'F', 46], ['田中 健', 'M', 31],
+      ['伊藤 翔', 'M', 28], ['渡辺 誠', 'M', 59], ['山本 茂', 'M', 66], ['中村 浩', 'M', 53],
+      ['小林 大輔', 'M', 48], ['加藤 正', 'M', 61], ['Somchai', 'M', 41]];
+    state.settings.teamName = state.settings.teamName || 'サンプルクラブ';
+    const levels = [7, 5, 8, 9, 6, 4, 6, 7, 5, 3, 8];
+    state.players = sample.map(([name, gender, a], i) => ({ id: uid(), name, gender, age: a, level: levels[i], eligibility: i === 10 ? 'special' : 'work', note: '' }));
+    state.matches = [1, 2, 3].map((n) => ({ id: uid(), label: `予選${n}`, opponent: ['Sriracha TC', 'Bang Saen', 'Jomtien'][n - 1], lineup: {} }));
+    totals = {};
+    for (const m of state.matches) {
+      const r = R.autoAssign(entries(), {}, loadCount(m.id), {});
+      if (r.ok) m.lineup = r.lineup;
+    }
+    renderAll();
+    toast('サンプルを入れました。「すべて消去」で消せます');
+  });
+  $('#addPlayer').addEventListener('click', () => {
+    state.players.push({ id: uid(), name: '', gender: 'M', age: '', eligibility: '', note: '' });
+    renderPlayers();
+    const rows = $$('#playerList .p-name');
+    rows[rows.length - 1].focus();
+  });
+
+  // ---------- 対戦オーダー ----------
+  function loadCount(exceptMatchId) {
+    const load = {};
+    for (const m of state.matches) {
+      if (m.id === exceptMatchId) continue;
+      for (const pair of Object.values(m.lineup)) for (const id of pair) if (id) load[id] = (load[id] || 0) + 1;
+    }
+    return load;
+  }
+
+  let totals = {};
+  function slotOptions(ev, slot, selected) {
+    const es = entries().filter((e) => {
+      if (ev.kind === 'X') return e.player.gender === (slot === 0 ? 'F' : 'M');
+      return e.player.gender === (ev.kind === 'W' ? 'F' : 'M');
+    }).sort((a, b) => Number(R.canEnter(ev, b.player, b.age)) - Number(R.canEnter(ev, a.player, a.age)));
+    // 出場回数ごとにグループ分け(少ない順)。グループ内は出場条件を満たす人が先
+    const groups = new Map();
+    for (const e of es) {
+      const n = totals[e.player.id] || 0;
+      if (!groups.has(n)) groups.set(n, []);
+      groups.get(n).push(e);
+    }
+    const opts = [...groups.keys()].sort((a, b) => a - b).map((n) => `<optgroup label="出場${n}試合">${groups.get(n).map((e) => {
+      const fit = R.canEnter(ev, e.player, e.age);
+      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}(${n}試合)</option>`;
+    }).join('')}</optgroup>`);
+    const ph = ev.kind === 'X' ? (slot === 0 ? '女子を選択' : '男子を選択') : '選手を選択';
+    return `<option value="">${ph}</option>${opts.join('')}`;
+  }
+
+  function matchIssues(m) {
+    const out = {};
+    const seen = {};
+    for (const ev of R.EVENTS) {
+      const pair = m.lineup[ev.id] || ['', ''];
+      for (const id of new Set(pair)) if (id) (seen[id] = seen[id] || []).push(ev.no);
+    }
+    for (const ev of R.EVENTS) {
+      const pair = m.lineup[ev.id] || ['', ''];
+      if (!pair[0] && !pair[1]) { out[ev.id] = { state: 'empty', msgs: [] }; continue; }
+      const res = R.checkPair(ev, entryOf(pair[0]), entryOf(pair[1]));
+      const msgs = [...res.errors];
+      const warns = [];
+      if (state.settings.oneEvent) {
+        for (const id of pair) if (id && seen[id].length > 1) warns.push(`${byId(id).name}は種目${seen[id].join('・')}に重複`);
+      }
+      out[ev.id] = { state: res.ok ? (warns.length ? 'warn' : 'ok') : 'err', msgs: [...msgs, ...[...new Set(warns)]] };
+    }
+    return out;
+  }
+
+  // ---------- 勝率予測と提案(管理者のみ・共有データには入れない) ----------
+  let suggestions = {}; // matchId -> 提案リスト(画面上だけで保持)
+  const oppLevel = (m) => R.toLevel(m.oppLevel) ?? R.LEVEL_DEFAULT;
+  function lineupForecast(m) {
+    const eventP = {};
+    for (const ev of R.EVENTS) {
+      const pair = (m.lineup[ev.id] || []).map(byId);
+      if (pair.length === 2 && pair[0] && pair[1]) eventP[ev.id] = R.eventWinProb(pair.map((p) => lvl(p) ?? R.LEVEL_DEFAULT), oppLevel(m));
+    }
+    const full = R.EVENTS.every((ev) => ev.id in eventP);
+    return { eventP, p: full ? R.teamWinProb(R.EVENTS.map((ev) => eventP[ev.id])) : null };
+  }
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  function forecastHtml(m) {
+    const f = lineupForecast(m);
+    const missing = state.players.filter((p) => p.name && lvl(p) == null).length;
+    const sug = suggestions[m.id];
+    const sugHtml = !sug ? '' : !sug.length
+      ? '<p class="msg">条件を満たす組み合わせがありません</p>'
+      : sug.map((s, i) => `<div class="sug">
+          <div class="sugh"><b>案${i + 1} チーム勝率 ${pct(s.p)}</b><button data-act="apply" data-i="${i}">この案にする</button></div>
+          ${R.EVENTS.map((ev) => `<div class="sugrow"><span>${ev.no}. ${esc(ev.ja)}</span>
+            <span>${s.lineup[ev.id].map((id) => esc(byId(id).name)).join(' / ')}</span><span class="num">${pct(s.eventP[ev.id])}</span></div>`).join('')}
+        </div>`).join('');
+    return `<div class="forecast private">
+      <div class="fhead">
+        <span>🔒 勝率予測 ${f.p == null ? '<small>(5種目そろうと表示)</small>' : `<b class="big">${pct(f.p)}</b>`}</span>
+        <label>相手の強さ <select class="m-opplv private">${[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((n) => `<option value="${n}" ${n === oppLevel(m) ? 'selected' : ''}>Lv${n}</option>`).join('')}</select></label>
+      </div>
+      ${missing ? `<p class="msg">レベル未入力の選手が${missing}人います(Lv${R.LEVEL_DEFAULT}として計算)</p>` : ''}
+      <button data-act="suggest">勝てる組み合わせを提案</button>
+      ${sugHtml}
+    </div>`;
+  }
+
+  function renderMatches() {
+    if (!state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
+    totals = loadCount(null);
+    const f = R.formatFor(state.settings.teams);
+    $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
+    $('#matchList').innerHTML = state.matches.map((m, i) => {
+      const issues = matchIssues(m);
+      const fc = lineupForecast(m);
+      const done = R.EVENTS.filter((ev) => issues[ev.id].state === 'ok').length;
+      return `<div class="card match" data-id="${m.id}">
+        <div class="mhead">
+          <input class="m-label" value="${esc(m.label)}" placeholder="例:予選1">
+          <span>vs</span>
+          <input class="m-opp" value="${esc(m.opponent)}" placeholder="相手チーム">
+          <span class="badge ${done === 5 ? 'okb' : ''}">${done}/5</span>
+        </div>
+        ${m.note ? `<p class="hint mnote">${esc(m.note)}</p>` : ''}
+        ${R.EVENTS.map((ev) => {
+          const pair = m.lineup[ev.id] || ['', ''];
+          const is = issues[ev.id];
+          return `<div class="ev ${is.state}" data-ev="${ev.id}">
+            <div class="evh"><b>${ev.no}. ${esc(ev.ja)}</b><small>${esc(ev.rule)}</small>${ev.id in fc.eventP ? `<span class="evp private">🔒 勝率${pct(fc.eventP[ev.id])}</span>` : ''}</div>
+            <div class="slots">
+              <select data-slot="0">${slotOptions(ev, 0, pair[0])}</select>
+              <select data-slot="1">${slotOptions(ev, 1, pair[1])}</select>
+            </div>
+            ${is.msgs.map((t) => `<p class="msg">${esc(t)}</p>`).join('')}
+          </div>`;
+        }).join('')}
+        ${forecastHtml(m)}
+        <div class="mbtns">
+          <button data-act="auto">空き枠を自動で埋める</button>
+          ${i > 0 ? '<button data-act="copy">前の対戦をコピー</button>' : ''}
+          <button data-act="clear">クリア</button>
+          <button data-act="del" class="danger">対戦を削除</button>
+        </div>
+      </div>`;
+    }).join('') || '<div class="card muted">まだ対戦がありません。下の「⚡ 全対戦の組み合わせを自動で作る」を押すと、参加チーム数に合わせて対戦を作り、メンバーを自動で組み合わせます。</div>';
+    save();
+  }
+
+  $('#matchList').addEventListener('change', (e) => {
+    const card = e.target.closest('.match');
+    const m = card && state.matches.find((x) => x.id === card.dataset.id);
+    if (!m) return;
+    if (e.target.classList.contains('m-opplv')) {
+      m.oppLevel = Number(e.target.value);
+      delete suggestions[m.id];
+      renderMatches();
+      return;
+    }
+    if (e.target.matches('select[data-slot]')) {
+      const evId = e.target.closest('.ev').dataset.ev;
+      const pair = (m.lineup[evId] || ['', '']).slice();
+      pair[Number(e.target.dataset.slot)] = e.target.value;
+      m.lineup[evId] = pair;
+      renderMatches();
+    }
+  });
+  $('#matchList').addEventListener('input', (e) => {
+    const card = e.target.closest('.match');
+    const m = card && state.matches.find((x) => x.id === card.dataset.id);
+    if (!m) return;
+    if (e.target.classList.contains('m-label')) m.label = e.target.value;
+    if (e.target.classList.contains('m-opp')) m.opponent = e.target.value;
+    save();
+  });
+  $('#matchList').addEventListener('click', (e) => {
+    const act = e.target.dataset.act;
+    if (!act) return;
+    const idx = state.matches.findIndex((x) => x.id === e.target.closest('.match').dataset.id);
+    const m = state.matches[idx];
+    if (act === 'del') {
+      if (!armed(e.target, 'もう一度押すと削除')) return;
+      state.matches.splice(idx, 1);
+    }
+    if (act === 'suggest') {
+      suggestions[m.id] = R.suggestLineups(entries(), oppLevel(m), { allowRepeat: !state.settings.oneEvent, top: 3 });
+    }
+    if (act === 'apply') {
+      const s = (suggestions[m.id] || [])[Number(e.target.dataset.i)];
+      if (s) { m.lineup = JSON.parse(JSON.stringify(s.lineup)); delete suggestions[m.id]; toast('提案のオーダーにしました'); }
+    }
+    if (act === 'clear') m.lineup = {};
+    if (act === 'copy') m.lineup = JSON.parse(JSON.stringify(state.matches[idx - 1].lineup));
+    if (act === 'auto') {
+      // 正しく組めている種目は残し、それ以外を埋め直す
+      const issues = matchIssues(m);
+      const fixed = {};
+      for (const ev of R.EVENTS) if (issues[ev.id].state === 'ok') fixed[ev.id] = m.lineup[ev.id];
+      const r = R.autoAssign(entries(), fixed, loadCount(m.id), { allowRepeat: !state.settings.oneEvent });
+      if (!r.ok) {
+        toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認するか、決まっている枠を外してから再実行してください。');
+        return;
+      }
+      m.lineup = r.lineup;
+    }
+    renderMatches();
+  });
+  // 参加チーム数から大会規則どおりの対戦カードを作る(既存カードの相手チーム名は引き継ぐ)
+  function buildCards() {
+    const plan = R.matchPlan(state.settings.teams);
+    if (!plan.length) return false;
+    const old = state.matches;
+    state.matches = plan.map((c, i) => ({ id: uid(), label: c.label, note: c.note, opponent: (old[i] && old[i].opponent) || '', lineup: {} }));
+    state.settings.cardsFor = Number(state.settings.teams);
+    return true;
+  }
+  function autofillAll() {
+    let failed = 0;
+    for (const m of state.matches) {
+      const issues = matchIssues(m);
+      const fixed = {};
+      for (const ev of R.EVENTS) if (issues[ev.id].state === 'ok') fixed[ev.id] = m.lineup[ev.id];
+      const r = R.autoAssign(entries(), fixed, loadCount(m.id), { allowRepeat: !state.settings.oneEvent });
+      if (r.ok) m.lineup = r.lineup; else failed++;
+    }
+    return failed;
+  }
+  $('#autoMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    const failed = autofillAll();
+    renderMatches();
+    toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
+      : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
+  });
+  // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
+  $('#balanceMatches').addEventListener('click', () => {
+    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    const r = R.balancedLineups(entries(), state.matches.map((m) => oppLevel(m)), { allowRepeat: !state.settings.oneEvent });
+    if (!r) { toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください'); return; }
+    state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
+    suggestions = {};
+    renderMatches();
+    const v = Object.values(r.counts);
+    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${Math.min(...v)}〜${Math.max(...v)}回`);
+  });
+  $('#rebuildMatches').addEventListener('click', (e) => {
+    if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }
+    if (state.matches.some((m) => Object.keys(m.lineup).length) && !armed(e.target, 'もう一度押すと作り直し(組み合わせは消えます)')) return;
+    buildCards();
+    if (entries().length) autofillAll();
+    renderMatches();
+    toast(`${state.settings.teams}チームの大会方式で対戦カードを作りました`);
+  });
+  $('#addMatch').addEventListener('click', () => {
+    state.matches.push({ id: uid(), label: `予選${state.matches.length + 1}`, opponent: '', lineup: {} });
+    renderMatches();
+  });
+
+  // ---------- 出場状況 ----------
+  // 出場回数+参加費分担の表(管理者画面・メンバー画面で共用。年齢は扱わない)
+  // ms: [{ label, pairs: [[名前,名前] × 5種目] }]
+  function statsHtml(names, ms, fee) {
+    const counts = {};
+    const cellsOf = {};
+    for (const name of names) {
+      counts[name] = 0;
+      cellsOf[name] = ms.map((m) => {
+        const evs = R.EVENTS.filter((ev, i) => (m.pairs[i] || []).includes(name));
+        counts[name] += evs.length;
+        return `<td>${evs.map((ev) => ev.no).join('・')}</td>`;
+      }).join('');
+    }
+    const share = R.splitFee(Number(fee) || 0, counts);
+    const rows = names.map((name) => `<tr class="${counts[name] ? '' : 'zero'}"><th>${esc(name)}</th>${cellsOf[name]}<td><b>${counts[name]}</b></td><td class="fee">${share[name].toLocaleString()}</td></tr>`).join('');
+    const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+    return `<div class="scroll"><table class="stats">
+      <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.label || '対戦')}</th>`).join('')}<th>計</th><th>参加費</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><th>合計</th>${ms.map(() => '<td></td>').join('')}<td><b>${totalCount}</b></td><td class="fee">${totalCount ? Number(fee).toLocaleString() : 0}</td></tr></tfoot>
+      </table></div>
+      <p class="hint">数字は種目番号(1女子D / 2男子D120 / 3一般男子D / 4混合D / 5男子D100)。
+        参加費${Number(fee).toLocaleString()}バーツを出場回数に比例して分担(1バーツ単位・端数は合計が合うよう調整)。</p>`;
+  }
+  const adminMatches = () => state.matches.map((m) => ({
+    label: m.label,
+    pairs: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
+  }));
+  const namedPlayers = () => state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1));
+  function feeShares() {
+    const counts = {};
+    for (const p of namedPlayers()) counts[p.name] = 0;
+    for (const m of adminMatches()) for (const pair of m.pairs) for (const n of pair) if (n in counts) counts[n]++;
+    return { counts, share: R.splitFee(Number(state.settings.fee) || 0, counts) };
+  }
+  function renderStats() {
+    $('#fee').value = state.settings.fee;
+    if (!state.players.length) { $('#statsTable').innerHTML = '<p class="muted">選手がいません</p>'; return; }
+    $('#statsTable').innerHTML = statsHtml(namedPlayers().map((p) => p.name), adminMatches(), state.settings.fee);
+  }
+
+  // ---------- 書き出し ----------
+  function rosterText() {
+    const th = state.settings.rosterLang === 'th';
+    const sorted = (g) => state.players.filter((p) => p.gender === g && p.name).sort((a, b) => (age(a) ?? 999) - (age(b) ?? 999));
+    const line = (p, i) => `${i + 1}. ${p.name}  ${age(p) ?? '?'}${th ? ' ปี' : '歳'}${p.eligibility === 'special' ? (th ? '  (พิเศษ)' : '  特別枠') : ''}`;
+    const team = state.settings.teamName || (th ? '(ชื่อทีม)' : '(チーム名)');
+    return [
+      th ? `รายชื่อนักกีฬา ทีม ${team}` : `選手名簿 ${team}`,
+      '',
+      th ? '【ชาย】' : '【男子】', ...sorted('M').map(line),
+      '',
+      th ? '【หญิง】' : '【女子】', ...sorted('F').map(line),
+    ].join('\n');
+  }
+  function feeText() {
+    const { counts, share } = feeShares();
+    const names = Object.keys(counts);
+    if (!names.length || !state.matches.length) return '';
+    return [`■ 参加費の分担(合計${Number(state.settings.fee).toLocaleString()}バーツ・出場回数に比例)`,
+      ...names.map((n) => `${n}  ${counts[n]}回  ${share[n].toLocaleString()}バーツ`)].join('\n');
+  }
+  function lineupText() {
+    return [lineupOnlyText(), feeText()].filter(Boolean).join('\n\n');
+  }
+  function lineupOnlyText() {
+    return state.matches.map((m) => {
+      const head = `■ ${m.label || '対戦'}${m.opponent ? ` vs ${m.opponent}` : ''}`;
+      const lines = R.EVENTS.map((ev) => {
+        const pair = (m.lineup[ev.id] || []).map(byId).filter(Boolean);
+        return `${ev.no}. ${ev.ja}\n   ${pair.length ? pair.map((p) => p.name).join(' / ') : '(未定)'}`;
+      });
+      return [head, ...lines].join('\n');
+    }).join('\n\n') || '(対戦がありません)';
+  }
+  // メンバー用閲覧リンク: 名前と種目だけをURLの#以降に入れる(年齢・資格・備考は入れない)
+  function shareData() {
+    return {
+      t: state.settings.teamName,
+      f: Number(state.settings.fee) || 0,
+      n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
+      m: state.matches.map((m) => ({
+        l: m.label, o: m.opponent, d: m.note || '',
+        p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
+      })),
+    };
+  }
+  function encode(obj) {
+    const bytes = new TextEncoder().encode(JSON.stringify(obj));
+    let bin = '';
+    bytes.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(str) {
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+  }
+  // メンバー用ページの場所。build.py が管理者版に公開URL(GitHub Pages)を埋め込む。
+  // 未設定のときはこのページ自身を閲覧用に使う。
+  function shareUrl() {
+    const base = window.TENNIS_VIEWER_URL || location.href.split('#')[0];
+    return `${base}#view=${encode(shareData())}`;
+  }
+
+  function renderExport() {
+    const url = shareUrl();
+    $('#shareUrl').value = url;
+    $('#shareOpen').href = url;
+    $('#rosterText').value = rosterText();
+    $('#lineupText').value = lineupText();
+    $('#previewViewer').addEventListener('click', () => renderViewer(shareData(), true));
+  $$('[data-rlang]').forEach((b) => b.classList.toggle('on', b.dataset.rlang === state.settings.rosterLang));
+  }
+  $$('[data-rlang]').forEach((b) => b.addEventListener('click', () => { state.settings.rosterLang = b.dataset.rlang; save(); renderExport(); }));
+  $$('.copy').forEach((b) => b.addEventListener('click', async () => {
+    const ta = $('#' + b.dataset.copy);
+    try { await navigator.clipboard.writeText(ta.value); } catch (e) { ta.select(); document.execCommand('copy'); }
+    b.textContent = 'コピーしました';
+    setTimeout(() => (b.textContent = 'コピー'), 1500);
+  }));
+  $('#saveFile').addEventListener('click', async () => {
+    const json = JSON.stringify(state, null, 2);
+    const filename = `tennis-lineup-${new Date().toISOString().slice(0, 10)}.json`;
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+    if (dl) {
+      try { await dl.save({ filename, data: json }); toast('バックアップを保存しました'); } catch (e) {
+        if (e && e.code !== 'declined') toast('保存できませんでした。もう一度お試しください');
+      }
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $('#loadFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const s = JSON.parse(await file.text());
+      if (!Array.isArray(s.players) || !Array.isArray(s.matches)) throw new Error('形式が違います');
+      state = migrate(s);
+      renderAll();
+      toast('ファイルを読み込みました');
+    } catch (err) {
+      toast('読み込めませんでした: ' + err.message);
+    } finally {
+      e.target.value = '';
+    }
+  });
+  $('#resetAll').addEventListener('click', (e) => {
+    if (!armed(e.target, 'もう一度押すとすべて消去')) return;
+    state = blank();
+    renderAll();
+    toast('すべて消去しました');
+  });
+
+  // ---------- 共通 ----------
+  function renderSettings() {
+    $('#teamName').value = state.settings.teamName;
+    $('#teams').value = state.settings.teams;
+    $('#oneEvent').checked = state.settings.oneEvent;
+  }
+  $('#teamName').addEventListener('input', (e) => { state.settings.teamName = e.target.value; save(); });
+  $('#fee').addEventListener('input', (e) => { state.settings.fee = Math.max(0, Math.round(Number(e.target.value) || 0)); save(); renderStats(); });
+  $('#teams').addEventListener('input', (e) => { state.settings.teams = Number(e.target.value) || ''; renderMatches(); });
+  $('#oneEvent').addEventListener('change', (e) => { state.settings.oneEvent = e.target.checked; renderMatches(); });
+
+  const tabRenderers = { roster: renderPlayers, matches: renderMatches, stats: renderStats, export: renderExport };
+  $$('.tabs button').forEach((b) => b.addEventListener('click', () => {
+    $$('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    $$('.tab').forEach((t) => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
+    tabRenderers[b.dataset.tab]();
+    window.scrollTo(0, 0);
+  }));
+
+  function renderAll() {
+    renderSettings();
+    renderPlayers();
+    renderMatches();
+    renderStats();
+    renderExport();
+  }
+
+  // メンバー用の閲覧画面(読み取り専用・年齢なし)
+  function renderViewer(data, preview) {
+    document.body.classList.add('viewer-mode');
+    $('#app').hidden = true;
+    $('.tabs').hidden = true;
+    const v = $('#viewer');
+    v.hidden = false;
+    const matches = (data.m || []).map((m) => `<div class="card">
+      <h2>${esc(m.l || '対戦')}${m.o ? ` <span class="vs">vs ${esc(m.o)}</span>` : ''}</h2>
+      ${m.d ? `<p class="hint">${esc(m.d)}</p>` : ''}
+      ${R.EVENTS.map((ev, i) => {
+        const names = ((m.p || [])[i] || []).filter(Boolean);
+        return `<div class="vrow"><div class="vev">${ev.no}. ${esc(ev.ja)}<small>${esc(ev.th)}</small></div>
+          <div class="vnames">${names.length ? names.map(esc).join(' / ') : '<span class="muted">未定</span>'}</div></div>`;
+      }).join('')}
+    </div>`).join('');
+    // 出場回数: 名簿の名前(年齢なし)+オーダーに出てくる名前
+    const ms = data.m || [];
+    const names = [...new Set([...(data.n || []), ...ms.flatMap((m) => (m.p || []).flat()).filter(Boolean)])];
+    const stats = names.length && ms.length
+      ? `<div class="card"><h2>出場回数と参加費の分担</h2>${statsHtml(names, ms.map((m) => ({ label: m.l, pairs: m.p || [] })), data.f ?? R.TOURNAMENT.fee)}</div>` : '';
+    v.innerHTML = `${data.t ? `<p class="vteam">${esc(data.t)}</p>` : ''}${matches || '<div class="card muted">オーダーはまだありません</div>'}${stats}
+      <p class="hint">この画面は閲覧専用です。オーダーの変更は管理者が行います。</p>
+      ${preview ? '<div class="previewbar"><span>メンバー画面のプレビュー</span><button id="closePreview">管理画面に戻る</button></div>' : ''}`;
+    if (preview) {
+      window.scrollTo(0, 0);
+      $('#closePreview').addEventListener('click', () => {
+        v.hidden = true;
+        $('#app').hidden = false;
+        $('.tabs').hidden = false;
+        document.body.classList.remove('viewer-mode');
+      });
+    }
+  }
+
+  const T = R.TOURNAMENT;
+  $('#tourInfo').textContent = `${T.date.replace(/-/g, '/')}(土) ${T.venue}`;
+  function showFromHash() {
+    const viewParam = /^#view=(.+)$/.exec(location.hash);
+    if (viewParam) {
+      try { renderViewer(decode(viewParam[1])); } catch (e) { renderViewer({ m: [] }); }
+      return true;
+    }
+    return false;
+  }
+  if (window.TENNIS_VIEWER_ONLY) {
+    // メンバー用ページ: 閲覧のみ。管理画面は出さない
+    if (!showFromHash()) {
+      renderViewer({ m: [] });
+      $('#viewer').innerHTML = '<div class="card"><h2>オーダー表</h2><p>管理者からLINEで届いたリンクを開いてください。</p></div>';
+    }
+    window.addEventListener('hashchange', showFromHash);
+  } else if (showFromHash()) {
+    /* 管理者版でも閲覧リンクを開いたときは閲覧画面 */
+  } else {
+    lastSaved = JSON.stringify(state);
+    renderAll();
+    if (window.claude && window.claude.use) {
+      // 権限が分かるまで管理画面は出さない(閲覧のみの人に名簿が一瞬見えないように)
+      renderViewer({ m: [] });
+      $('#viewer').innerHTML = '<div class="card muted">読み込み中…</div>';
+    }
+    connectRemote();
+  }
+})();
+
+</script>
+
+</body>
+</html>
