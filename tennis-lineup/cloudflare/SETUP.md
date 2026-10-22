@@ -13,8 +13,9 @@ LINEでログインした人は最初「閲覧のみ」。最初の管理者は�
 1. Cloudflare ダッシュボード → **Workers & Pages → Create → Import a repository**
 2. リポジトリ `Mana-Thai/line-ai-chatbot`、ブランチ `claude/tournament-player-match-app-g8ps03`(main にマージ後は main)
 3. **Root directory: `tennis-lineup/cloudflare`**、Build command: 空欄、Deploy command: `npx wrangler deploy`
+   ※ Project name(Worker名)は `wrangler.toml` の `name`(今は `line-ai-chatbot`)と同じにする。違うとビルドが失敗する
 4. Deploy すると、D1 データベース `tennis-lineup` も自動で作られてつながる(Database ID の入力は不要)
-5. 表示された Workers のURL(例 `https://tennis-lineup.<アカウント>.workers.dev/`)を控える
+5. 表示された Workers のURL(例 `https://line-ai-chatbot.<アカウント>.workers.dev/`)を控える
 
 ## 2. LINE Developers で LIFF アプリを作る
 1. 既存の「LINEログイン」チャネル(注文アプリと同じでよい)を開く → **LIFF → 追加**
