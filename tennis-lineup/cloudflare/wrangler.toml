@@ -1,5 +1,5 @@
 # 伝統テニス大会 オーダー表(Cloudflare版): Workers(画面+API)+ D1(データ)
-name = "tennis-lineup"
+name = "line-ai-chatbot"  # Cloudflare の Worker 名と同じにする(違うとビルドが失敗する)
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 # LIFF_ID / LINE_LOGIN_CHANNEL_ID / SESSION_SECRET / ADMIN_SETUP_CODE は
