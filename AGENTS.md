@@ -25,7 +25,10 @@
    作品は `artwork/works/<作品名>/` に置く
 4. **副業の運営ファイル** — `business/`。受注管理台帳 `orders.csv`(全案件のステータス管理)と
    見積書テンプレート `templates/quote-template.html`(日タイ併記・PNG化してLINEで送る)
-5. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
+5. **伝統テニス大会 オーダー表** — `tennis-lineup/`。チョンブリー県内クラブ対抗テニス大会の
+   選手名簿と対戦ごとの5種目ペア作成(年齢条件チェック・自動割り当て)。静的サイト、データは
+   localStorage。規則ロジックは `rules.js`、テストは `node tennis-lineup/test.js`
+6. **旧チャットボット(休止中)** — `index.js`。LINE Messaging API + Gemini。`npm run chatbot`
 
 ## 重要な仕様・約束事
 
