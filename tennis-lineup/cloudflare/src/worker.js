@@ -49,7 +49,9 @@ async function verifyToken(env, token) {
   } catch (e) { return null; }
 }
 
+let schemaReady = false; // 同じ Worker の中では一度だけテーブルを確認する
 async function ensureSchema(env) {
+  if (schemaReady) return;
   await env.DB.batch([
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS users (
       user_id TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'viewer',
@@ -57,6 +59,7 @@ async function ensureSchema(env) {
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS docs (
       key TEXT PRIMARY KEY, json TEXT NOT NULL, saved_at INTEGER NOT NULL, by TEXT, version INTEGER NOT NULL DEFAULT 1)`),
   ]);
+  schemaReady = true;
 }
 
 async function verifyLineIdToken(env, idToken) {
@@ -84,7 +87,10 @@ async function handleApi(request, env, url) {
   const method = request.method;
   const dev = env.ALLOW_INSECURE_DEV === '1';
 
-  if (path === '/api/config' && method === 'GET') return json({ liffId: env.LIFF_ID || '', dev });
+  if (path === '/api/config' && method === 'GET') {
+    const missing = ['LIFF_ID', 'LINE_LOGIN_CHANNEL_ID', 'SESSION_SECRET', 'ADMIN_SETUP_CODE'].filter((k) => !env[k] && !(dev && k !== 'SESSION_SECRET'));
+    return json({ liffId: env.LIFF_ID || '', dev, missing });
+  }
 
   if (!env.SESSION_SECRET) return fail(500, 'SESSION_SECRET が設定されていません');
   await ensureSchema(env);

@@ -9,28 +9,28 @@
 
 LINEでログインした人は最初「閲覧のみ」。最初の管理者は「管理者コード」でなり、以後は管理者が「書き出し」タブの一覧で変更します。
 
-## 1. D1(データベース)を作る
-1. Cloudflare ダッシュボード → **Storage & Databases → D1 SQL Database → Create**
-2. 名前 `tennis-lineup` で作成し、表示された **Database ID** を控える
-3. `wrangler.toml` の `database_id` をその値に書き換える(Claudeに伝えれば書き換えます)
-   ※ テーブルは初回アクセス時に自動で作られます
+## 1. Workers を GitHub から公開する(D1 も自動で作られる)
+1. Cloudflare ダッシュボード → **Workers & Pages → Create → Import a repository**
+2. リポジトリ `Mana-Thai/line-ai-chatbot`、ブランチ `claude/tournament-player-match-app-g8ps03`(main にマージ後は main)
+3. **Root directory: `tennis-lineup/cloudflare`**、Build command: 空欄、Deploy command: `npx wrangler deploy`
+4. Deploy すると、D1 データベース `tennis-lineup` も自動で作られてつながる(Database ID の入力は不要)
+5. 表示された Workers のURL(例 `https://tennis-lineup.<アカウント>.workers.dev/`)を控える
 
 ## 2. LINE Developers で LIFF アプリを作る
 1. 既存の「LINEログイン」チャネル(注文アプリと同じでよい)を開く → **LIFF → 追加**
-2. サイズ: Full / エンドポイントURL: 手順3で分かる Workers のURL(例 `https://tennis-lineup.<アカウント>.workers.dev/`)/ Scope: **openid と profile をON**
+2. サイズ: Full / エンドポイントURL: 手順1-5 の Workers のURL / Scope: **openid と profile をON**
 3. **LIFF ID** と、チャネル基本設定の **チャネルID** を控える
-4. `wrangler.toml` の `[vars]` の `LIFF_ID` と `LINE_LOGIN_CHANNEL_ID` に入れる(公開しても問題ない値)
 
-## 3. Workers を GitHub から公開する
-1. ダッシュボード → **Workers & Pages → Create → Import a repository**
-2. リポジトリ `Mana-Thai/line-ai-chatbot`、ブランチ `claude/tournament-player-match-app-g8ps03`(main にマージ後は main)
-3. **Root directory: `tennis-lineup/cloudflare`**、Build command: 空欄、Deploy command: `npx wrangler deploy`
-4. 公開後、Worker の **Settings → Variables and Secrets** で次の2つを **Secret** として追加
-   | 名前 | 値 |
-   |---|---|
-   | `SESSION_SECRET` | 長いランダムな文字列(32文字以上・誰にも教えない) |
-   | `ADMIN_SETUP_CODE` | 管理者になるための合言葉(管理者だけに教える) |
-5. `https://<WorkersのURL>/healthz` が `ok` になれば公開完了。LIFFのエンドポイントURLもこのURLにする
+## 3. Cloudflare に設定を入れる
+Worker の **Settings → Variables and Secrets → Add** で4つ追加(deploy しても消えません):
+| 名前 | 種類 | 値 |
+|---|---|---|
+| `LIFF_ID` | Text | 手順2-3 の LIFF ID |
+| `LINE_LOGIN_CHANNEL_ID` | Text | 手順2-3 のチャネルID |
+| `SESSION_SECRET` | **Secret** | 長いランダムな文字列(32文字以上・誰にも教えない) |
+| `ADMIN_SETUP_CODE` | **Secret** | 管理者になるための合言葉(管理者だけに教える) |
+
+`https://<WorkersのURL>/healthz` が `ok` なら公開完了。設定が足りないと、開いたときに足りない名前が表示されます。
 
 ## 4. 最初の管理者になる・データを移す
 1. `https://liff.line.me/<LIFF ID>` をLINEで開いてログイン →「管理者の方はこちら」に `ADMIN_SETUP_CODE` を入力
@@ -48,7 +48,7 @@ LINEでログインした人は最初「閲覧のみ」。最初の管理者は�
 ## うまくいかないとき
 | 症状 | 原因 |
 |---|---|
-| 「LIFF_ID が設定されていません」 | `wrangler.toml` の `LIFF_ID` が空 |
+| 「Cloudflare の設定が足りません: …」 | 手順3の変数・シークレットが未設定(表示された名前を追加) |
 | 「LINEのIDトークンを確認できませんでした」 | `LINE_LOGIN_CHANNEL_ID` が違う、またはLIFFが別チャネル |
 | 「SESSION_SECRET が設定されていません」 | 手順3-4のシークレット未設定 |
 | 「管理者コードが違います」 | `ADMIN_SETUP_CODE` の入力ミス/未設定 |

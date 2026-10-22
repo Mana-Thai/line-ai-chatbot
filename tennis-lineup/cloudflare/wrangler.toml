@@ -2,6 +2,9 @@
 name = "tennis-lineup"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
+# LIFF_ID / LINE_LOGIN_CHANNEL_ID / SESSION_SECRET / ADMIN_SETUP_CODE は
+# Cloudflare の画面(Settings → Variables and Secrets)で設定する。deploy しても消えないようにする
+keep_vars = true
 
 # 画面(public/ は ../build.py で生成してコミットする)
 [assets]
@@ -9,13 +12,8 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
-# データベース。Cloudflare の画面で D1 を作り、その Database ID をここに入れる
+# データベース。database_id を書かなければ、最初の deploy で D1「tennis-lineup」が自動で作られる
+# (自分で作った D1 を使う場合は database_id = "..." を足す)
 [[d1_databases]]
 binding = "DB"
 database_name = "tennis-lineup"
-database_id = "00000000-0000-0000-0000-000000000000"
-
-# 公開してよい設定(LINE Developers の値)。秘密の値は「シークレット」に入れる(SETUP.md 参照)
-[vars]
-LIFF_ID = ""
-LINE_LOGIN_CHANNEL_ID = ""

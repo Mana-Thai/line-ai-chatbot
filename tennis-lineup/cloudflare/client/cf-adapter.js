@@ -54,6 +54,9 @@
       try { me = (await api('/api/me')).user; return me; } catch (e) { token = null; store.set(null); }
     }
     const cfg = await api('/api/config');
+    if (cfg.missing && cfg.missing.length) {
+      throw new Error('Cloudflare の設定が足りません: ' + cfg.missing.join(', ') + '(Settings → Variables and Secrets で設定してください)');
+    }
     let body;
     if (cfg.liffId && window.liff) {
       await liff.init({ liffId: cfg.liffId });
