@@ -109,6 +109,13 @@ assert.ok(spread(bal.counts) <= 1, 'balanced counts within 1: ' + JSON.stringify
 assert.ok(bal.avgP > 0.5);
 // 出場回数の均等(fairLineups): 同じ性別の中で差は1回以内
 const fair = R.fairLineups(esL, [5, 5, 5, 5], {});
+// 勝率を上げる余地があっても、均等さは崩さない(全員同レベル→勝率の差が無い状況と、大きく差がある状況で同じ均等さ)
+const skew = esL.map((e, i) => ({ ...e, level: i % 2 ? 10 : 1 }));
+const fair2 = R.fairLineups(skew, [5, 5, 5, 5], {});
+for (const g of ['M', 'F']) {
+  const v = skew.filter((e) => e.player.gender === g).map((e) => fair2.counts[e.player.id]);
+  assert.ok(Math.max(...v) - Math.min(...v) <= 1, 'skewed ' + g + ' ' + JSON.stringify(v));
+}
 for (const g of ['M', 'F']) {
   const v = esL.filter((e) => e.player.gender === g).map((e) => fair.counts[e.player.id]);
   assert.ok(Math.max(...v) - Math.min(...v) <= 1, g + ' ' + JSON.stringify(v));

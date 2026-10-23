@@ -506,6 +506,15 @@
     }
     return failed;
   }
+  // 出場回数の範囲を男女別に「男子3〜4回・女子2〜3回」の形で返す
+  function countRange(counts) {
+    return [['M', '男子'], ['F', '女子']].map(([g, label]) => {
+      const v = entries().filter((e) => e.player.gender === g).map((e) => counts[e.player.id] || 0);
+      if (!v.length) return '';
+      const lo = Math.min(...v), hi = Math.max(...v);
+      return `${label}${lo === hi ? lo : `${lo}〜${hi}`}回`;
+    }).filter(Boolean).join('・');
+  }
   // 出場回数をできるだけ均等に: 全対戦をまとめて組み直す(勝率は同じ均等さの中での優先順位にだけ使う)
   $('#autoMatches').addEventListener('click', () => {
     if (!entries().length) { toast('先に「選手名簿」で参加する選手を登録してください'); return; }
@@ -515,8 +524,7 @@
     state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
     suggestions = {};
     renderMatches();
-    const v = Object.values(r.counts);
-    toast(`全対戦を組み直しました。出場回数 ${Math.min(...v)}〜${Math.max(...v)}回(不参加の選手は除外)`);
+    toast(`全対戦を組み直しました。出場回数 ${countRange(r.counts)}(不参加の選手は除外)`);
   });
   // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
   $('#balanceMatches').addEventListener('click', () => {
@@ -527,8 +535,7 @@
     state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
     suggestions = {};
     renderMatches();
-    const v = Object.values(r.counts);
-    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${Math.min(...v)}〜${Math.max(...v)}回`);
+    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${countRange(r.counts)}`);
   });
   $('#rebuildMatches').addEventListener('click', (e) => {
     if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }
