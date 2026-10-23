@@ -52,10 +52,10 @@
       <button id="rebuildMatches">このチーム数で対戦カードを作り直す</button>
     </div>
     <div id="matchList"></div>
-    <button id="balanceMatches" class="primary private-btn">⚖️ 勝率と出場回数のバランスで全対戦を自動作成</button>
-    <p class="hint private">🔒 各対戦の勝率予測(相手の強さ・選手レベル)をできるだけ高く保ちながら、全員の出場回数がそろうように全対戦をまとめて組み直します。</p>
-    <button id="autoMatches" class="ghost">⚡ 出場回数をできるだけ均等にして全対戦を自動作成</button>
-    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、全員の出場回数の差ができるだけ小さくなるように全対戦を組み直します。</p>
+    <button id="autoMatches" class="primary">⚡ 出場回数をできるだけ均等にして全対戦を自動作成(おすすめ)</button>
+    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、<b>出場回数をそろえることを最優先</b>に全対戦を組み直します(男子どうし・女子どうしでそろえます。種目の枠の数が男女で違うため、男女の間の差は比べません)。同じくらいそろう組み方が複数あるときは、勝率の高い方を選びます。</p>
+    <button id="balanceMatches" class="ghost private-btn">⚖️ 勝率を重視して全対戦を自動作成(出場回数に差が出ることがあります)</button>
+    <p class="hint private">🔒 勝率予測(相手の強さ・選手レベル)を優先し、出場回数は多少ずれてもよい場合に使います。</p>
     <button id="addMatch" class="ghost">+ 対戦を追加</button>
   </section>
 

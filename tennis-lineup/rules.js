@@ -185,14 +185,21 @@
     if (!M || first.some((c) => !c)) return null;
     // 出場できる可能性のある選手(どれかの種目に出られる人)だけで出場回数をそろえる
     const active = entries.filter((e) => EVENTS.some((ev) => canEnter(ev, e.player, e.age))).map((e) => e.player.id);
-    const ideal = (10 * M) / active.length;
     const ids = (lu) => Object.values(lu).flat();
     const pick = first.slice();
+    // 目標の出場回数は男女別に出す(女子の枠と男子の枠の数は種目で決まっているので、男女の差は比べない)
+    const genderOf = {};
+    entries.forEach((e) => (genderOf[e.player.id] = e.player.gender));
+    const slots = { M: 0, F: 0 }, heads = { M: 0, F: 0 };
+    first.forEach((c) => ids(c.lineup).forEach((id) => slots[genderOf[id]]++));
+    active.forEach((id) => heads[genderOf[id]]++);
+    const idealOf = {};
+    active.forEach((id) => { const g = genderOf[id]; idealOf[id] = heads[g] ? slots[g] / heads[g] : 0; });
     const evaluate = () => {
       const counts = {};
       active.forEach((id) => (counts[id] = 0));
       pick.forEach((c) => ids(c.lineup).forEach((id) => (counts[id] = (counts[id] || 0) + 1)));
-      const spread = active.reduce((a, id) => a + (counts[id] - ideal) ** 2, 0) / active.length;
+      const spread = active.reduce((a, id) => a + (counts[id] - idealOf[id]) ** 2, 0) / active.length;
       const avgP = pick.reduce((a, c) => a + c.p, 0) / M;
       return { total: avgP - o.lambda * spread, avgP, counts };
     };
@@ -205,7 +212,7 @@
         active.forEach((id) => (others[id] = 0));
         pick.forEach((c, i) => { if (i !== m) ids(c.lineup).forEach((id) => (others[id] = (others[id] || 0) + 1)); });
         const raw = {};
-        active.forEach((id) => (raw[id] = (o.lambda * M / active.length) * ((others[id] + 1 - ideal) ** 2 - (others[id] - ideal) ** 2)));
+        active.forEach((id) => (raw[id] = (o.lambda * M / active.length) * ((others[id] + 1 - idealOf[id]) ** 2 - (others[id] - idealOf[id]) ** 2)));
         const minRaw = Math.min(...Object.values(raw));
         const penalty = {};
         active.forEach((id) => (penalty[id] = raw[id] - minRaw)); // 全員に同じ定数を足しても順位は変わらない

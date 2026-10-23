@@ -198,10 +198,10 @@ button.private-btn { margin-bottom: 4px; }
       <button id="rebuildMatches">このチーム数で対戦カードを作り直す</button>
     </div>
     <div id="matchList"></div>
-    <button id="balanceMatches" class="primary private-btn">⚖️ 勝率と出場回数のバランスで全対戦を自動作成</button>
-    <p class="hint private">🔒 各対戦の勝率予測(相手の強さ・選手レベル)をできるだけ高く保ちながら、全員の出場回数がそろうように全対戦をまとめて組み直します。</p>
-    <button id="autoMatches" class="ghost">⚡ 出場回数をできるだけ均等にして全対戦を自動作成</button>
-    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、全員の出場回数の差ができるだけ小さくなるように全対戦を組み直します。</p>
+    <button id="autoMatches" class="primary">⚡ 出場回数をできるだけ均等にして全対戦を自動作成(おすすめ)</button>
+    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、<b>出場回数をそろえることを最優先</b>に全対戦を組み直します(男子どうし・女子どうしでそろえます。種目の枠の数が男女で違うため、男女の間の差は比べません)。同じくらいそろう組み方が複数あるときは、勝率の高い方を選びます。</p>
+    <button id="balanceMatches" class="ghost private-btn">⚖️ 勝率を重視して全対戦を自動作成(出場回数に差が出ることがあります)</button>
+    <p class="hint private">🔒 勝率予測(相手の強さ・選手レベル)を優先し、出場回数は多少ずれてもよい場合に使います。</p>
     <button id="addMatch" class="ghost">+ 対戦を追加</button>
   </section>
 
@@ -470,14 +470,21 @@ window.TENNIS_VIEWER_ONLY = true;
     if (!M || first.some((c) => !c)) return null;
     // 出場できる可能性のある選手(どれかの種目に出られる人)だけで出場回数をそろえる
     const active = entries.filter((e) => EVENTS.some((ev) => canEnter(ev, e.player, e.age))).map((e) => e.player.id);
-    const ideal = (10 * M) / active.length;
     const ids = (lu) => Object.values(lu).flat();
     const pick = first.slice();
+    // 目標の出場回数は男女別に出す(女子の枠と男子の枠の数は種目で決まっているので、男女の差は比べない)
+    const genderOf = {};
+    entries.forEach((e) => (genderOf[e.player.id] = e.player.gender));
+    const slots = { M: 0, F: 0 }, heads = { M: 0, F: 0 };
+    first.forEach((c) => ids(c.lineup).forEach((id) => slots[genderOf[id]]++));
+    active.forEach((id) => heads[genderOf[id]]++);
+    const idealOf = {};
+    active.forEach((id) => { const g = genderOf[id]; idealOf[id] = heads[g] ? slots[g] / heads[g] : 0; });
     const evaluate = () => {
       const counts = {};
       active.forEach((id) => (counts[id] = 0));
       pick.forEach((c) => ids(c.lineup).forEach((id) => (counts[id] = (counts[id] || 0) + 1)));
-      const spread = active.reduce((a, id) => a + (counts[id] - ideal) ** 2, 0) / active.length;
+      const spread = active.reduce((a, id) => a + (counts[id] - idealOf[id]) ** 2, 0) / active.length;
       const avgP = pick.reduce((a, c) => a + c.p, 0) / M;
       return { total: avgP - o.lambda * spread, avgP, counts };
     };
@@ -490,7 +497,7 @@ window.TENNIS_VIEWER_ONLY = true;
         active.forEach((id) => (others[id] = 0));
         pick.forEach((c, i) => { if (i !== m) ids(c.lineup).forEach((id) => (others[id] = (others[id] || 0) + 1)); });
         const raw = {};
-        active.forEach((id) => (raw[id] = (o.lambda * M / active.length) * ((others[id] + 1 - ideal) ** 2 - (others[id] - ideal) ** 2)));
+        active.forEach((id) => (raw[id] = (o.lambda * M / active.length) * ((others[id] + 1 - idealOf[id]) ** 2 - (others[id] - idealOf[id]) ** 2)));
         const minRaw = Math.min(...Object.values(raw));
         const penalty = {};
         active.forEach((id) => (penalty[id] = raw[id] - minRaw)); // 全員に同じ定数を足しても順位は変わらない
@@ -1155,6 +1162,15 @@ window.TENNIS_VIEWER_ONLY = true;
     }
     return failed;
   }
+  // 出場回数の範囲を男女別に「男子3〜4回・女子2〜3回」の形で返す
+  function countRange(counts) {
+    return [['M', '男子'], ['F', '女子']].map(([g, label]) => {
+      const v = entries().filter((e) => e.player.gender === g).map((e) => counts[e.player.id] || 0);
+      if (!v.length) return '';
+      const lo = Math.min(...v), hi = Math.max(...v);
+      return `${label}${lo === hi ? lo : `${lo}〜${hi}`}回`;
+    }).filter(Boolean).join('・');
+  }
   // 出場回数をできるだけ均等に: 全対戦をまとめて組み直す(勝率は同じ均等さの中での優先順位にだけ使う)
   $('#autoMatches').addEventListener('click', () => {
     if (!entries().length) { toast('先に「選手名簿」で参加する選手を登録してください'); return; }
@@ -1164,8 +1180,7 @@ window.TENNIS_VIEWER_ONLY = true;
     state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
     suggestions = {};
     renderMatches();
-    const v = Object.values(r.counts);
-    toast(`全対戦を組み直しました。出場回数 ${Math.min(...v)}〜${Math.max(...v)}回(不参加の選手は除外)`);
+    toast(`全対戦を組み直しました。出場回数 ${countRange(r.counts)}(不参加の選手は除外)`);
   });
   // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
   $('#balanceMatches').addEventListener('click', () => {
@@ -1176,8 +1191,7 @@ window.TENNIS_VIEWER_ONLY = true;
     state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
     suggestions = {};
     renderMatches();
-    const v = Object.values(r.counts);
-    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${Math.min(...v)}〜${Math.max(...v)}回`);
+    toast(`全対戦を組み直しました。平均チーム勝率 ${pct(r.avgP)}・出場回数 ${countRange(r.counts)}`);
   });
   $('#rebuildMatches').addEventListener('click', (e) => {
     if (!R.matchPlan(state.settings.teams).length) { toast('参加チーム数(2〜10)を入れてください'); return; }
