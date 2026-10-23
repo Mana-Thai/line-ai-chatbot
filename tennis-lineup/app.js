@@ -70,6 +70,7 @@
       setSync('☁ 保存済み(管理者で共有)', 'ok');
     } catch (e) {
       setSync('⚠ 保存できませんでした(この端末には保存済み)', 'err');
+      if (e && e.status === 409 && editLock) { writing = false; dirty = false; lockLost(e.message); return; }
     }
     writing = false;
     if (again) { again = false; flush(); }
@@ -111,6 +112,101 @@
       $('#viewer').innerHTML = '<div class="card"><p>オーダーを読み込めませんでした。ページを開き直してください。</p></div>';
     });
   }
+  // ---------- 編集ロック(Cloudflare版の管理者どうし) ----------
+  // 編集は全体で1人だけ。入力を始めると自動で「編集中」になり、ほかの管理者の画面は
+  // 「〇〇さんが編集中です」と表示して見るだけにする。3分間操作がなければ自動で終了。
+  // 守っているのはサーバー(ロックを持たない保存は409で断る)。画面側は分かりやすく見せるだけ。
+  const LOCK_RENEW_MS = 10000, LOCK_IDLE_MS = 3 * 60000, LOCK_POLL_MS = 4000;
+  let editLock = null; // {api, ref, mine, holder, lastActive, renewTimer, acquiring}
+  function applyEditable() {
+    const ro = !!editLock && !editLock.mine && !!editLock.holder;
+    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = ro;
+    for (const id of ['resetAll', 'loadFile', 'loadSample']) { const el = document.getElementById(id); if (el) el.disabled = ro; }
+    $('#app').classList.toggle('readonly', ro);
+    const bar = $('#lockBar');
+    bar.hidden = false;
+    if (editLock.mine) {
+      bar.className = 'lockbar mine';
+      bar.innerHTML = '<span>✏️ あなたが編集中です(ほかの管理者は見るだけになります)</span><button id="lockEnd">編集を終える</button>';
+    } else if (editLock.holder) {
+      bar.className = 'lockbar busy';
+      bar.innerHTML = `<span>🔒 ${esc(editLock.holder.name || '他の管理者')}さんが編集中です。編集が終わるまでお待ちください(画面は自動で最新になります)</span>`;
+    } else {
+      bar.className = 'lockbar';
+      bar.innerHTML = '<span>入力を始めると自動で「編集中」になり、ほかの管理者は同時に編集できなくなります。</span>';
+    }
+  }
+  async function reloadFromServer() {
+    const d = (await editLock.ref.get()).data();
+    if (d && d.state) {
+      state = migrate(d.state);
+      latestSavedAt = d.savedAt || latestSavedAt;
+      lastSaved = JSON.stringify(state);
+      renderAll();
+    }
+  }
+  function lockLost(message) {
+    clearInterval(editLock.renewTimer);
+    editLock.mine = false;
+    toast(message || '編集の権利が切れました');
+    reloadFromServer().catch(() => {});
+    pollLock();
+  }
+  async function pollLock() {
+    if (!editLock || editLock.mine) return;
+    try {
+      const s = await editLock.api.status();
+      editLock.holder = s.holder && !s.mine ? s.holder : null;
+    } catch (e) { /* 次の確認で */ }
+    applyEditable();
+  }
+  async function beginEditing() {
+    if (editLock.mine || editLock.acquiring || editLock.holder) { if (editLock.mine) editLock.lastActive = Date.now(); return; }
+    editLock.acquiring = true;
+    try {
+      const r = await editLock.api.acquire();
+      if (r.ok) {
+        editLock.mine = true; editLock.holder = null; editLock.lastActive = Date.now();
+        clearInterval(editLock.renewTimer);
+        editLock.renewTimer = setInterval(renewLock, LOCK_RENEW_MS);
+      } else {
+        editLock.holder = r.holder || { name: '他の管理者' };
+        toast(`${editLock.holder.name}さんが編集中です`);
+        if (dirty) { dirty = false; clearTimeout(saveTimer); await reloadFromServer(); }
+      }
+    } catch (e) { /* 通信エラー: 次の操作で再挑戦 */ }
+    editLock.acquiring = false;
+    applyEditable();
+  }
+  async function renewLock() {
+    if (!editLock.mine) return;
+    if (Date.now() - editLock.lastActive > LOCK_IDLE_MS) { await endEditing(); toast('3分間操作がなかったので編集を終えました'); return; }
+    const r = await editLock.api.acquire().catch(() => null);
+    if (r && !r.ok) lockLost(`${(r.holder && r.holder.name) || '他の管理者'}さんが編集を始めました`);
+  }
+  async function endEditing() {
+    if (!editLock.mine) return;
+    clearInterval(editLock.renewTimer);
+    clearTimeout(saveTimer);
+    if (dirty) await flush(); // 未保存の変更を先に保存してから手放す
+    editLock.mine = false;
+    await editLock.api.release();
+    applyEditable();
+  }
+  function startEditLock(api, ref) {
+    editLock = { api, ref, mine: false, holder: null, lastActive: 0, renewTimer: null, acquiring: false };
+    // 名簿・オーダー・参加費の画面と、読み込み/消去のボタンに触れたら編集開始
+    const touch = (e) => {
+      if (!e.target.closest('#tab-roster, #tab-matches, #tab-stats, #loadFile, #resetAll, .filebtn')) return;
+      beginEditing();
+    };
+    for (const ev of ['pointerdown', 'keydown', 'focusin']) $('#app').addEventListener(ev, touch, true);
+    $('#lockBar').addEventListener('click', (e) => { if (e.target.id === 'lockEnd') endEditing(); });
+    window.addEventListener('pagehide', () => { if (editLock.mine) editLock.api.release({ keepalive: true }); });
+    setInterval(pollLock, LOCK_POLL_MS);
+    pollLock();
+  }
+
   async function connectRemote() {
     const use = window.claude && window.claude.use;
     if (!use) { startLocal(); return; }
@@ -147,10 +243,12 @@
         setSync('☁ 保存されます(管理者で共有)', 'ok');
       }
       showApp();
+      const lockApi = await use('lock').catch(() => null);
+      if (lockApi) startEditLock(lockApi, ref);
       // 他の管理者の変更をそのまま反映する(自分の書き込みと未保存の編集中は除く)
       ref.onSnapshot((snap) => {
         const d = snap.exists && snap.data();
-        if (!d || !d.state || d.by === clientId || dirty || writing) return;
+        if (!d || !d.state || d.by === clientId || dirty || writing || (editLock && editLock.mine)) return;
         if (snap.metadata && snap.metadata.fromCache) return; // 確定していない(古いかもしれない)内容は使わない
         if (!(d.savedAt > latestSavedAt)) return;            // 手元より古い保存は無視
         latestSavedAt = d.savedAt;

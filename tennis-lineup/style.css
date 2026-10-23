@@ -138,3 +138,8 @@ button.private-btn { margin-bottom: 4px; }
 .player .p-absent { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .player.absent .p-name, .player.absent .p-agebox, .player.absent .p-elig, .player.absent .p-gender { opacity: .45; text-decoration: line-through; }
 .player.absent .p-absent { color: var(--err); font-weight: bold; }
+.lockbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+.lockbar.mine { background: var(--okbg); border-color: var(--ok); color: var(--ok); font-size: 14px; }
+.lockbar.busy { background: var(--warnbg); border-color: var(--warn); color: var(--warn); font-weight: bold; font-size: 14px; }
+#app.readonly #tab-roster, #app.readonly #tab-matches, #app.readonly #tab-stats { opacity: .7; }

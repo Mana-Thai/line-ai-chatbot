@@ -2,10 +2,13 @@
 // /api/* を処理し、それ以外は public/ の画面を返す。
 // 認証: LIFF の IDトークンを LINE で検証 → HMAC署名のセッショントークン(12時間)
 // 権限: users.role = 'admin'(管理者と同じ権限) | 'viewer'(閲覧のみ)。新しい人は viewer。
-//       最初の管理者は ADMIN_SETUP_CODE(シークレット)を入力してなる。以後は管理者が画面で変更。
+//       管理者の追加・解除は、管理者が画面の一覧で行う。ADMIN_SETUP_CODE は管理者が1人もいないときだけ使える。
+// 編集ロック: 管理者の編集は全体で1人だけ(locks テーブル・30秒、使っている間は更新)。
+//       admin_state / public_order の保存は、ロックを持っている人だけができる。
 // データ: docs テーブルに 'admin_state'(全データ・管理者のみ)と 'public_order'(閲覧用)を JSON で保存。
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const LOCK_TTL_MS = 30 * 1000;
 const DOCS = { admin_state: 'admin', public_order: 'viewer' }; // 読むのに必要な権限
 const enc = new TextEncoder();
 
@@ -58,6 +61,8 @@ async function ensureSchema(env) {
       created_at INTEGER NOT NULL, last_seen INTEGER NOT NULL)`),
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS docs (
       key TEXT PRIMARY KEY, json TEXT NOT NULL, saved_at INTEGER NOT NULL, by TEXT, version INTEGER NOT NULL DEFAULT 1)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS locks (
+      key TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, client_id TEXT NOT NULL, expires_at INTEGER NOT NULL)`),
   ]);
   schemaReady = true;
 }
@@ -89,7 +94,13 @@ async function handleApi(request, env, url) {
 
   if (path === '/api/config' && method === 'GET') {
     const missing = ['LIFF_ID', 'LINE_LOGIN_CHANNEL_ID', 'SESSION_SECRET', 'ADMIN_SETUP_CODE'].filter((k) => !env[k] && !(dev && k !== 'SESSION_SECRET'));
-    return json({ liffId: env.LIFF_ID || '', dev, missing });
+    let needsAdmin = false;
+    if (env.DB && env.SESSION_SECRET) {
+      await ensureSchema(env);
+      const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'").first();
+      needsAdmin = !row.n;
+    }
+    return json({ liffId: env.LIFF_ID || '', dev, missing, needsAdmin });
   }
 
   if (!env.SESSION_SECRET) return fail(500, 'SESSION_SECRET が設定されていません');
@@ -122,11 +133,40 @@ async function handleApi(request, env, url) {
 
   if (path === '/api/claim-admin' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
+    const admins = await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'").first();
+    if (admins.n) return fail(403, 'すでに管理者がいます。管理者に「管理者と同じ権限」にしてもらってください');
     if (!env.ADMIN_SETUP_CODE || typeof body.code !== 'string' || !safeEqual(body.code, env.ADMIN_SETUP_CODE)) {
       return fail(403, '管理者コードが違います');
     }
     await env.DB.prepare("UPDATE users SET role = 'admin' WHERE user_id = ?").bind(user.id).run();
     return json({ user: { ...user, role: 'admin' } });
+  }
+
+  if (path === '/api/lock') {
+    if (!isAdmin(user)) return fail(403, '管理者だけが編集できます');
+    const now = Date.now();
+    const clientId = (request.headers.get('x-client-id') || '').slice(0, 64);
+    if (method === 'GET') {
+      const row = await env.DB.prepare('SELECT user_id, name, client_id, expires_at FROM locks WHERE key = ?').bind('edit').first();
+      const active = row && row.expires_at > now;
+      return json({ holder: active ? { id: row.user_id, name: row.name } : null, mine: !!(active && row.user_id === user.id && row.client_id === clientId), expiresAt: active ? row.expires_at : 0 });
+    }
+    if (method === 'POST') {
+      if (!clientId) return fail(400, 'x-client-id がありません');
+      // 空いている・期限切れ・自分(同じ画面)のときだけ取得/更新できる
+      await env.DB.prepare(`INSERT INTO locks (key, user_id, name, client_id, expires_at) VALUES ('edit', ?, ?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET user_id = excluded.user_id, name = excluded.name, client_id = excluded.client_id, expires_at = excluded.expires_at
+        WHERE locks.expires_at <= ? OR (locks.user_id = excluded.user_id AND locks.client_id = excluded.client_id)`)
+        .bind(user.id, user.name, clientId, now + LOCK_TTL_MS, now).run();
+      const row = await env.DB.prepare('SELECT user_id, name, client_id, expires_at FROM locks WHERE key = ?').bind('edit').first();
+      if (row.user_id === user.id && row.client_id === clientId) return json({ ok: true, expiresAt: row.expires_at });
+      return json({ ok: false, holder: { id: row.user_id, name: row.name }, expiresAt: row.expires_at }, 409);
+    }
+    if (method === 'DELETE') {
+      await env.DB.prepare("DELETE FROM locks WHERE key = 'edit' AND user_id = ? AND client_id = ?").bind(user.id, clientId).run();
+      return json({ ok: true });
+    }
+    return fail(405, 'method not allowed');
   }
 
   const docMatch = path.match(/^\/api\/doc\/([a-z_]+)$/);
@@ -140,6 +180,11 @@ async function handleApi(request, env, url) {
     }
     if (method === 'PUT') {
       if (!isAdmin(user)) return fail(403, '管理者だけが保存できます');
+      const lock = await env.DB.prepare('SELECT user_id, name, client_id, expires_at FROM locks WHERE key = ?').bind('edit').first();
+      const clientId = request.headers.get('x-client-id') || '';
+      if (!lock || lock.expires_at <= Date.now() || lock.user_id !== user.id || lock.client_id !== clientId) {
+        return json({ error: lock && lock.expires_at > Date.now() && lock.user_id !== user.id ? `${lock.name}さんが編集中のため保存できません` : '編集の権利が切れました。もう一度編集してください', code: 'locked' }, 409);
+      }
       const text = await request.text();
       if (text.length > 512 * 1024) return fail(413, 'データが大きすぎます');
       let data;

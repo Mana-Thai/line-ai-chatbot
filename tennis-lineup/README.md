@@ -53,3 +53,4 @@
 `client/cf-adapter.js` が app.js の `window.claude.use('db'/'user')` と同じ形で自前API(`src/worker.js`)につなぐため、
 app.js は claude.ai 版と共通。権限は users テーブル(admin / viewer)、データは docs テーブル(admin_state / public_order)。
 公開手順は `cloudflare/SETUP.md`。
+管理者の編集はロック(`locks` テーブル・30秒・自動更新)で同時に1人だけ。保存APIはロックを持つ人以外を409で断る。
