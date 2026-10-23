@@ -150,6 +150,9 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 button.private-btn { margin-bottom: 4px; }
 #tab-matches > button { margin-top: 6px; }
+.player .p-absent { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.player.absent .p-name, .player.absent .p-agebox, .player.absent .p-elig, .player.absent .p-gender { opacity: .45; text-decoration: line-through; }
+.player.absent .p-absent { color: var(--err); font-weight: bold; }
 
 .cf-overlay { position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 85%, transparent); display: grid; place-items: center; padding: 16px; }
 .cf-box { max-width: 420px; width: 100%; }
@@ -204,7 +207,8 @@ button.private-btn { margin-bottom: 4px; }
     <div id="matchList"></div>
     <button id="balanceMatches" class="primary private-btn">⚖️ 勝率と出場回数のバランスで全対戦を自動作成</button>
     <p class="hint private">🔒 各対戦の勝率予測(相手の強さ・選手レベル)をできるだけ高く保ちながら、全員の出場回数がそろうように全対戦をまとめて組み直します。</p>
-    <button id="autoMatches" class="ghost">⚡ 空き枠だけ自動で埋める(出場回数を均等に)</button>
+    <button id="autoMatches" class="ghost">⚡ 出場回数をできるだけ均等にして全対戦を自動作成</button>
+    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、全員の出場回数の差ができるだけ小さくなるように全対戦を組み直します。</p>
     <button id="addMatch" class="ghost">+ 対戦を追加</button>
   </section>
 
@@ -276,6 +280,7 @@ button.private-btn { margin-bottom: 4px; }
       <option value="">資格を選択</option>
     </select>
     <button class="p-del icon" title="削除">✕</button>
+    <label class="p-absent"><input type="checkbox" class="p-abs"> 不参加(この大会には出ない)</label>
     <input class="p-note private" placeholder="備考(生年月日など・任意)">
   </div>
 </template>
@@ -687,6 +692,11 @@ button.private-btn { margin-bottom: 4px; }
     return { lineups: pick.map((c) => c.lineup), probs: pick.map((c) => c.p), avgP: r.avgP, counts: r.counts };
   }
 
+  // 出場回数の均等を最優先にした全対戦の組み合わせ(勝率は同じくらい均等な案どうしの比較にだけ効く)
+  function fairLineups(entries, oppLevels, opts) {
+    return balancedLineups(entries, oppLevels, Object.assign({ lambda: 50, passes: 12 }, opts || {}));
+  }
+
   // 参加チーム数から、自チームが戦う対戦カードを大会規則3章どおりに作る。
   // 組の大きさが違うとき(7・9チーム)は、多い方の組に入った場合(試合数が最大)で作る。
   function matchPlan(teams) {
@@ -817,7 +827,7 @@ button.private-btn { margin-bottom: 4px; }
     return best;
   }
 
-  return { balancedLineups, matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  return { fairLineups, balancedLineups, matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });
 
 </script>
@@ -994,7 +1004,8 @@ button.private-btn { margin-bottom: 4px; }
 
   const age = (p) => R.toAge(p.age);
   const lvl = (p) => R.toLevel(p.level);
-  const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p), level: lvl(p) }));
+  // 不参加にチェックした選手は、選択欄・自動作成・提案のすべてから外す
+  const entries = () => state.players.filter((p) => p.name && !p.absent).map((p) => ({ player: p, age: age(p), level: lvl(p) }));
   const byId = (id) => state.players.find((p) => p.id === id);
   const entryOf = (id) => { const p = byId(id); return p ? { player: p, age: age(p) } : null; };
   // 確認ダイアログ(confirm)が使えない環境もあるので、同じボタンを2回押して確定する方式にする
@@ -1032,6 +1043,8 @@ button.private-btn { margin-bottom: 4px; }
       $('.p-age', el).value = p.age ?? '';
       $('.p-note', el).value = p.note || '';
       $('.p-level', el).value = p.level ?? '';
+      $('.p-abs', el).checked = !!p.absent;
+      el.classList.toggle('absent', !!p.absent);
       elig.value = p.eligibility;
       list.appendChild(el);
     }
@@ -1045,7 +1058,8 @@ button.private-btn { margin-bottom: 4px; }
     }
     const n = state.players.length;
     $('#loadSample').hidden = n > 0;
-    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})`;
+    const absent = state.players.filter((p) => p.absent).length;
+    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})${absent ? `・不参加${absent}人` : ''}`;
     const { errors, warnings } = R.checkRoster(state.players);
     $('#rosterCheck').innerHTML = (errors.length || warnings.length)
       ? `<div class="card alert">${errors.map((e) => `<p class="err">✕ ${esc(e)}</p>`).join('')}${warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`).join('')}</div>`
@@ -1079,6 +1093,7 @@ button.private-btn { margin-bottom: 4px; }
     if (t.classList.contains('p-note')) p.note = t.value;
     if (t.classList.contains('p-elig')) p.eligibility = t.value;
     if (t.classList.contains('p-level')) { p.level = t.value === '' ? '' : Number(t.value); suggestions = {}; }
+    if (t.classList.contains('p-abs')) { p.absent = t.checked; row.classList.toggle('absent', t.checked); suggestions = {}; }
     refreshDerived();
   });
   $('#playerList').addEventListener('change', (ev) => ev.target.dispatchEvent(new Event('input', { bubbles: true })));
@@ -1128,7 +1143,9 @@ button.private-btn { margin-bottom: 4px; }
 
   let totals = {};
   function slotOptions(ev, slot, selected) {
-    const es = entries().filter((e) => {
+    const sel = selected && byId(selected);
+    const pool = sel && sel.absent ? [...entries(), { player: sel, age: age(sel), level: lvl(sel) }] : entries();
+    const es = pool.filter((e) => {
       if (ev.kind === 'X') return e.player.gender === (slot === 0 ? 'F' : 'M');
       return e.player.gender === (ev.kind === 'W' ? 'F' : 'M');
     }).sort((a, b) => Number(R.canEnter(ev, b.player, b.age)) - Number(R.canEnter(ev, a.player, a.age)));
@@ -1159,6 +1176,7 @@ button.private-btn { margin-bottom: 4px; }
       if (!pair[0] && !pair[1]) { out[ev.id] = { state: 'empty', msgs: [] }; continue; }
       const res = R.checkPair(ev, entryOf(pair[0]), entryOf(pair[1]));
       const msgs = [...res.errors];
+      for (const id of pair) { const p = id && byId(id); if (p && p.absent) { msgs.push(`${p.name}は不参加です。別の選手に替えてください`); res.ok = false; } }
       const warns = [];
       if (state.settings.oneEvent) {
         for (const id of pair) if (id && seen[id].length > 1) warns.push(`${byId(id).name}は種目${seen[id].join('・')}に重複`);
@@ -1322,13 +1340,17 @@ button.private-btn { margin-bottom: 4px; }
     }
     return failed;
   }
+  // 出場回数をできるだけ均等に: 全対戦をまとめて組み直す(勝率は同じ均等さの中での優先順位にだけ使う)
   $('#autoMatches').addEventListener('click', () => {
-    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!entries().length) { toast('先に「選手名簿」で参加する選手を登録してください'); return; }
     if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
-    const failed = autofillAll();
+    const r = R.fairLineups(entries(), state.matches.map((m) => oppLevel(m)), { allowRepeat: !state.settings.oneEvent });
+    if (!r) { toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください'); return; }
+    state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
+    suggestions = {};
     renderMatches();
-    toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
-      : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
+    const v = Object.values(r.counts);
+    toast(`全対戦を組み直しました。出場回数 ${Math.min(...v)}〜${Math.max(...v)}回(不参加の選手は除外)`);
   });
   // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
   $('#balanceMatches').addEventListener('click', () => {
@@ -1384,7 +1406,7 @@ button.private-btn { margin-bottom: 4px; }
     label: m.label,
     pairs: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
   }));
-  const namedPlayers = () => state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1));
+  const namedPlayers = () => state.players.filter((p) => p.name && !p.absent).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1));
   function feeShares() {
     const counts = {};
     for (const p of namedPlayers()) counts[p.name] = 0;
@@ -1436,7 +1458,7 @@ button.private-btn { margin-bottom: 4px; }
     return {
       t: state.settings.teamName,
       f: Number(state.settings.fee) || 0,
-      n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
+      n: state.players.filter((p) => p.name && !p.absent).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
       m: state.matches.map((m) => ({
         l: m.label, o: m.opponent, d: m.note || '',
         p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),

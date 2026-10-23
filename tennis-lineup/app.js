@@ -170,7 +170,8 @@
 
   const age = (p) => R.toAge(p.age);
   const lvl = (p) => R.toLevel(p.level);
-  const entries = () => state.players.filter((p) => p.name).map((p) => ({ player: p, age: age(p), level: lvl(p) }));
+  // 不参加にチェックした選手は、選択欄・自動作成・提案のすべてから外す
+  const entries = () => state.players.filter((p) => p.name && !p.absent).map((p) => ({ player: p, age: age(p), level: lvl(p) }));
   const byId = (id) => state.players.find((p) => p.id === id);
   const entryOf = (id) => { const p = byId(id); return p ? { player: p, age: age(p) } : null; };
   // 確認ダイアログ(confirm)が使えない環境もあるので、同じボタンを2回押して確定する方式にする
@@ -208,6 +209,8 @@
       $('.p-age', el).value = p.age ?? '';
       $('.p-note', el).value = p.note || '';
       $('.p-level', el).value = p.level ?? '';
+      $('.p-abs', el).checked = !!p.absent;
+      el.classList.toggle('absent', !!p.absent);
       elig.value = p.eligibility;
       list.appendChild(el);
     }
@@ -221,7 +224,8 @@
     }
     const n = state.players.length;
     $('#loadSample').hidden = n > 0;
-    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})`;
+    const absent = state.players.filter((p) => p.absent).length;
+    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})${absent ? `・不参加${absent}人` : ''}`;
     const { errors, warnings } = R.checkRoster(state.players);
     $('#rosterCheck').innerHTML = (errors.length || warnings.length)
       ? `<div class="card alert">${errors.map((e) => `<p class="err">✕ ${esc(e)}</p>`).join('')}${warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`).join('')}</div>`
@@ -255,6 +259,7 @@
     if (t.classList.contains('p-note')) p.note = t.value;
     if (t.classList.contains('p-elig')) p.eligibility = t.value;
     if (t.classList.contains('p-level')) { p.level = t.value === '' ? '' : Number(t.value); suggestions = {}; }
+    if (t.classList.contains('p-abs')) { p.absent = t.checked; row.classList.toggle('absent', t.checked); suggestions = {}; }
     refreshDerived();
   });
   $('#playerList').addEventListener('change', (ev) => ev.target.dispatchEvent(new Event('input', { bubbles: true })));
@@ -304,7 +309,9 @@
 
   let totals = {};
   function slotOptions(ev, slot, selected) {
-    const es = entries().filter((e) => {
+    const sel = selected && byId(selected);
+    const pool = sel && sel.absent ? [...entries(), { player: sel, age: age(sel), level: lvl(sel) }] : entries();
+    const es = pool.filter((e) => {
       if (ev.kind === 'X') return e.player.gender === (slot === 0 ? 'F' : 'M');
       return e.player.gender === (ev.kind === 'W' ? 'F' : 'M');
     }).sort((a, b) => Number(R.canEnter(ev, b.player, b.age)) - Number(R.canEnter(ev, a.player, a.age)));
@@ -335,6 +342,7 @@
       if (!pair[0] && !pair[1]) { out[ev.id] = { state: 'empty', msgs: [] }; continue; }
       const res = R.checkPair(ev, entryOf(pair[0]), entryOf(pair[1]));
       const msgs = [...res.errors];
+      for (const id of pair) { const p = id && byId(id); if (p && p.absent) { msgs.push(`${p.name}は不参加です。別の選手に替えてください`); res.ok = false; } }
       const warns = [];
       if (state.settings.oneEvent) {
         for (const id of pair) if (id && seen[id].length > 1) warns.push(`${byId(id).name}は種目${seen[id].join('・')}に重複`);
@@ -498,13 +506,17 @@
     }
     return failed;
   }
+  // 出場回数をできるだけ均等に: 全対戦をまとめて組み直す(勝率は同じ均等さの中での優先順位にだけ使う)
   $('#autoMatches').addEventListener('click', () => {
-    if (!entries().length) { toast('先に「選手名簿」で選手を登録してください'); return; }
+    if (!entries().length) { toast('先に「選手名簿」で参加する選手を登録してください'); return; }
     if (!state.matches.length && !buildCards()) { toast('参加チーム数(2〜10)を入れてください'); return; }
-    const failed = autofillAll();
+    const r = R.fairLineups(entries(), state.matches.map((m) => oppLevel(m)), { allowRepeat: !state.settings.oneEvent });
+    if (!r) { toast('条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください'); return; }
+    state.matches.forEach((m, i) => { m.lineup = JSON.parse(JSON.stringify(r.lineups[i])); });
+    suggestions = {};
     renderMatches();
-    toast(failed ? `${failed}試合は条件を満たす組み合わせが見つかりませんでした。名簿の「種目ごとの出場可能な選手」を確認してください`
-      : '全対戦の組み合わせを自動で作りました(出場回数が均等になるよう配分)');
+    const v = Object.values(r.counts);
+    toast(`全対戦を組み直しました。出場回数 ${Math.min(...v)}〜${Math.max(...v)}回(不参加の選手は除外)`);
   });
   // 勝率と出場回数のバランス: 全対戦をまとめて組み直す
   $('#balanceMatches').addEventListener('click', () => {
@@ -560,7 +572,7 @@
     label: m.label,
     pairs: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),
   }));
-  const namedPlayers = () => state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1));
+  const namedPlayers = () => state.players.filter((p) => p.name && !p.absent).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1));
   function feeShares() {
     const counts = {};
     for (const p of namedPlayers()) counts[p.name] = 0;
@@ -612,7 +624,7 @@
     return {
       t: state.settings.teamName,
       f: Number(state.settings.fee) || 0,
-      n: state.players.filter((p) => p.name).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
+      n: state.players.filter((p) => p.name && !p.absent).sort((a, b) => (a.gender === b.gender ? 0 : a.gender === 'F' ? -1 : 1)).map((p) => p.name),
       m: state.matches.map((m) => ({
         l: m.label, o: m.opponent, d: m.note || '',
         p: R.EVENTS.map((ev) => (m.lineup[ev.id] || []).map((id) => (byId(id) || {}).name || '')),

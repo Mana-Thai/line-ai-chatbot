@@ -222,6 +222,11 @@
     return { lineups: pick.map((c) => c.lineup), probs: pick.map((c) => c.p), avgP: r.avgP, counts: r.counts };
   }
 
+  // 出場回数の均等を最優先にした全対戦の組み合わせ(勝率は同じくらい均等な案どうしの比較にだけ効く)
+  function fairLineups(entries, oppLevels, opts) {
+    return balancedLineups(entries, oppLevels, Object.assign({ lambda: 50, passes: 12 }, opts || {}));
+  }
+
   // 参加チーム数から、自チームが戦う対戦カードを大会規則3章どおりに作る。
   // 組の大きさが違うとき(7・9チーム)は、多い方の組に入った場合(試合数が最大)で作る。
   function matchPlan(teams) {
@@ -352,5 +357,5 @@
     return best;
   }
 
-  return { balancedLineups, matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
+  return { fairLineups, balancedLineups, matchPlan, LEVEL_DEFAULT, toLevel, eventWinProb, teamWinProb, suggestLineups, TOURNAMENT, splitFee, EVENTS, ELIGIBILITY, toAge, ageFromBirth, canEnter, checkPair, checkRoster, autoAssign, formatFor };
 });
