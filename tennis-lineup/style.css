@@ -135,3 +135,6 @@ input.private, select.private, textarea.private { border-color: color-mix(in srg
 .permrow p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 button.private-btn { margin-bottom: 4px; }
 #tab-matches > button { margin-top: 6px; }
+.player .p-absent { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.player.absent .p-name, .player.absent .p-agebox, .player.absent .p-elig, .player.absent .p-gender { opacity: .45; text-decoration: line-through; }
+.player.absent .p-absent { color: var(--err); font-weight: bold; }

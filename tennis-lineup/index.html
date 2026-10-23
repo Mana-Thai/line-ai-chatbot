@@ -54,7 +54,8 @@
     <div id="matchList"></div>
     <button id="balanceMatches" class="primary private-btn">⚖️ 勝率と出場回数のバランスで全対戦を自動作成</button>
     <p class="hint private">🔒 各対戦の勝率予測(相手の強さ・選手レベル)をできるだけ高く保ちながら、全員の出場回数がそろうように全対戦をまとめて組み直します。</p>
-    <button id="autoMatches" class="ghost">⚡ 空き枠だけ自動で埋める(出場回数を均等に)</button>
+    <button id="autoMatches" class="ghost">⚡ 出場回数をできるだけ均等にして全対戦を自動作成</button>
+    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、全員の出場回数の差ができるだけ小さくなるように全対戦を組み直します。</p>
     <button id="addMatch" class="ghost">+ 対戦を追加</button>
   </section>
 
@@ -126,6 +127,7 @@
       <option value="">資格を選択</option>
     </select>
     <button class="p-del icon" title="削除">✕</button>
+    <label class="p-absent"><input type="checkbox" class="p-abs"> 不参加(この大会には出ない)</label>
     <input class="p-note private" placeholder="備考(生年月日など・任意)">
   </div>
 </template>

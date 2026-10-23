@@ -107,4 +107,10 @@ for (const lu of bal.lineups) {
 const spread = (c) => { const v = Object.values(c); return Math.max(...v) - Math.min(...v); };
 assert.ok(spread(bal.counts) <= 1, 'balanced counts within 1: ' + JSON.stringify(bal.counts));
 assert.ok(bal.avgP > 0.5);
+// 出場回数の均等(fairLineups): 同じ性別の中で差は1回以内
+const fair = R.fairLineups(esL, [5, 5, 5, 5], {});
+for (const g of ['M', 'F']) {
+  const v = esL.filter((e) => e.player.gender === g).map((e) => fair.counts[e.player.id]);
+  assert.ok(Math.max(...v) - Math.min(...v) <= 1, g + ' ' + JSON.stringify(v));
+}
 console.log('all tests passed');
