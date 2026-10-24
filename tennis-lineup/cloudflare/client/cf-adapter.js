@@ -5,7 +5,9 @@
   const TOKEN_KEY = 'tennis-cf-token';
   const POLL_MS = 4000;
   const DOC_KEYS = { 'admin/state': 'admin_state', 'public/order': 'public_order' };
-  let token = null, me = null, loginPromise = null;
+  let token = null, me = null, loginPromise = null, cfg = {};
+  // この画面(タブ)の識別子。編集ロックは「人+画面」で持つ
+  const clientId = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
   window.TENNIS_VIEWER_URL = location.origin + '/view/';
 
   const store = {
@@ -15,12 +17,13 @@
   async function api(path, opts) {
     const res = await fetch(path, {
       method: (opts && opts.method) || 'GET',
-      headers: Object.assign({ 'content-type': 'application/json' }, token ? { authorization: 'Bearer ' + token } : {}),
+      headers: Object.assign({ 'content-type': 'application/json', 'x-client-id': clientId }, token ? { authorization: 'Bearer ' + token } : {}),
       body: opts && opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      keepalive: !!(opts && opts.keepalive),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 401 && path !== '/api/login') { store.set(null); token = null; }
-    if (!res.ok) { const e = new Error(data.error || ('HTTP ' + res.status)); e.status = res.status; throw e; }
+    if (!res.ok) { const e = new Error(data.error || ('HTTP ' + res.status)); e.status = res.status; e.data = data; throw e; }
     return data;
   }
 
@@ -49,11 +52,11 @@
     });
   }
   async function login() {
+    cfg = await api('/api/config');
     token = store.get();
     if (token) {
       try { me = (await api('/api/me')).user; return me; } catch (e) { token = null; store.set(null); }
     }
-    const cfg = await api('/api/config');
     if (cfg.missing && cfg.missing.length) {
       throw new Error('Cloudflare の設定が足りません: ' + cfg.missing.join(', ') + '(Settings → Variables and Secrets で設定してください)');
     }
@@ -111,6 +114,17 @@
     };
   }
   const db = { doc: docRef };
+  // 編集ロック(管理者だけ)。app.js が claude.use('lock') で使う
+  const lock = {
+    status: () => api('/api/lock'),
+    async acquire() {
+      try { return await api('/api/lock', { method: 'POST' }); } catch (e) {
+        if (e.status === 409) return { ok: false, holder: e.data && e.data.holder };
+        throw e;
+      }
+    },
+    release: (opts) => api('/api/lock', { method: 'DELETE', keepalive: !!(opts && opts.keepalive) }).catch(() => {}),
+  };
   const user = {
     async canEdit() { return !!me && me.role === 'admin'; },
     async isOwner() { return false; },
@@ -119,9 +133,10 @@
 
   window.claude = {
     async use(name) {
-      if (name !== 'db' && name !== 'user') return null;
+      if (!['db', 'user', 'lock'].includes(name)) return null;
       await ensureLogin();
       afterLogin();
+      if (name === 'lock') return me.role === 'admin' ? lock : null;
       return name === 'db' ? db : user;
     },
   };
@@ -136,14 +151,15 @@
     who.className = 'sync';
     who.textContent = me.name;
     document.querySelector('.top .sub').appendChild(who);
-    if (me.role === 'admin') setupAdminTools(); else setupClaim();
+    // 管理者の追加は管理者が一覧で行う。管理者コードは管理者が1人もいないときだけ表示
+    if (me.role === 'admin') setupAdminTools(); else if (cfg.needsAdmin) setupClaim();
   }
   function setupClaim() {
     const box = document.createElement('div');
     box.className = 'cf-claim';
     box.innerHTML = `<details><summary>管理者の方はこちら</summary>
       <form id="cfClaim"><input id="cfCode" placeholder="管理者コード" autocomplete="off"> <button>管理者になる</button></form>
-      <p class="hint">管理者コードはチームの管理者に聞いてください。ほかの管理者に「管理者と同じ権限」にしてもらうこともできます。</p></details>`;
+      <p class="hint">まだ管理者がいないため表示しています。最初の管理者だけが、Cloudflare に設定した管理者コードを入力してください。</p></details>`;
     document.body.appendChild(box);
     box.querySelector('#cfClaim').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -156,9 +172,14 @@
     if (!card) return;
     card.innerHTML = `<h2>共有と権限</h2>
       <p class="hint">メンバーには <b>このページのURL</b>(LINEで開くならLIFFのURL)を送ってください。LINEでログインした人は最初は「閲覧のみ」です。
-      一緒に編集する人は、下の一覧で「管理者と同じ権限」にしてください。</p>
-      <div id="cfUsers" class="perm"><p class="muted">読み込み中…</p></div>`;
+      一緒に編集する人には、一度ログインしてもらってから、下の一覧で「管理者と同じ権限」にしてください。
+      管理者の編集は同時に1人だけです(ほかの管理者には「〇〇さんが編集中です」と表示されます)。</p>
+      <div id="cfUsers" class="perm"><p class="muted">読み込み中…</p></div>
+      <button id="cfUsersReload" type="button">一覧を更新</button>`;
     loadUsers();
+    // あとからログインした人も出るように、書き出しタブを開くたびに読み直す
+    document.querySelector('.tabs [data-tab="export"]').addEventListener('click', loadUsers);
+    card.querySelector('#cfUsersReload').addEventListener('click', loadUsers);
   }
   async function loadUsers() {
     const box = document.getElementById('cfUsers');

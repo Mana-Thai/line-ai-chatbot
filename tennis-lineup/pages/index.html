@@ -152,6 +152,17 @@ button.private-btn { margin-bottom: 4px; }
 .player .p-absent { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .player.absent .p-name, .player.absent .p-agebox, .player.absent .p-elig, .player.absent .p-gender { opacity: .45; text-decoration: line-through; }
 .player.absent .p-absent { color: var(--err); font-weight: bold; }
+.lockbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+.lockbar.mine { background: var(--okbg); border-color: var(--ok); color: var(--ok); font-size: 14px; }
+.lockbar.busy { background: var(--warnbg); border-color: var(--warn); color: var(--warn); font-weight: bold; font-size: 14px; }
+#app.readonly #tab-roster, #app.readonly #tab-matches, #app.readonly #tab-stats { opacity: .7; }
+
+/* 閲覧のみのメンバー: 管理者用(紫)の部分・操作ボタン・書き出しタブを出さない */
+.member-mode .private, .member-mode .admin-only, .member-mode .p-del, .member-mode .mbtns,
+.member-mode .tabs [data-tab="export"], .member-mode #lockBar { display: none !important; }
+.member-mode #app input, .member-mode #app select { background: transparent; border-color: transparent; color: var(--ink); appearance: none; -webkit-appearance: none; }
+.member-mode .player { grid-template-columns: 1fr 64px; }
 
 
 </style>
@@ -169,21 +180,22 @@ button.private-btn { margin-bottom: 4px; }
 
 <main id="viewer" hidden></main>
 <main id="app">
+  <div id="lockBar" class="lockbar" role="status" hidden></div>
   <p class="legend private">🔒 この色の文字は管理者だけが見られる情報です(年齢・レベル・資格・備考・勝率予測)。メンバー用リンクには入りません。</p>
   <section id="tab-roster" class="tab on">
     <div class="card">
       <label class="row">チーム名 <input id="teamName" placeholder="例:パタヤ日本人テニス会"></label>
-      <p class="hint">選手名簿はこの端末だけに保存されます。メンバーには「書き出し」の閲覧用リンク
+      <p class="hint admin-only">紫色の部分(年齢・レベルなど)は管理者だけが見られます。メンバーには「書き出し」の閲覧用リンク
         (名前・オーダー・出場回数・参加費のみ)を送ってください。</p>
     </div>
     <div id="rosterCheck"></div>
     <div class="card">
       <h2>選手 <span id="rosterCount" class="badge"></span></h2>
       <div id="playerList"></div>
-      <button id="addPlayer" class="primary">+ 選手を追加</button>
-      <button id="loadSample" class="ghost">サンプルデータで試す</button>
+      <button id="addPlayer" class="primary admin-only">+ 選手を追加</button>
+      <button id="loadSample" class="ghost admin-only">サンプルデータで試す</button>
     </div>
-    <div class="card">
+    <div class="card private">
       <h2>種目ごとの出場可能な選手</h2>
       <div id="coverage" class="private"></div>
     </div>
@@ -194,14 +206,14 @@ button.private-btn { margin-bottom: 4px; }
       <label class="row">参加チーム数 <input id="teams" type="number" min="2" max="10" inputmode="numeric"></label>
       <p class="hint" id="formatText"></p>
       <label class="check"><input type="checkbox" id="oneEvent"> 1つの対戦では1人1種目まで(推奨)</label>
-      <button id="rebuildMatches">このチーム数で対戦カードを作り直す</button>
+      <button id="rebuildMatches" class="admin-only">このチーム数で対戦カードを作り直す</button>
     </div>
     <div id="matchList"></div>
-    <button id="autoMatches" class="primary">⚡ 出場回数をできるだけ均等にして全対戦を自動作成(おすすめ)</button>
-    <p class="hint">年齢条件・1人1種目・不参加を守ったうえで、<b>出場回数をそろえることを最優先</b>に全対戦を組み直します(男子どうし・女子どうしでそろえます。種目の枠の数が男女で違うため、男女の間の差は比べません)。同じくらいそろう組み方が複数あるときは、勝率の高い方を選びます。</p>
-    <button id="balanceMatches" class="ghost private-btn">⚖️ 勝率を重視して全対戦を自動作成(出場回数に差が出ることがあります)</button>
+    <button id="autoMatches" class="primary admin-only">⚡ 出場回数をできるだけ均等にして全対戦を自動作成(おすすめ)</button>
+    <p class="hint admin-only">年齢条件・1人1種目・不参加を守ったうえで、<b>出場回数をそろえることを最優先</b>に全対戦を組み直します(男子どうし・女子どうしでそろえます。種目の枠の数が男女で違うため、男女の間の差は比べません)。同じくらいそろう組み方が複数あるときは、勝率の高い方を選びます。</p>
+    <button id="balanceMatches" class="ghost private-btn admin-only">⚖️ 勝率を重視して全対戦を自動作成(出場回数に差が出ることがあります)</button>
     <p class="hint private">🔒 勝率予測(相手の強さ・選手レベル)を優先し、出場回数は多少ずれてもよい場合に使います。</p>
-    <button id="addMatch" class="ghost">+ 対戦を追加</button>
+    <button id="addMatch" class="ghost admin-only">+ 対戦を追加</button>
   </section>
 
   <section id="tab-stats" class="tab">
@@ -700,7 +712,9 @@ window.TENNIS_VIEWER_ONLY = true;
     el.textContent = text;
     el.className = 'sync ' + (cls || '');
   }
+  let memberMode = false; // 閲覧のみのメンバー(年齢・レベル等を含まない公開用データを表示するだけ)
   function save() {
+    if (memberMode) return;
     const json = JSON.stringify(state);
     if (json === lastSaved) return;
     try { localStorage.setItem(KEY, json); } catch (e) { /* noop */ }
@@ -719,12 +733,13 @@ window.TENNIS_VIEWER_ONLY = true;
       const savedAt = Math.max(Date.now(), latestSavedAt + 1);
       latestSavedAt = savedAt;
       await remote.set({ state: JSON.parse(json), savedAt, by: clientId });
-      if (publicRef) await publicRef.set({ view: shareData(), savedAt });
+      if (publicRef) await publicRef.set({ view: shareData(), pub: publicState(), savedAt });
       lastSaved = json;
       if (JSON.stringify(state) === json) dirty = false;
       setSync('☁ 保存済み(管理者で共有)', 'ok');
     } catch (e) {
       setSync('⚠ 保存できませんでした(この端末には保存済み)', 'err');
+      if (e && e.status === 409 && editLock) { writing = false; dirty = false; lockLost(e.message); return; }
     }
     writing = false;
     if (again) { again = false; flush(); }
@@ -752,20 +767,133 @@ window.TENNIS_VIEWER_ONLY = true;
     setSync('この端末に保存されます', '');
     showApp();
   }
+  // メンバーに見せてよい内容だけを取り出す(名前・性別・不参加・対戦カードとオーダー・チーム数・参加費)
+  function publicState() {
+    const s = state.settings;
+    return {
+      settings: { teamName: s.teamName, teams: s.teams, fee: s.fee, oneEvent: s.oneEvent, cardsFor: s.cardsFor || 0 },
+      players: state.players.map((p) => ({ id: p.id, name: p.name, gender: p.gender, absent: !!p.absent })),
+      matches: state.matches.map((m) => ({ id: m.id, label: m.label, note: m.note || '', opponent: m.opponent || '', lineup: m.lineup })),
+    };
+  }
   function startMember(db) {
     setRole('閲覧のみ');
     setSync('', '');
     $('#syncStatus').hidden = true;
+    memberMode = true;
+    document.body.classList.add('member-mode');
     renderViewer({ m: [] });
     $('#viewer').innerHTML = '<div class="card muted">読み込み中…</div>';
     db.doc('public/order').onSnapshot((snap) => {
-      const view = snap.exists && snap.data().view;
-      if (view) renderViewer(view);
+      const d = snap.exists && snap.data();
+      const view = d && d.view;
+      if (d && d.pub) {
+        // 管理者画面と同じタブ構成で、見るだけ(紫の管理者用部分と操作ボタンは出さない)
+        state = migrate(d.pub);
+        showApp();
+        if ($('.tabs [data-tab="export"]').classList.contains('on')) $('.tabs [data-tab="roster"]').click();
+        renderAll();
+      } else if (view) renderViewer(view);
       else $('#viewer').innerHTML = '<div class="card"><h2>オーダー表</h2><p>まだオーダーが公開されていません。管理者が入力すると、ここに自動で表示されます。</p></div>';
     }, () => {
       $('#viewer').innerHTML = '<div class="card"><p>オーダーを読み込めませんでした。ページを開き直してください。</p></div>';
     });
   }
+  // ---------- 編集ロック(Cloudflare版の管理者どうし) ----------
+  // 編集は全体で1人だけ。入力を始めると自動で「編集中」になり、ほかの管理者の画面は
+  // 「〇〇さんが編集中です」と表示して見るだけにする。3分間操作がなければ自動で終了。
+  // 守っているのはサーバー(ロックを持たない保存は409で断る)。画面側は分かりやすく見せるだけ。
+  const LOCK_RENEW_MS = 10000, LOCK_IDLE_MS = 3 * 60000, LOCK_POLL_MS = 4000;
+  let editLock = null; // {api, ref, mine, holder, lastActive, renewTimer, acquiring}
+  function applyEditable() {
+    const ro = !!editLock && !editLock.mine && !!editLock.holder;
+    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = ro;
+    for (const id of ['resetAll', 'loadFile', 'loadSample']) { const el = document.getElementById(id); if (el) el.disabled = ro; }
+    $('#app').classList.toggle('readonly', ro);
+    const bar = $('#lockBar');
+    bar.hidden = false;
+    if (editLock.mine) {
+      bar.className = 'lockbar mine';
+      bar.innerHTML = '<span>✏️ あなたが編集中です(ほかの管理者は見るだけになります)</span><button id="lockEnd">編集を終える</button>';
+    } else if (editLock.holder) {
+      bar.className = 'lockbar busy';
+      bar.innerHTML = `<span>🔒 ${esc(editLock.holder.name || '他の管理者')}さんが編集中です。編集が終わるまでお待ちください(画面は自動で最新になります)</span>`;
+    } else {
+      bar.className = 'lockbar';
+      bar.innerHTML = '<span>入力を始めると自動で「編集中」になり、ほかの管理者は同時に編集できなくなります。</span>';
+    }
+  }
+  async function reloadFromServer() {
+    const d = (await editLock.ref.get()).data();
+    if (d && d.state) {
+      state = migrate(d.state);
+      latestSavedAt = d.savedAt || latestSavedAt;
+      lastSaved = JSON.stringify(state);
+      renderAll();
+    }
+  }
+  function lockLost(message) {
+    clearInterval(editLock.renewTimer);
+    editLock.mine = false;
+    toast(message || '編集の権利が切れました');
+    reloadFromServer().catch(() => {});
+    pollLock();
+  }
+  async function pollLock() {
+    if (!editLock || editLock.mine) return;
+    try {
+      const s = await editLock.api.status();
+      editLock.holder = s.holder && !s.mine ? s.holder : null;
+    } catch (e) { /* 次の確認で */ }
+    applyEditable();
+  }
+  async function beginEditing() {
+    if (editLock.mine || editLock.acquiring || editLock.holder) { if (editLock.mine) editLock.lastActive = Date.now(); return; }
+    editLock.acquiring = true;
+    try {
+      const r = await editLock.api.acquire();
+      if (r.ok) {
+        editLock.mine = true; editLock.holder = null; editLock.lastActive = Date.now();
+        clearInterval(editLock.renewTimer);
+        editLock.renewTimer = setInterval(renewLock, LOCK_RENEW_MS);
+      } else {
+        editLock.holder = r.holder || { name: '他の管理者' };
+        toast(`${editLock.holder.name}さんが編集中です`);
+        if (dirty) { dirty = false; clearTimeout(saveTimer); await reloadFromServer(); }
+      }
+    } catch (e) { /* 通信エラー: 次の操作で再挑戦 */ }
+    editLock.acquiring = false;
+    applyEditable();
+  }
+  async function renewLock() {
+    if (!editLock.mine) return;
+    if (Date.now() - editLock.lastActive > LOCK_IDLE_MS) { await endEditing(); toast('3分間操作がなかったので編集を終えました'); return; }
+    const r = await editLock.api.acquire().catch(() => null);
+    if (r && !r.ok) lockLost(`${(r.holder && r.holder.name) || '他の管理者'}さんが編集を始めました`);
+  }
+  async function endEditing() {
+    if (!editLock.mine) return;
+    clearInterval(editLock.renewTimer);
+    clearTimeout(saveTimer);
+    if (dirty) await flush(); // 未保存の変更を先に保存してから手放す
+    editLock.mine = false;
+    await editLock.api.release();
+    applyEditable();
+  }
+  function startEditLock(api, ref) {
+    editLock = { api, ref, mine: false, holder: null, lastActive: 0, renewTimer: null, acquiring: false };
+    // 名簿・オーダー・参加費の画面と、読み込み/消去のボタンに触れたら編集開始
+    const touch = (e) => {
+      if (!e.target.closest('#tab-roster, #tab-matches, #tab-stats, #loadFile, #resetAll, .filebtn')) return;
+      beginEditing();
+    };
+    for (const ev of ['pointerdown', 'keydown', 'focusin']) $('#app').addEventListener(ev, touch, true);
+    $('#lockBar').addEventListener('click', (e) => { if (e.target.id === 'lockEnd') endEditing(); });
+    window.addEventListener('pagehide', () => { if (editLock.mine) editLock.api.release({ keepalive: true }); });
+    setInterval(pollLock, LOCK_POLL_MS);
+    pollLock();
+  }
+
   async function connectRemote() {
     const use = window.claude && window.claude.use;
     if (!use) { startLocal(); return; }
@@ -802,10 +930,12 @@ window.TENNIS_VIEWER_ONLY = true;
         setSync('☁ 保存されます(管理者で共有)', 'ok');
       }
       showApp();
+      const lockApi = await use('lock').catch(() => null);
+      if (lockApi) startEditLock(lockApi, ref);
       // 他の管理者の変更をそのまま反映する(自分の書き込みと未保存の編集中は除く)
       ref.onSnapshot((snap) => {
         const d = snap.exists && snap.data();
-        if (!d || !d.state || d.by === clientId || dirty || writing) return;
+        if (!d || !d.state || d.by === clientId || dirty || writing || (editLock && editLock.mine)) return;
         if (snap.metadata && snap.metadata.fromCache) return; // 確定していない(古いかもしれない)内容は使わない
         if (!(d.savedAt > latestSavedAt)) return;            // 手元より古い保存は無視
         latestSavedAt = d.savedAt;
@@ -978,14 +1108,22 @@ window.TENNIS_VIEWER_ONLY = true;
       groups.get(n).push(e);
     }
     const opts = [...groups.keys()].sort((a, b) => a - b).map((n) => `<optgroup label="出場${n}試合">${groups.get(n).map((e) => {
-      const fit = R.canEnter(ev, e.player, e.age);
-      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}(${n}試合)</option>`;
+      const fit = memberMode || R.canEnter(ev, e.player, e.age);
+      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}${memberMode ? '' : `(${n}試合)`}</option>`;
     }).join('')}</optgroup>`);
     const ph = ev.kind === 'X' ? (slot === 0 ? '女子を選択' : '男子を選択') : '選手を選択';
     return `<option value="">${ph}</option>${opts.join('')}`;
   }
 
   function matchIssues(m) {
+    if (memberMode) {
+      const out = {};
+      for (const ev of R.EVENTS) {
+        const pair = m.lineup[ev.id] || ['', ''];
+        out[ev.id] = { state: byId(pair[0]) && byId(pair[1]) ? 'ok' : 'empty', msgs: [] };
+      }
+      return out;
+    }
     const out = {};
     const seen = {};
     for (const ev of R.EVENTS) {
@@ -1042,8 +1180,20 @@ window.TENNIS_VIEWER_ONLY = true;
     </div>`;
   }
 
+  // 混合ダブルスは「女子・男子」の順にそろえる(自動作成や提案の結果は男女の順が決まっていないため)
+  function normalizeLineups() {
+    for (const m of state.matches) {
+      for (const ev of R.EVENTS) {
+        const pair = m.lineup[ev.id];
+        if (ev.kind !== 'X' || !pair || pair.length !== 2) continue;
+        const a = byId(pair[0]), b = byId(pair[1]);
+        if (a && b && a.gender === 'M' && b.gender === 'F') m.lineup[ev.id] = [pair[1], pair[0]];
+      }
+    }
+  }
   function renderMatches() {
-    if (!state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
+    normalizeLineups();
+    if (!memberMode && !state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
     totals = loadCount(null);
     const f = R.formatFor(state.settings.teams);
     $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
@@ -1383,12 +1533,18 @@ window.TENNIS_VIEWER_ONLY = true;
     window.scrollTo(0, 0);
   }));
 
+  function applyMemberMode() {
+    if (!memberMode) return;
+    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = true;
+    $('#rosterCheck').hidden = true;
+  }
   function renderAll() {
     renderSettings();
     renderPlayers();
     renderMatches();
     renderStats();
     renderExport();
+    applyMemberMode();
   }
 
   // メンバー用の閲覧画面(読み取り専用・年齢なし)
