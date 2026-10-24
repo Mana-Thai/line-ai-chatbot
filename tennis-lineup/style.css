@@ -143,3 +143,9 @@ button.private-btn { margin-bottom: 4px; }
 .lockbar.mine { background: var(--okbg); border-color: var(--ok); color: var(--ok); font-size: 14px; }
 .lockbar.busy { background: var(--warnbg); border-color: var(--warn); color: var(--warn); font-weight: bold; font-size: 14px; }
 #app.readonly #tab-roster, #app.readonly #tab-matches, #app.readonly #tab-stats { opacity: .7; }
+
+/* 閲覧のみのメンバー: 管理者用(紫)の部分・操作ボタン・書き出しタブを出さない */
+.member-mode .private, .member-mode .admin-only, .member-mode .p-del, .member-mode .mbtns,
+.member-mode .tabs [data-tab="export"], .member-mode #lockBar { display: none !important; }
+.member-mode #app input, .member-mode #app select { background: transparent; border-color: transparent; color: var(--ink); appearance: none; -webkit-appearance: none; }
+.member-mode .player { grid-template-columns: 1fr 64px; }

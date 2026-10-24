@@ -45,7 +45,9 @@
     el.textContent = text;
     el.className = 'sync ' + (cls || '');
   }
+  let memberMode = false; // 閲覧のみのメンバー(年齢・レベル等を含まない公開用データを表示するだけ)
   function save() {
+    if (memberMode) return;
     const json = JSON.stringify(state);
     if (json === lastSaved) return;
     try { localStorage.setItem(KEY, json); } catch (e) { /* noop */ }
@@ -64,7 +66,7 @@
       const savedAt = Math.max(Date.now(), latestSavedAt + 1);
       latestSavedAt = savedAt;
       await remote.set({ state: JSON.parse(json), savedAt, by: clientId });
-      if (publicRef) await publicRef.set({ view: shareData(), savedAt });
+      if (publicRef) await publicRef.set({ view: shareData(), pub: publicState(), savedAt });
       lastSaved = json;
       if (JSON.stringify(state) === json) dirty = false;
       setSync('☁ 保存済み(管理者で共有)', 'ok');
@@ -98,15 +100,33 @@
     setSync('この端末に保存されます', '');
     showApp();
   }
+  // メンバーに見せてよい内容だけを取り出す(名前・性別・不参加・対戦カードとオーダー・チーム数・参加費)
+  function publicState() {
+    const s = state.settings;
+    return {
+      settings: { teamName: s.teamName, teams: s.teams, fee: s.fee, oneEvent: s.oneEvent, cardsFor: s.cardsFor || 0 },
+      players: state.players.map((p) => ({ id: p.id, name: p.name, gender: p.gender, absent: !!p.absent })),
+      matches: state.matches.map((m) => ({ id: m.id, label: m.label, note: m.note || '', opponent: m.opponent || '', lineup: m.lineup })),
+    };
+  }
   function startMember(db) {
     setRole('閲覧のみ');
     setSync('', '');
     $('#syncStatus').hidden = true;
+    memberMode = true;
+    document.body.classList.add('member-mode');
     renderViewer({ m: [] });
     $('#viewer').innerHTML = '<div class="card muted">読み込み中…</div>';
     db.doc('public/order').onSnapshot((snap) => {
-      const view = snap.exists && snap.data().view;
-      if (view) renderViewer(view);
+      const d = snap.exists && snap.data();
+      const view = d && d.view;
+      if (d && d.pub) {
+        // 管理者画面と同じタブ構成で、見るだけ(紫の管理者用部分と操作ボタンは出さない)
+        state = migrate(d.pub);
+        showApp();
+        if ($('.tabs [data-tab="export"]').classList.contains('on')) $('.tabs [data-tab="roster"]').click();
+        renderAll();
+      } else if (view) renderViewer(view);
       else $('#viewer').innerHTML = '<div class="card"><h2>オーダー表</h2><p>まだオーダーが公開されていません。管理者が入力すると、ここに自動で表示されます。</p></div>';
     }, () => {
       $('#viewer').innerHTML = '<div class="card"><p>オーダーを読み込めませんでした。ページを開き直してください。</p></div>';
@@ -421,14 +441,22 @@
       groups.get(n).push(e);
     }
     const opts = [...groups.keys()].sort((a, b) => a - b).map((n) => `<optgroup label="出場${n}試合">${groups.get(n).map((e) => {
-      const fit = R.canEnter(ev, e.player, e.age);
-      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}(${n}試合)</option>`;
+      const fit = memberMode || R.canEnter(ev, e.player, e.age);
+      return `<option value="${e.player.id}" ${e.player.id === selected ? 'selected' : ''}>${fit ? '' : '× '}${esc(label(e.player))}${memberMode ? '' : `(${n}試合)`}</option>`;
     }).join('')}</optgroup>`);
     const ph = ev.kind === 'X' ? (slot === 0 ? '女子を選択' : '男子を選択') : '選手を選択';
     return `<option value="">${ph}</option>${opts.join('')}`;
   }
 
   function matchIssues(m) {
+    if (memberMode) {
+      const out = {};
+      for (const ev of R.EVENTS) {
+        const pair = m.lineup[ev.id] || ['', ''];
+        out[ev.id] = { state: byId(pair[0]) && byId(pair[1]) ? 'ok' : 'empty', msgs: [] };
+      }
+      return out;
+    }
     const out = {};
     const seen = {};
     for (const ev of R.EVENTS) {
@@ -485,8 +513,20 @@
     </div>`;
   }
 
+  // 混合ダブルスは「女子・男子」の順にそろえる(自動作成や提案の結果は男女の順が決まっていないため)
+  function normalizeLineups() {
+    for (const m of state.matches) {
+      for (const ev of R.EVENTS) {
+        const pair = m.lineup[ev.id];
+        if (ev.kind !== 'X' || !pair || pair.length !== 2) continue;
+        const a = byId(pair[0]), b = byId(pair[1]);
+        if (a && b && a.gender === 'M' && b.gender === 'F') m.lineup[ev.id] = [pair[1], pair[0]];
+      }
+    }
+  }
   function renderMatches() {
-    if (!state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
+    normalizeLineups();
+    if (!memberMode && !state.matches.length && !state.settings.cardsFor && entries().length && buildCards()) autofillAll();
     totals = loadCount(null);
     const f = R.formatFor(state.settings.teams);
     $('#formatText').textContent = f ? `${f.text}。自チームの試合数は最大${f.matches}試合。` : '';
@@ -826,12 +866,18 @@
     window.scrollTo(0, 0);
   }));
 
+  function applyMemberMode() {
+    if (!memberMode) return;
+    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = true;
+    $('#rosterCheck').hidden = true;
+  }
   function renderAll() {
     renderSettings();
     renderPlayers();
     renderMatches();
     renderStats();
     renderExport();
+    applyMemberMode();
   }
 
   // メンバー用の閲覧画面(読み取り専用・年齢なし)
