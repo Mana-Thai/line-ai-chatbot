@@ -62,7 +62,7 @@ button.icon { padding: 6px 10px; }
 .badge.okb { background: var(--okbg); color: var(--ok); }
 .check { display: flex; gap: 6px; align-items: center; font-size: 14px; }
 
-.player { display: grid; grid-template-columns: 1fr 64px; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.player { display: grid; grid-template-columns: 1fr 76px; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .player .p-name { grid-column: 1 / 2; }
 .player .p-agebox { grid-column: 1 / 2; display: flex; align-items: center; gap: 6px; }
 .player .p-age { width: 80px; }
@@ -89,7 +89,7 @@ button.icon { padding: 6px 10px; }
 .ev.err .msg { color: var(--err); } .ev.warn .msg { color: var(--warn); }
 .mbtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-.scroll { overflow-x: auto; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
 .stats { border-collapse: collapse; font-size: 13px; width: 100%; }
 .stats th, .stats td { border: 1px solid var(--line); padding: 4px 6px; text-align: center; white-space: nowrap; }
 .stats tbody th { text-align: left; }
@@ -103,7 +103,7 @@ textarea { width: 100%; min-height: 200px; border: 1px solid var(--line); border
 #tab-export .card > button, #tab-export .filebtn { margin: 4px 4px 0 0; }
 
 @media (min-width: 640px) {
-  .player { grid-template-columns: 1.4fr 64px 110px 1.4fr auto; }
+  .player { grid-template-columns: 1.4fr 76px 110px 1.4fr auto; }
   .player .p-name, .player .p-agebox, .player .p-elig { grid-column: auto; }
   .row { flex-direction: row; align-items: center; justify-content: space-between; }
 }
@@ -163,7 +163,16 @@ button.private-btn { margin-bottom: 4px; }
 .member-mode .private, .member-mode .admin-only, .member-mode .p-del, .member-mode .mbtns,
 .member-mode .tabs [data-tab="export"], .member-mode #lockBar { display: none !important; }
 .member-mode #app input, .member-mode #app select { background: transparent; border-color: transparent; color: var(--ink); appearance: none; -webkit-appearance: none; }
-.member-mode .player { grid-template-columns: 1fr 64px; }
+.member-mode .player { grid-template-columns: 1fr 76px; }
+
+/* 見るだけの状態: 入力欄・ボタンは触れない(スクロールはできる) */
+#app.controls-locked :is(#tab-roster, #tab-matches, #tab-stats) :is(input, select, textarea, button, label) { pointer-events: none; }
+/* 出場・参加費の表: 選手名の列を固定して、横にスライドしても名前が見えるように */
+.stats th:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); }
+.stats thead th:first-child, .stats tfoot th:first-child { background: var(--bg); }
+.scroll-hint { margin: 0 0 4px; }
+.member-mode #app :is(input, select):disabled { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); }
+.member-mode .player.absent :is(input, select):disabled { color: var(--muted); -webkit-text-fill-color: var(--muted); }
 
 .cf-overlay { position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 85%, transparent); display: grid; place-items: center; padding: 16px; }
 .cf-box { max-width: 420px; width: 100%; }
@@ -280,7 +289,7 @@ button.private-btn { margin-bottom: 4px; }
 <template id="playerTpl">
   <div class="player">
     <input class="p-name" placeholder="名前">
-    <select class="p-gender"><option value="M">男</option><option value="F">女</option></select>
+    <select class="p-gender"><option value="M">男性</option><option value="F">女性</option></select>
     <div class="p-agebox private">
       <input class="p-age private" type="number" min="10" max="110" inputmode="numeric" placeholder="年齢" aria-label="年齢">歳
       <select class="p-level private" aria-label="レベル"><option value="">レベル</option>
@@ -1010,11 +1019,23 @@ button.private-btn { margin-bottom: 4px; }
   // 編集は全体で1人だけ。入力を始めると自動で「編集中」になり、ほかの管理者の画面は
   // 「〇〇さんが編集中です」と表示して見るだけにする。3分間操作がなければ自動で終了。
   // 守っているのはサーバー(ロックを持たない保存は409で断る)。画面側は分かりやすく見せるだけ。
+  // 見るだけの状態: 名簿・オーダー・参加費の入力欄とボタンだけを止める(画面全体を止めると表を横にスライドできなくなるため)
+  const lockedArea = '#tab-roster, #tab-matches, #tab-stats';
+  function lockControls(on) { $('#app').classList.toggle('controls-locked', !!on); }
+  const controlsLocked = () => $('#app').classList.contains('controls-locked');
+  for (const ev of ['beforeinput', 'keydown', 'paste', 'drop', 'change', 'click']) {
+    $('#app').addEventListener(ev, (e) => {
+      if (!controlsLocked() || !e.target.closest(lockedArea) || !e.target.closest('input, select, textarea, button, label')) return;
+      if (ev === 'keydown' && e.key === 'Tab') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
+  }
   const LOCK_RENEW_MS = 10000, LOCK_IDLE_MS = 3 * 60000, LOCK_POLL_MS = 4000;
   let editLock = null; // {api, ref, mine, holder, lastActive, renewTimer, acquiring}
   function applyEditable() {
     const ro = !!editLock && !editLock.mine && !!editLock.holder;
-    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = ro;
+    lockControls(ro);
     for (const id of ['resetAll', 'loadFile', 'loadSample']) { const el = document.getElementById(id); if (el) el.disabled = ro; }
     $('#app').classList.toggle('readonly', ro);
     const bar = $('#lockBar');
@@ -1217,7 +1238,7 @@ button.private-btn { margin-bottom: 4px; }
     const n = state.players.length;
     $('#loadSample').hidden = n > 0;
     const absent = state.players.filter((p) => p.absent).length;
-    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})${absent ? `・不参加${absent}人` : ''}`;
+    $('#rosterCount').textContent = `${n}人(男性${state.players.filter((p) => p.gender === 'M').length}・女性${state.players.filter((p) => p.gender === 'F').length})${absent ? `・不参加${absent}人` : ''}`;
     const { errors, warnings } = R.checkRoster(state.players);
     $('#rosterCheck').innerHTML = (errors.length || warnings.length)
       ? `<div class="card alert">${errors.map((e) => `<p class="err">✕ ${esc(e)}</p>`).join('')}${warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`).join('')}</div>`
@@ -1579,7 +1600,7 @@ button.private-btn { margin-bottom: 4px; }
     const share = R.splitFee(Number(fee) || 0, counts);
     const rows = names.map((name) => `<tr class="${counts[name] ? '' : 'zero'}"><th>${esc(name)}</th>${cellsOf[name]}<td><b>${counts[name]}</b></td><td class="fee">${share[name].toLocaleString()}</td></tr>`).join('');
     const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-    return `<div class="scroll"><table class="stats">
+    return `<p class="hint scroll-hint">← 表は横にスライドして全体を見られます →</p><div class="scroll"><table class="stats">
       <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.label || '対戦')}</th>`).join('')}<th>計</th><th>参加費</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><th>合計</th>${ms.map(() => '<td></td>').join('')}<td><b>${totalCount}</b></td><td class="fee">${totalCount ? Number(fee).toLocaleString() : 0}</td></tr></tfoot>
@@ -1737,12 +1758,16 @@ button.private-btn { margin-bottom: 4px; }
     $$('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
     $$('.tab').forEach((t) => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
     tabRenderers[b.dataset.tab]();
+    applyMemberMode();
     window.scrollTo(0, 0);
   }));
 
   function applyMemberMode() {
     if (!memberMode) return;
-    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = true;
+    lockControls(true);
+    // 閲覧のみ: 入力欄・選択欄そのものも無効にする(見た目は CSS で通常の文字に)
+    document.querySelectorAll('#tab-roster :is(input, select, textarea), #tab-matches :is(input, select, textarea), #tab-stats :is(input, select, textarea)')
+      .forEach((el) => (el.disabled = true));
     $('#rosterCheck').hidden = true;
   }
   function renderAll() {

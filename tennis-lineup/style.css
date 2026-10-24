@@ -47,7 +47,7 @@ button.icon { padding: 6px 10px; }
 .badge.okb { background: var(--okbg); color: var(--ok); }
 .check { display: flex; gap: 6px; align-items: center; font-size: 14px; }
 
-.player { display: grid; grid-template-columns: 1fr 64px; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.player { display: grid; grid-template-columns: 1fr 76px; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .player .p-name { grid-column: 1 / 2; }
 .player .p-agebox { grid-column: 1 / 2; display: flex; align-items: center; gap: 6px; }
 .player .p-age { width: 80px; }
@@ -74,7 +74,7 @@ button.icon { padding: 6px 10px; }
 .ev.err .msg { color: var(--err); } .ev.warn .msg { color: var(--warn); }
 .mbtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-.scroll { overflow-x: auto; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
 .stats { border-collapse: collapse; font-size: 13px; width: 100%; }
 .stats th, .stats td { border: 1px solid var(--line); padding: 4px 6px; text-align: center; white-space: nowrap; }
 .stats tbody th { text-align: left; }
@@ -88,7 +88,7 @@ textarea { width: 100%; min-height: 200px; border: 1px solid var(--line); border
 #tab-export .card > button, #tab-export .filebtn { margin: 4px 4px 0 0; }
 
 @media (min-width: 640px) {
-  .player { grid-template-columns: 1.4fr 64px 110px 1.4fr auto; }
+  .player { grid-template-columns: 1.4fr 76px 110px 1.4fr auto; }
   .player .p-name, .player .p-agebox, .player .p-elig { grid-column: auto; }
   .row { flex-direction: row; align-items: center; justify-content: space-between; }
 }
@@ -148,4 +148,13 @@ button.private-btn { margin-bottom: 4px; }
 .member-mode .private, .member-mode .admin-only, .member-mode .p-del, .member-mode .mbtns,
 .member-mode .tabs [data-tab="export"], .member-mode #lockBar { display: none !important; }
 .member-mode #app input, .member-mode #app select { background: transparent; border-color: transparent; color: var(--ink); appearance: none; -webkit-appearance: none; }
-.member-mode .player { grid-template-columns: 1fr 64px; }
+.member-mode .player { grid-template-columns: 1fr 76px; }
+
+/* 見るだけの状態: 入力欄・ボタンは触れない(スクロールはできる) */
+#app.controls-locked :is(#tab-roster, #tab-matches, #tab-stats) :is(input, select, textarea, button, label) { pointer-events: none; }
+/* 出場・参加費の表: 選手名の列を固定して、横にスライドしても名前が見えるように */
+.stats th:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); }
+.stats thead th:first-child, .stats tfoot th:first-child { background: var(--bg); }
+.scroll-hint { margin: 0 0 4px; }
+.member-mode #app :is(input, select):disabled { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); }
+.member-mode .player.absent :is(input, select):disabled { color: var(--muted); -webkit-text-fill-color: var(--muted); }
