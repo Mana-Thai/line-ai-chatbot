@@ -136,11 +136,23 @@
   // 編集は全体で1人だけ。入力を始めると自動で「編集中」になり、ほかの管理者の画面は
   // 「〇〇さんが編集中です」と表示して見るだけにする。3分間操作がなければ自動で終了。
   // 守っているのはサーバー(ロックを持たない保存は409で断る)。画面側は分かりやすく見せるだけ。
+  // 見るだけの状態: 名簿・オーダー・参加費の入力欄とボタンだけを止める(画面全体を止めると表を横にスライドできなくなるため)
+  const lockedArea = '#tab-roster, #tab-matches, #tab-stats';
+  function lockControls(on) { $('#app').classList.toggle('controls-locked', !!on); }
+  const controlsLocked = () => $('#app').classList.contains('controls-locked');
+  for (const ev of ['beforeinput', 'keydown', 'paste', 'drop', 'change', 'click']) {
+    $('#app').addEventListener(ev, (e) => {
+      if (!controlsLocked() || !e.target.closest(lockedArea) || !e.target.closest('input, select, textarea, button, label')) return;
+      if (ev === 'keydown' && e.key === 'Tab') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
+  }
   const LOCK_RENEW_MS = 10000, LOCK_IDLE_MS = 3 * 60000, LOCK_POLL_MS = 4000;
   let editLock = null; // {api, ref, mine, holder, lastActive, renewTimer, acquiring}
   function applyEditable() {
     const ro = !!editLock && !editLock.mine && !!editLock.holder;
-    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = ro;
+    lockControls(ro);
     for (const id of ['resetAll', 'loadFile', 'loadSample']) { const el = document.getElementById(id); if (el) el.disabled = ro; }
     $('#app').classList.toggle('readonly', ro);
     const bar = $('#lockBar');
@@ -343,7 +355,7 @@
     const n = state.players.length;
     $('#loadSample').hidden = n > 0;
     const absent = state.players.filter((p) => p.absent).length;
-    $('#rosterCount').textContent = `${n}人(男${state.players.filter((p) => p.gender === 'M').length}・女${state.players.filter((p) => p.gender === 'F').length})${absent ? `・不参加${absent}人` : ''}`;
+    $('#rosterCount').textContent = `${n}人(男性${state.players.filter((p) => p.gender === 'M').length}・女性${state.players.filter((p) => p.gender === 'F').length})${absent ? `・不参加${absent}人` : ''}`;
     const { errors, warnings } = R.checkRoster(state.players);
     $('#rosterCheck').innerHTML = (errors.length || warnings.length)
       ? `<div class="card alert">${errors.map((e) => `<p class="err">✕ ${esc(e)}</p>`).join('')}${warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`).join('')}</div>`
@@ -705,7 +717,7 @@
     const share = R.splitFee(Number(fee) || 0, counts);
     const rows = names.map((name) => `<tr class="${counts[name] ? '' : 'zero'}"><th>${esc(name)}</th>${cellsOf[name]}<td><b>${counts[name]}</b></td><td class="fee">${share[name].toLocaleString()}</td></tr>`).join('');
     const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-    return `<div class="scroll"><table class="stats">
+    return `<p class="hint scroll-hint">← 表は横にスライドして全体を見られます →</p><div class="scroll"><table class="stats">
       <thead><tr><th>選手</th>${ms.map((m) => `<th>${esc(m.label || '対戦')}</th>`).join('')}<th>計</th><th>参加費</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><th>合計</th>${ms.map(() => '<td></td>').join('')}<td><b>${totalCount}</b></td><td class="fee">${totalCount ? Number(fee).toLocaleString() : 0}</td></tr></tfoot>
@@ -863,12 +875,16 @@
     $$('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
     $$('.tab').forEach((t) => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
     tabRenderers[b.dataset.tab]();
+    applyMemberMode();
     window.scrollTo(0, 0);
   }));
 
   function applyMemberMode() {
     if (!memberMode) return;
-    for (const id of ['tab-roster', 'tab-matches', 'tab-stats']) document.getElementById(id).inert = true;
+    lockControls(true);
+    // 閲覧のみ: 入力欄・選択欄そのものも無効にする(見た目は CSS で通常の文字に)
+    document.querySelectorAll('#tab-roster :is(input, select, textarea), #tab-matches :is(input, select, textarea), #tab-stats :is(input, select, textarea)')
+      .forEach((el) => (el.disabled = true));
     $('#rosterCheck').hidden = true;
   }
   function renderAll() {
